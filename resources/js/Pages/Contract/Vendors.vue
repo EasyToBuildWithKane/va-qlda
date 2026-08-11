@@ -28,11 +28,13 @@ const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const VENDOR_FILTER_CONTROLS = [
     { key: 'scope', label: 'Phạm vi', default: false },
+    { key: 'category', label: 'Loại dịch vụ', default: false },
     { key: 'active', label: 'Trạng thái NCC', default: false },
     { key: 'reviewed', label: 'Đánh giá', default: false },
 ];
 
 const VENDOR_TABLE_COLUMNS = [
+    { key: 'services', label: 'Loại dịch vụ' },
     { key: 'tax_code', label: 'Mã số thuế' },
     { key: 'contact', label: 'Liên hệ' },
     { key: 'contracts', label: 'Hợp đồng' },
@@ -69,7 +71,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(VENDOR_FILTER_CONTROLS, 'va-workspace.vendors.visible-filters.v1');
+} = useVisibleFilterControls(VENDOR_FILTER_CONTROLS, 'va-workspace.vendors.visible-filters.v2');
 
 const {
     visibleCols,
@@ -78,14 +80,17 @@ const {
     openColPanel,
     isColVisible,
     TABLE_COLUMNS,
-} = useVisibleColumns(VENDOR_TABLE_COLUMNS, 'va-workspace.vendors.columns.v1');
+} = useVisibleColumns(VENDOR_TABLE_COLUMNS, 'va-workspace.vendors.columns.v2');
 
 const filterForm = reactive({
     q: props.filters.q ?? '',
     scope: props.filters.scope ?? '',
+    category_id: props.filters.category_id ?? '',
     active: props.filters.active ?? '',
     reviewed: props.filters.reviewed ?? '',
 });
+
+const categoryOptions = computed(() => props.options?.categories ?? []);
 
 const vendorList = computed(() => {
     const raw = props.vendors?.data ?? props.vendors;
@@ -110,9 +115,16 @@ function vendorRouteParams() {
     return {
         q: filterForm.q || undefined,
         scope: filterForm.scope || undefined,
+        category_id: filterForm.category_id || undefined,
         active: filterForm.active || undefined,
         reviewed: filterForm.reviewed || undefined,
     };
+}
+
+function serviceLabels(v) {
+    const list = v?.service_categories;
+    if (!Array.isArray(list) || !list.length) return [];
+    return list.map((c) => c.name).filter(Boolean);
 }
 
 function navigateVendors() {
@@ -130,7 +142,7 @@ watch(() => filterForm.q, () => {
 });
 
 watch(
-    () => [filterForm.scope, filterForm.active, filterForm.reviewed],
+    () => [filterForm.scope, filterForm.category_id, filterForm.active, filterForm.reviewed],
     navigateVendors,
 );
 
@@ -139,6 +151,7 @@ watch(
     (f) => {
         filterForm.q = f.q ?? '';
         filterForm.scope = f.scope ?? '';
+        filterForm.category_id = f.category_id ?? '';
         filterForm.active = f.active ?? '';
         filterForm.reviewed = f.reviewed ?? '';
     },
@@ -457,6 +470,25 @@ async function onDelete(v) {
               </select>
             </DatagridFilterField>
 
+            <DatagridFilterField v-if="visibleFilters.category">
+              <select
+                v-model="filterForm.category_id"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Loại dịch vụ"
+              >
+                <option value="">
+                  Loại dịch vụ
+                </option>
+                <option
+                  v-for="c in categoryOptions"
+                  :key="c.id"
+                  :value="String(c.id)"
+                >
+                  {{ c.name }}
+                </option>
+              </select>
+            </DatagridFilterField>
+
             <DatagridFilterField v-if="visibleFilters.active">
               <select
                 v-model="filterForm.active"
@@ -502,6 +534,12 @@ async function onDelete(v) {
             <tr>
               <th class="min-w-[12rem] px-5 py-3">
                 Nhà cung cấp
+              </th>
+              <th
+                v-if="isColVisible('services')"
+                class="min-w-[10rem] px-5 py-3"
+              >
+                Loại dịch vụ
               </th>
               <th
                 v-if="isColVisible('tax_code')"
@@ -562,6 +600,28 @@ async function onDelete(v) {
                 <p class="font-mono text-xs text-slate-400">
                   {{ v.code }}
                 </p>
+              </td>
+              <td
+                v-if="isColVisible('services')"
+                class="px-5 py-3"
+              >
+                <div
+                  v-if="serviceLabels(v).length"
+                  class="flex flex-wrap gap-1"
+                >
+                  <span
+                    v-for="label in serviceLabels(v)"
+                    :key="`${v.id}-${label}`"
+                    class="inline-flex max-w-[11rem] truncate rounded-md bg-brand/5 px-1.5 py-0.5 text-[11px] font-medium text-brand ring-1 ring-brand/15"
+                    :title="label"
+                  >
+                    {{ label }}
+                  </span>
+                </div>
+                <span
+                  v-else
+                  class="text-xs italic text-slate-400"
+                >{{ EMPTY_LABELS.notUpdated }}</span>
               </td>
               <td
                 v-if="isColVisible('tax_code')"
@@ -671,6 +731,7 @@ async function onDelete(v) {
     <VendorFormModal
       :show="showForm"
       :vendor="editing"
+      :categories="categoryOptions"
       @close="showForm = false"
       @saved="onVendorSaved"
     />

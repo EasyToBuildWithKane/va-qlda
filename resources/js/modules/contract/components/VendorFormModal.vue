@@ -7,11 +7,22 @@ import VendorFormFields from '@/modules/contract/components/VendorFormFields.vue
 const props = defineProps({
     show: { type: Boolean, default: false },
     vendor: { type: Object, default: null },
+    categories: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
 
 const isEdit = computed(() => !!props.vendor?.id);
+
+function resolveCategoryIds(v) {
+    if (Array.isArray(v?.category_ids) && v.category_ids.length) {
+        return v.category_ids.map((id) => Number(id));
+    }
+    if (Array.isArray(v?.service_categories)) {
+        return v.service_categories.map((c) => Number(c.id)).filter((id) => !Number.isNaN(id));
+    }
+    return [];
+}
 
 const form = useForm({
     name: '',
@@ -23,6 +34,7 @@ const form = useForm({
     address: '',
     notes: '',
     is_active: true,
+    category_ids: [],
 });
 
 watch(() => props.show, (open) => {
@@ -39,6 +51,7 @@ watch(() => props.show, (open) => {
         address: v?.address ?? '',
         notes: v?.notes ?? '',
         is_active: v?.is_active ?? true,
+        category_ids: resolveCategoryIds(v),
     });
     form.reset();
 });
@@ -82,7 +95,10 @@ function submit() {
         </template>
       </p>
 
-      <VendorFormFields :vendor="vendor" />
+      <VendorFormFields
+        :vendor="vendor"
+        :categories="categories"
+      />
 
       <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
         <button

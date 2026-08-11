@@ -38,6 +38,17 @@ class VendorResource extends JsonResource
             'rating' => $this->rating,
             'notes' => $this->notes,
             'is_active' => $this->is_active,
+            'category_ids' => $this->whenLoaded(
+                'serviceCategories',
+                fn () => $this->serviceCategories->pluck('id')->values()->all(),
+            ),
+            'service_categories' => $this->whenLoaded(
+                'serviceCategories',
+                fn () => $this->serviceCategories->map(fn ($c) => [
+                    'id' => $c->id,
+                    'name' => $c->name,
+                ])->values()->all(),
+            ),
             'contracts_count' => $this->whenCounted('contracts'),
             'total_annual_cost' => $this->when(
                 isset($this->contracts_sum_annual_cost),

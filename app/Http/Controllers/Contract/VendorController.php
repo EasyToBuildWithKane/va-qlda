@@ -8,8 +8,10 @@ use App\Http\Requests\Contract\StoreVendorRequest;
 use App\Http\Requests\Contract\UpdateVendorRequest;
 use App\Http\Resources\VendorResource;
 use App\Models\Contract;
+use App\Models\ContractCategory;
 use App\Models\Vendor;
 use App\Models\VendorImportLog;
+use App\Support\ContractLifecycle\ContractServiceGroups;
 use App\Support\Enums\ContractReviewRecommendation;
 use App\Support\Options;
 use Illuminate\Http\JsonResponse;
@@ -28,11 +30,13 @@ class VendorController extends Controller
 
         $account = $request->user();
 
+        ContractServiceGroups::sync();
+
         $query = Vendor::query()
             ->withCount('contracts')
             ->withCount('reviews')
             ->withSum('contracts as contracts_sum_annual_cost', 'annual_cost')
-            ->with('latestReview')
+            ->with(['latestReview', 'serviceCategories'])
             ->orderBy('name');
 
         if ($search = $request->query('q')) {
@@ -64,17 +68,22 @@ class VendorController extends Controller
             $query->whereDoesntHave('latestReview');
         }
 
+        if ($categoryId = $request->query('category_id')) {
+            $query->whereHas('serviceCategories', fn ($q) => $q->where('contract_categories.id', $categoryId));
+        }
+
         $vendors = VendorResource::collection($query->get())->resolve();
 
         return Inertia::render('Contract/Vendors', [
             'vendors' => [
                 'data' => $vendors['data'] ?? (is_array($vendors) ? array_values($vendors) : []),
             ],
-            'filters' => (object) $request->only(['q', 'scope', 'active', 'reviewed']),
+            'filters' => (object) $request->only(['q', 'scope', 'active', 'reviewed', 'category_id']),
             'summary' => $this->vendorSummary(),
             'options' => [
                 'recommendation' => ContractReviewRecommendation::options(),
                 'criteria' => self::CRITERIA_LABELS,
+                'categories' => $this->serviceCategoryOptions(),
             ],
             'can' => [
                 'create' => $account->can('create', Vendor::class),
@@ -87,10 +96,13 @@ class VendorController extends Controller
     {
         $this->authorize('view', $vendor);
 
+        ContractServiceGroups::sync();
+
         $vendor->loadCount('contracts', 'reviews')
             ->loadSum('contracts as contracts_sum_annual_cost', 'annual_cost')
             ->load([
                 'latestReview.reviewer',
+                'serviceCategories',
                 'reviews' => fn ($q) => $q->with(['reviewer', 'contract'])
                     ->orderByRaw('CASE WHEN contract_id IS NULL THEN 0 ELSE 1 END')
                     ->orderByRaw('CASE WHEN contract_id IS NULL THEN reviewed_at END ASC')
@@ -105,6 +117,7 @@ class VendorController extends Controller
                 'recommendation' => ContractReviewRecommendation::options(),
                 'criteria' => self::CRITERIA_LABELS,
                 'employees' => Options::employees()->values()->all(),
+                'categories' => $this->serviceCategoryOptions(),
             ],
         ]);
     }
@@ -154,7 +167,21 @@ class VendorController extends Controller
 
     public function store(StoreVendorRequest $request): RedirectResponse
     {
-        $vendor = Vendor::create($request->validated());
+        $validated = $request->validated();
+        $hasCategories = array_key_exists('category_ids', $validated);
+        $categoryIds = $hasCategories
+            ? array_values(array_unique(array_map('intval', $validated['category_ids'] ?? [])))
+            : [];
+        unset($validated['category_ids']);
+
+        $vendor = DB::transaction(function () use ($validated, $hasCategories, $categoryIds) {
+            $vendor = Vendor::create($validated);
+            if ($hasCategories) {
+                $vendor->serviceCategories()->sync($categoryIds);
+            }
+
+            return $vendor;
+        });
 
         return back()->with([
             'success' => 'Đã thêm nhà cung cấp.',
@@ -164,7 +191,19 @@ class VendorController extends Controller
 
     public function update(UpdateVendorRequest $request, Vendor $vendor): RedirectResponse
     {
-        $vendor->update($request->validated());
+        $validated = $request->validated();
+        $hasCategories = array_key_exists('category_ids', $validated);
+        $categoryIds = $hasCategories
+            ? array_values(array_unique(array_map('intval', $validated['category_ids'] ?? [])))
+            : [];
+        unset($validated['category_ids']);
+
+        DB::transaction(function () use ($vendor, $validated, $hasCategories, $categoryIds) {
+            $vendor->update($validated);
+            if ($hasCategories) {
+                $vendor->serviceCategories()->sync($categoryIds);
+            }
+        });
 
         return back()->with('success', 'Đã cập nhật nhà cung cấp.');
     }
@@ -191,6 +230,8 @@ class VendorController extends Controller
         $count = 0;
         $overwrittenCount = 0;
 
+        ContractServiceGroups::sync();
+
         DB::transaction(function () use ($rows, $overwrite, $account, $request, &$count, &$overwrittenCount) {
             foreach ($rows as $row) {
                 $payload = [
@@ -211,6 +252,8 @@ class VendorController extends Controller
                     $payload['code'] = $code;
                 }
 
+                $categoryIds = $this->resolveImportCategoryIds($row['category_ids'] ?? $row['service_categories'] ?? null);
+
                 if ($overwrite) {
                     $existing = $this->findVendorForImportOverwrite($row);
                     if ($existing) {
@@ -218,6 +261,9 @@ class VendorController extends Controller
                             unset($payload['code']);
                         }
                         $existing->update($payload);
+                        if ($categoryIds !== null) {
+                            $existing->serviceCategories()->sync($categoryIds);
+                        }
                         $overwrittenCount++;
 
                         continue;
@@ -230,7 +276,10 @@ class VendorController extends Controller
                     ]);
                 }
 
-                Vendor::create($payload);
+                $vendor = Vendor::create($payload);
+                if ($categoryIds !== null) {
+                    $vendor->serviceCategories()->sync($categoryIds);
+                }
                 $count++;
             }
 
@@ -270,6 +319,10 @@ class VendorController extends Controller
             'rating' => $v->rating,
             'notes' => $v->notes,
             'is_active' => $v->is_active,
+            'service_categories' => $v->serviceCategories->map(fn ($c) => [
+                'id' => $c->id,
+                'name' => $c->name,
+            ])->values()->all(),
             'contracts_count' => $v->contracts_count ?? 0,
             'total_annual_cost' => $v->contracts_sum_annual_cost ?? 0,
             'review_score' => $v->latestReview?->total_score,
@@ -295,6 +348,70 @@ class VendorController extends Controller
             ]);
 
         return response()->json(['data' => $logs]);
+    }
+
+    /**
+     * @return list<array{id: int, name: string}>
+     */
+    private function serviceCategoryOptions(): array
+    {
+        return ContractCategory::query()
+            ->whereNull('vendor_id')
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (ContractCategory $c) => ['id' => $c->id, 'name' => $c->name])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<int>|null null = không đụng pivot khi import; [] = xoá hết gắn kết
+     */
+    private function resolveImportCategoryIds(mixed $raw): ?array
+    {
+        if ($raw === null) {
+            return null;
+        }
+
+        if (is_string($raw)) {
+            $trimmed = trim($raw);
+            if ($trimmed === '') {
+                return null;
+            }
+            $parts = preg_split('/[;|,]/', $trimmed) ?: [];
+            $raw = array_values(array_filter(array_map('trim', $parts), fn ($s) => $s !== ''));
+        }
+
+        if (! is_array($raw)) {
+            return null;
+        }
+
+        if ($raw === []) {
+            return null;
+        }
+
+        $ids = [];
+        foreach ($raw as $item) {
+            if (is_numeric($item)) {
+                $ids[] = (int) $item;
+
+                continue;
+            }
+            $name = is_array($item) ? trim((string) ($item['name'] ?? '')) : trim((string) $item);
+            if ($name === '') {
+                continue;
+            }
+            $cat = ContractCategory::query()
+                ->whereNull('vendor_id')
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                ->first();
+            if ($cat) {
+                $ids[] = $cat->id;
+            }
+        }
+
+        return array_values(array_unique($ids));
     }
 
     /**
@@ -333,7 +450,7 @@ class VendorController extends Controller
         $query = Vendor::query()
             ->withCount('contracts')
             ->withSum('contracts as contracts_sum_annual_cost', 'annual_cost')
-            ->with('latestReview')
+            ->with(['latestReview', 'serviceCategories'])
             ->orderBy('name');
 
         if ($search = $request->query('q')) {
@@ -363,6 +480,10 @@ class VendorController extends Controller
             $query->whereHas('latestReview', fn ($q) => $q->whereNotNull('total_score'));
         } elseif ($reviewed === 'no') {
             $query->whereDoesntHave('latestReview');
+        }
+
+        if ($categoryId = $request->query('category_id')) {
+            $query->whereHas('serviceCategories', fn ($q) => $q->where('contract_categories.id', $categoryId));
         }
 
         return $query;

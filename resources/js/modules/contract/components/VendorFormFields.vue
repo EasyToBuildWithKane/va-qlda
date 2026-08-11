@@ -2,9 +2,11 @@
 import { inject } from 'vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 
 defineProps({
     vendor: { type: Object, default: null },
+    categories: { type: Array, default: () => [] },
     inputClass: { type: String, default: 'input h-10 w-full text-sm' },
 });
 
@@ -62,6 +64,36 @@ const form = inject('vendorForm');
           :class="inputClass"
           placeholder="VD: 0312345678"
         >
+      </div>
+
+      <div>
+        <VendorFieldLabel
+          for-id="vendor-services"
+          label="Loại dịch vụ"
+          wide
+          tooltip="Chọn một hoặc nhiều nhóm dịch vụ NCC cung cấp (License, SaaS, Cloud…). Dùng lọc danh sách và phân loại hồ sơ."
+        />
+        <SearchMultiSelect
+          id="vendor-services"
+          v-model="form.category_ids"
+          :options="categories"
+          value-key="id"
+          label-key="name"
+          placeholder="Tìm & chọn loại dịch vụ…"
+          search-placeholder="Tìm nhóm dịch vụ…"
+          :max-chips="8"
+          control-size="md"
+          :panel-z-index="120"
+        />
+        <p
+          v-if="form.errors.category_ids"
+          class="mt-1 text-xs text-rose-600"
+        >
+          {{ form.errors.category_ids }}
+        </p>
+        <p class="mt-1 text-[11px] text-slate-400">
+          Có thể chọn nhiều loại — bỏ trống nếu chưa phân loại.
+        </p>
       </div>
 
       <div class="flex flex-wrap items-center gap-2">

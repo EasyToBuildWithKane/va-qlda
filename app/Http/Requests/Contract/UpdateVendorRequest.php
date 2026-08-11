@@ -27,6 +27,8 @@ class UpdateVendorRequest extends FormRequest
             'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
+            'category_ids' => ['nullable', 'array', 'max:50'],
+            'category_ids.*' => ['integer', 'distinct', 'exists:contract_categories,id'],
         ];
     }
 
@@ -38,6 +40,8 @@ class UpdateVendorRequest extends FormRequest
         return [
             'name.required' => 'Vui lòng nhập tên nhà cung cấp.',
             'email.email' => 'Email không hợp lệ.',
+            'category_ids.*.exists' => 'Nhóm dịch vụ không hợp lệ.',
+            'category_ids.max' => 'Mỗi nhà cung cấp tối đa 50 loại dịch vụ.',
         ];
     }
 }

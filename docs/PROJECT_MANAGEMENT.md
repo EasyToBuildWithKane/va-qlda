@@ -315,7 +315,7 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text; **`.md`** render Markdown (`markdown-it`, không cho HTML thô trong MD); **`.html`/`.htm`** xem trong iframe `sandbox` (không chạy script); Word `.docx` render trong iframe (`docx-preview`, giữ layout flex trang, CSS bảng/ảnh/căn lề, fit-width, Từng trang|Cuộn liên tục, zoom Vừa khung|100%|75%); Excel sticky header + zebra + «Dòng a–b / tổng» (100 dòng/trang). Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
+**UI tab Tài liệu:** toolbar gọn (`Tải lên` primary → `Thêm` ▾ thư mục/file/link); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc». Thư mục trống: **không** card CTA giữa màn — gợi ý một dòng dưới breadcrumb + bảng list trống (hoặc strip lưới gọn); tạo file/thư mục chỉ qua toolbar. Preview full-screen: đổi tên inline; sửa text; **`.md`** / **`.html`**; Word/Excel client-side. Chi tiết drawer. Modal tạo `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

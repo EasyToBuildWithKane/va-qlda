@@ -16,7 +16,7 @@ chi phí định kỳ và chất lượng nhà cung cấp. Module gom về một
 - **Dashboard** KPI + biểu đồ (`/contracts/dashboard`).
 - **Chi phí** (`/contracts/cost`) — tổng hợp theo NCC / đơn vị / nhóm / quý + dự báo năm sau.
 - **Báo cáo** (`/contracts/reports`) — theo NCC / nhóm / đơn vị / năm, xuất Excel + CSV.
-- **Vendors** (`/contracts/vendors`) — hồ sơ NCC + đánh giá 6 tiêu chí.
+- **Vendors** (`/contracts/vendors`) — hồ sơ NCC + **nhiều loại dịch vụ** (pivot nhóm DV) + đánh giá 6 tiêu chí.
 - **Chi tiết hợp đồng** (`/contracts/{id}`) — tài chính, đánh giá, hồ sơ, gia hạn nhanh. Bản **gia hạn / phụ lục mới** (`root_contract_id` có giá trị): tab **Tổng quan · Đánh giá NCC · Hồ sơ** (không tab Tài chính / Gia hạn).
 
 **Mã tự sinh:** hợp đồng `HD-{yy}-{seq}`, NCC `NCC-{seq}`. Bảng `contracts` có **SoftDeletes**.
@@ -108,9 +108,13 @@ Frontend dùng `can` từ Resource + `usePage().props.auth.user.role`.
 
 ## 8. Cơ sở dữ liệu
 
-Bảng `va_prd_*` (migrations `2026_06_17_*`) — chi tiết tại `docs/DATABASE_STRUCTURE.md` mục 10:
-`vendors`, `contract_categories`, `contracts`, `contract_finances`, `contract_attachments`,
-`contract_renewals`, `contract_activities`, `vendor_reviews`, `contract_reviews`.
+Bảng `va_prd_*` (migrations `2026_06_17_*`, pivot dịch vụ `2026_08_11_120000`) — chi tiết tại `docs/DATABASE_STRUCTURE.md` mục 10:
+`vendors`, `contract_categories`, `vendor_service_categories` (NCC ↔ nhiều nhóm DV), `contracts`,
+`contract_finances`, `contract_attachments`, `contract_renewals`, `contract_activities`,
+`vendor_reviews`, `contract_reviews`.
+
+**Loại dịch vụ NCC:** form Thêm/Sửa NCC dùng multi-select `category_ids` → sync `Vendor::serviceCategories()`;
+danh mục lấy từ `contract_categories` (`vendor_id` null, seed `ContractServiceGroups`).
 
 ---
 

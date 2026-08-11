@@ -62,6 +62,15 @@ const formatLabel = (item, fileExt) => {
 };
 
 const showActions = (canEdit, canDelete) => canEdit || canDelete;
+
+const colCount = (compact, canEdit, canDelete) => {
+    let n = 3; // checkbox + name + size
+    if (!compact) n += 1; // format
+    if (showActions(canEdit, canDelete)) n += 1;
+    return n;
+};
+
+const isEmpty = (folders, files) => !folders.length && !files.length;
 </script>
 
 <template>
@@ -112,6 +121,14 @@ const showActions = (canEdit, canDelete) => canEdit || canDelete;
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+        <tr v-if="isEmpty(folders, files)">
+          <td
+            :colspan="colCount(compact, canEdit, canDelete)"
+            class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400"
+          >
+            Chưa có tài liệu trong thư mục này
+          </td>
+        </tr>
         <tr
           v-for="folder in folders"
           :key="`folder-${folder.id}`"

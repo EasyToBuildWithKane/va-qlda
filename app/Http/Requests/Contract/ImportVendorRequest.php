@@ -31,6 +31,9 @@ class ImportVendorRequest extends FormRequest
             'rows.*.rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'rows.*.notes' => ['nullable', 'string', 'max:2000'],
             'rows.*.is_active' => ['sometimes', 'boolean'],
+            'rows.*.category_ids' => ['nullable', 'array', 'max:50'],
+            'rows.*.category_ids.*' => ['integer', 'distinct', 'exists:contract_categories,id'],
+            'rows.*.service_categories' => ['nullable', 'string', 'max:1000'],
         ];
     }
 

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -64,6 +65,20 @@ class Vendor extends Model
     public function categories(): HasMany
     {
         return $this->hasMany(ContractCategory::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Nhóm dịch vụ NCC cung cấp (nhiều loại) — pivot `vendor_service_categories`.
+     * Khác `categories()` (HasMany qua vendor_id trên contract_categories, legacy Explorer).
+     */
+    public function serviceCategories(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            ContractCategory::class,
+            'vendor_service_categories',
+            'vendor_id',
+            'contract_category_id',
+        )->withTimestamps()->orderBy('sort_order')->orderBy('name');
     }
 
     public function contracts(): HasMany

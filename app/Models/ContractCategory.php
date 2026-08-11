@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
@@ -39,6 +40,17 @@ class ContractCategory extends Model
     public function vendor(): BelongsTo
     {
         return $this->belongsTo(Vendor::class);
+    }
+
+    /** NCC gắn loại dịch vụ này (nhiều-nhiều). */
+    public function vendors(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Vendor::class,
+            'vendor_service_categories',
+            'contract_category_id',
+            'vendor_id',
+        )->withTimestamps();
     }
 
     public function contracts(): HasMany

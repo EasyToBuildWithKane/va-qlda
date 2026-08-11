@@ -1100,6 +1100,28 @@ const activityTone = (event) => ({
 
             <div class="ml-auto flex shrink-0 items-center gap-1.5">
               <template v-if="canMutateDocs">
+                <button
+                  type="button"
+                  class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs font-medium"
+                  :disabled="uploadingCategory === activeCategory"
+                  title="Tải file lên thư mục này"
+                  @click="pickFiles(activeCategory)"
+                >
+                  <AppIcon
+                    :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
+                    :size="13"
+                    :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
+                  />
+                  {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
+                </button>
+                <input
+                  :ref="(el) => setFileInput(activeCategory, el)"
+                  type="file"
+                  class="hidden"
+                  multiple
+                  :accept="acceptFor(activeCategory)"
+                  @change="onFilesSelected(activeCategory, $event)"
+                >
                 <div
                   ref="addMenuRef"
                   class="relative"
@@ -1110,6 +1132,7 @@ const activityTone = (event) => ({
                     :aria-expanded="addMenuOpen"
                     aria-haspopup="menu"
                     aria-controls="project-docs-add-menu"
+                    title="Tạo thư mục, file trống hoặc link"
                     @click="addMenuOpen = !addMenuOpen"
                   >
                     <AppIcon
@@ -1143,7 +1166,7 @@ const activityTone = (event) => ({
                         :size="14"
                         class="text-amber-600"
                       />
-                      Thư mục
+                      Thư mục mới
                     </button>
                     <button
                       type="button"
@@ -1156,7 +1179,7 @@ const activityTone = (event) => ({
                         :size="14"
                         class="text-sky-600"
                       />
-                      File trống
+                      File trống (.txt)
                     </button>
                     <button
                       type="button"
@@ -1173,27 +1196,6 @@ const activityTone = (event) => ({
                     </button>
                   </div>
                 </Teleport>
-                <button
-                  type="button"
-                  class="btn-primary inline-flex h-8 items-center gap-1 px-2.5 text-xs font-medium"
-                  :disabled="uploadingCategory === activeCategory"
-                  @click="pickFiles(activeCategory)"
-                >
-                  <AppIcon
-                    :name="uploadingCategory === activeCategory ? 'refresh' : 'upload'"
-                    :size="13"
-                    :class="uploadingCategory === activeCategory ? 'animate-spin' : ''"
-                  />
-                  {{ uploadingCategory === activeCategory ? 'Đang tải…' : 'Tải lên' }}
-                </button>
-                <input
-                  :ref="(el) => setFileInput(activeCategory, el)"
-                  type="file"
-                  class="hidden"
-                  multiple
-                  :accept="acceptFor(activeCategory)"
-                  @change="onFilesSelected(activeCategory, $event)"
-                >
               </template>
               <div
                 class="inline-flex items-center rounded-lg border border-slate-200 bg-slate-50/80 p-0.5 dark:border-slate-600 dark:bg-slate-900"
@@ -1206,7 +1208,7 @@ const activityTone = (event) => ({
                   :class="docsViewMode === 'list'
                     ? 'bg-white text-brand shadow-sm dark:bg-slate-800'
                     : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
-                  title="Hiển thị dạng danh sách"
+                  title="Danh sách"
                   :aria-pressed="docsViewMode === 'list'"
                   @click="setDocsViewMode('list')"
                 >
@@ -1221,7 +1223,7 @@ const activityTone = (event) => ({
                   :class="docsViewMode === 'grid'
                     ? 'bg-white text-brand shadow-sm dark:bg-slate-800'
                     : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'"
-                  title="Hiển thị dạng lưới"
+                  title="Lưới"
                   :aria-pressed="docsViewMode === 'grid'"
                   @click="setDocsViewMode('grid')"
                 >
@@ -1278,147 +1280,137 @@ const activityTone = (event) => ({
               </button>
             </template>
           </nav>
+          <p
+            v-if="!hasBrowsableContent && !isDriveRoot"
+            class="text-[11px] leading-snug text-slate-400 dark:text-slate-500"
+          >
+            <template v-if="canMutateDocs">
+              Thư mục trống · kéo thả file vào đây, hoặc dùng <span class="font-medium text-slate-500 dark:text-slate-400">Tải lên</span> / <span class="font-medium text-slate-500 dark:text-slate-400">Thêm</span>
+            </template>
+            <template v-else>
+              {{ activeFolderId ? 'Thư mục trống' : 'Chưa có tài liệu' }}
+            </template>
+          </p>
         </header>
 
         <div
           v-show="!leftPanelCollapsed"
           class="relative min-h-0 flex-1 overflow-y-auto px-3 py-3"
         >
-          <template v-if="hasBrowsableContent">
-            <!-- List view -->
+          <!-- List view (kể cả thư mục trống — giữ khung bảng, không card trống giữa màn) -->
+          <div
+            v-if="docsViewMode === 'list'"
+            class="min-w-0"
+          >
+            <DocumentFilesTable
+              :folders="isDriveRoot ? driveRootFolders : currentLevelFolders"
+              :files="isDriveRoot ? [] : visibleFiles"
+              :selected-id="selectedId"
+              :selected-ids="selectedRowIds"
+              :format-size="formatSize"
+              :file-ext="fileExt"
+              :can-edit="canEdit && !isDriveRoot"
+              :can-delete="canDelete && !isDriveRoot"
+              @select-folder="onSelectFolder"
+              @select-file="openPreviewModal"
+              @toggle-row="toggleRowSelection"
+              @toggle-all="toggleAllRows"
+              @rename-item="openRenameModal"
+              @preview-file="openPreviewModal"
+              @delete-item="removeFile"
+            />
+          </div>
+
+          <!-- Grid view -->
+          <template v-else>
             <div
-              v-if="docsViewMode === 'list'"
-              class="min-w-0"
+              v-if="isDriveRoot"
+              class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
             >
-              <DocumentFilesTable
-                :folders="isDriveRoot ? driveRootFolders : currentLevelFolders"
-                :files="isDriveRoot ? [] : visibleFiles"
-                :selected-id="selectedId"
-                :selected-ids="selectedRowIds"
-                :format-size="formatSize"
-                :file-ext="fileExt"
-                :can-edit="canEdit && !isDriveRoot"
-                :can-delete="canDelete && !isDriveRoot"
-                @select-folder="onSelectFolder"
-                @select-file="openPreviewModal"
-                @toggle-row="toggleRowSelection"
-                @toggle-all="toggleAllRows"
-                @rename-item="openRenameModal"
-                @preview-file="openPreviewModal"
-                @delete-item="removeFile"
+              <DocumentFolderCard
+                v-for="folder in driveRootFolders"
+                :key="folder.id"
+                :name="folder.original_name"
+                :meta="formatSize(folder._size || 0)"
+                :icon="folder.icon || 'folder'"
+                :file-count="folderCardStats(folder).files"
+                :subfolder-count="folderCardStats(folder).subfolders"
+                @click="onSelectFolder(folder)"
               />
             </div>
 
-            <!-- Grid view -->
-            <template v-else>
-              <div
-                v-if="isDriveRoot"
-                class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-              >
-                <DocumentFolderCard
-                  v-for="folder in driveRootFolders"
-                  :key="folder.id"
-                  :name="folder.original_name"
-                  :meta="formatSize(folder._size || 0)"
-                  :icon="folder.icon || 'folder'"
-                  :file-count="folderCardStats(folder).files"
-                  :subfolder-count="folderCardStats(folder).subfolders"
-                  @click="onSelectFolder(folder)"
-                />
+            <template v-else-if="hasBrowsableContent">
+              <div v-if="currentLevelFolders.length">
+                <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                  <DocumentFolderCard
+                    v-for="folder in currentLevelFolders"
+                    :key="folder.id"
+                    :name="folder.original_name"
+                    :meta="folderCardMeta(folder)"
+                    :file-count="folderCardStats(folder).files"
+                    :subfolder-count="folderCardStats(folder).subfolders"
+                    :can-rename="canEdit"
+                    :can-delete="canDelete"
+                    @click="onSelectFolder(folder)"
+                    @rename="openRenameModal(folder)"
+                    @delete="removeFile(folder)"
+                  />
+                </div>
               </div>
 
-              <template v-else>
-                <div v-if="currentLevelFolders.length">
-                  <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    <DocumentFolderCard
-                      v-for="folder in currentLevelFolders"
-                      :key="folder.id"
-                      :name="folder.original_name"
-                      :meta="folderCardMeta(folder)"
-                      :file-count="folderCardStats(folder).files"
-                      :subfolder-count="folderCardStats(folder).subfolders"
-                      :can-rename="canEdit"
-                      :can-delete="canDelete"
-                      @click="onSelectFolder(folder)"
-                      @rename="openRenameModal(folder)"
-                      @delete="removeFile(folder)"
-                    />
-                  </div>
+              <div
+                v-if="visibleFiles.length"
+                :class="currentLevelFolders.length ? 'mt-5' : ''"
+              >
+                <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                  <DocumentFileCard
+                    v-for="file in visibleFiles"
+                    :key="file.id"
+                    :name="file.original_name"
+                    :meta="fileCardMeta(file)"
+                    :url="file.url"
+                    :is-image="Boolean(file.is_image)"
+                    :is-pdf="Boolean(file.is_pdf)"
+                    :is-link="Boolean(file.is_external_link)"
+                    :badge="listBadge(file)"
+                    :preview-snippet="file.preview_snippet || null"
+                    :active="selectedId === file.id"
+                    :can-edit="canEdit"
+                    :can-delete="canDelete"
+                    @click="openPreviewModal(file)"
+                    @preview="openPreviewModal(file)"
+                    @rename="openRenameModal(file)"
+                    @details="openFileDetails(file)"
+                    @delete="removeFile(file)"
+                  />
                 </div>
-
-                <div
-                  v-if="visibleFiles.length"
-                  :class="currentLevelFolders.length ? 'mt-5' : ''"
-                >
-                  <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                    <DocumentFileCard
-                      v-for="file in visibleFiles"
-                      :key="file.id"
-                      :name="file.original_name"
-                      :meta="fileCardMeta(file)"
-                      :url="file.url"
-                      :is-image="Boolean(file.is_image)"
-                      :is-pdf="Boolean(file.is_pdf)"
-                      :is-link="Boolean(file.is_external_link)"
-                      :badge="listBadge(file)"
-                      :preview-snippet="file.preview_snippet || null"
-                      :active="selectedId === file.id"
-                      :can-edit="canEdit"
-                      :can-delete="canDelete"
-                      @click="openPreviewModal(file)"
-                      @preview="openPreviewModal(file)"
-                      @rename="openRenameModal(file)"
-                      @details="openFileDetails(file)"
-                      @delete="removeFile(file)"
-                    />
-                  </div>
-                </div>
-              </template>
+              </div>
             </template>
-          </template>
 
-          <div
-            v-else
-            class="flex min-h-[12rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200/90 bg-slate-50/60 px-4 py-8 text-center dark:border-slate-700 dark:bg-slate-950/40"
-          >
-            <span class="grid h-12 w-12 place-items-center rounded-xl bg-amber-50 ring-1 ring-amber-200/70 dark:bg-amber-950/40 dark:ring-amber-800/40">
-              <AppIcon
-                :name="activeFolderId ? 'folder-open' : 'folder'"
-                :size="22"
-                class="text-amber-500"
-              />
-            </span>
-            <p class="mt-3 text-sm font-semibold text-slate-700 dark:text-slate-200">
-              {{ activeFolderId ? 'Thư mục trống' : 'Chưa có tài liệu' }}
-            </p>
             <div
-              v-if="canMutateDocs"
-              class="mt-3 flex flex-wrap items-center justify-center gap-2"
+              v-else
+              class="flex items-start gap-2.5 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-950/30"
             >
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-8 items-center gap-1.5 border border-slate-200 px-2.5 text-xs dark:border-slate-600"
-                @click="openFileModal()"
-              >
+              <span class="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-50 ring-1 ring-amber-200/70 dark:bg-amber-950/40 dark:ring-amber-800/40">
                 <AppIcon
-                  name="documents"
-                  :size="13"
+                  :name="activeFolderId ? 'folder-open' : 'folder'"
+                  :size="16"
+                  class="text-amber-500"
                 />
-                Tạo file
-              </button>
-              <button
-                type="button"
-                class="btn-primary inline-flex h-8 items-center gap-1.5 px-2.5 text-xs"
-                @click="openFolderModal(activeFolderId || undefined)"
-              >
-                <AppIcon
-                  name="plus"
-                  :size="13"
-                />
-                Tạo thư mục
-              </button>
+              </span>
+              <div class="min-w-0 pt-0.5">
+                <p class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                  {{ activeFolderId ? 'Thư mục trống' : 'Chưa có tài liệu' }}
+                </p>
+                <p
+                  v-if="canMutateDocs"
+                  class="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400"
+                >
+                  Kéo thả file vào đây, hoặc dùng Tải lên / Thêm trên thanh công cụ.
+                </p>
+              </div>
             </div>
-          </div>
+          </template>
         </div>
       </section>
 
@@ -1497,19 +1489,12 @@ const activityTone = (event) => ({
               </li>
             </ul>
           </template>
-          <div
+          <p
             v-else
-            class="flex min-h-[10rem] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200/90 bg-slate-50/60 px-3 py-6 text-center dark:border-slate-700 dark:bg-slate-950/40"
+            class="px-1 py-2 text-[11px] leading-snug text-slate-400 dark:text-slate-500"
           >
-            <AppIcon
-              name="task"
-              :size="22"
-              class="text-brand/60"
-            />
-            <p class="mt-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
-              Chưa có đính kèm
-            </p>
-          </div>
+            Chưa có đính kèm từ công việc
+          </p>
         </div>
       </section>
     </div>

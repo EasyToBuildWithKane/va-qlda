@@ -40,6 +40,7 @@ export const VENDOR_IMPORT_HEADERS = [
     'Điện thoại',
     'Website',
     'Địa chỉ',
+    'Loại dịch vụ',
     'Đánh giá (1-5)',
     'Ghi chú',
     'Trạng thái',
@@ -49,6 +50,7 @@ const EXPORT_HEADERS = [
     'Mã NCC',
     'Tên NCC',
     'Mã số thuế',
+    'Loại dịch vụ',
     'Người liên hệ',
     'Email',
     'Điện thoại',
@@ -119,6 +121,8 @@ function mapRowFromHeaders(headers, row) {
             obj.website = val;
         } else if (key.includes('dia chi')) {
             obj.address = val;
+        } else if (key.includes('loai dich vu') || key.includes('nhom dich vu') || (key.includes('dich vu') && !key.includes('chat luong'))) {
+            obj.service_categories = val;
         } else if (key.includes('danh gia') || key.includes('rating')) {
             obj.rating = val;
         } else if (key.includes('ghi chu') || key.includes('notes')) {
@@ -154,8 +158,8 @@ export function downloadVendorTemplate() {
         ['2. QUY TRÌNH NHẬP', '① Tải mẫu → ② Điền từ dòng 8 → ③ Upload → ④ Preview → ⑤ Sửa lỗi inline → ⑥ Nhập'],
         ['3. CỘT BẮT BUỘC (*)', 'Tên NCC — để trống sẽ bị lỗi.'],
         ['4. MÃ NCC', 'Để trống: hệ thống tự sinh (NCC-001, …). Nếu điền: tối đa 40 ký tự, không trùng mã có sẵn.'],
-        ['5. TRẠNG THÁI', `${ACTIVE_LABELS.slice(0, 2).join(' | ')} hoặc ${INACTIVE_LABELS.slice(0, 2).join(' | ')} (mặc định: Đang hoạt động)`],
-        ['6. ĐÁNH GIÁ', 'Số nguyên từ 1 đến 5 (sao nội bộ, tùy chọn).'],
+        ['5. LOẠI DỊCH VỤ', 'Nhiều nhóm cách nhau bằng ; hoặc | (vd: License; SaaS). Khớp tên danh mục CLM; bỏ trống = không đổi khi ghi đè.'],
+        ['6. TRẠNG THÁI / ĐÁNH GIÁ', `${ACTIVE_LABELS.slice(0, 2).join(' | ')} hoặc ${INACTIVE_LABELS.slice(0, 2).join(' | ')} (mặc định: Đang hoạt động). Đánh giá sao 1–5 (tuỳ chọn).`],
         ['7. GHI ĐÈ', 'Bật «Ghi đè» khi nhập: khớp theo Mã NCC → Mã số thuế → Tên (không phân biệt hoa thường).'],
         ['8. GIỚI HẠN', 'Tối đa 200 dòng mỗi lần nhập.'],
         ['9. LỖI THƯỜNG GẶP', '• Email sai định dạng\n• Trạng thái không nhận diện\n• Mã NCC trùng\n• Dòng mẫu italic (6–7) không import'],
@@ -180,8 +184,8 @@ export function downloadVendorTemplate() {
     });
 
     const samples = [
-        ['Công ty TNHH Dịch vụ Mẫu A', 'NCC-MAU-01', '0123456789', 'Nguyễn Văn A', 'contact@mau-a.vn', '0901234567', 'https://mau-a.vn', 'Hà Nội', '4', 'Dòng mẫu — không import', 'Đang hoạt động'],
-        ['Công ty CP Phần mềm Mẫu B', '', '9876543210', 'Trần Thị B', 'sales@mau-b.vn', '0912345678', '', 'TP. HCM', '5', '', 'Đang hoạt động'],
+        ['Công ty TNHH Dịch vụ Mẫu A', 'NCC-MAU-01', '0123456789', 'Nguyễn Văn A', 'contact@mau-a.vn', '0901234567', 'https://mau-a.vn', 'Hà Nội', 'License; SaaS', '4', 'Dòng mẫu — không import', 'Đang hoạt động'],
+        ['Công ty CP Phần mềm Mẫu B', '', '9876543210', 'Trần Thị B', 'sales@mau-b.vn', '0912345678', '', 'TP. HCM', 'Cloud', '5', '', 'Đang hoạt động'],
     ];
     samples.forEach((row, ri) => {
         row.forEach((val, ci) => {
@@ -196,7 +200,7 @@ export function downloadVendorTemplate() {
     }
 
     nl['!ref'] = `A1:${colLetter(VENDOR_IMPORT_HEADERS.length - 1)}57`;
-    setColWidths(nl, [28, 14, 14, 18, 24, 14, 22, 24, 12, 24, 16]);
+    setColWidths(nl, [28, 14, 14, 18, 24, 14, 22, 24, 22, 12, 24, 16]);
     XLSX.utils.book_append_sheet(wb, nl, 'Nhap lieu');
 
     XLSX.writeFile(wb, `VA_NhaCungCap_Mau_${new Date().toISOString().slice(0, 10)}.xlsx`);
@@ -316,7 +320,18 @@ export function vendorRowToPayload(row) {
         is_active: row.is_active !== false,
     };
     if (row.rating != null && row.rating !== '') payload.rating = row.rating;
+    const services = String(row.service_categories ?? '').trim();
+    if (services) payload.service_categories = services;
     return payload;
+}
+
+function serviceCategoriesLabel(v) {
+    const list = v?.service_categories;
+    if (Array.isArray(list) && list.length) {
+        return list.map((c) => (typeof c === 'string' ? c : c?.name)).filter(Boolean).join('; ');
+    }
+    if (typeof list === 'string' && list.trim()) return list.trim();
+    return EMPTY_LABELS.notUpdated;
 }
 
 function vendorExportRow(v) {
@@ -324,6 +339,7 @@ function vendorExportRow(v) {
         v.code ?? '',
         v.name ?? '',
         displayOrEmpty(v.tax_code, EMPTY_LABELS.notUpdated),
+        serviceCategoriesLabel(v),
         displayOrEmpty(v.contact_name, EMPTY_LABELS.notUpdated),
         displayOrEmpty(v.email, EMPTY_LABELS.notUpdated),
         displayOrEmpty(v.phone, EMPTY_LABELS.notUpdated),
@@ -397,7 +413,7 @@ export function exportVendorWorkbook(vendors, filenamePrefix = 'VA_NhaCungCap') 
         });
     });
     ws['!ref'] = `A1:${colLetter(EXPORT_HEADERS.length - 1)}${vendors.length + 1}`;
-    setColWidths(ws, [12, 28, 14, 18, 24, 14, 12, 16, 14, 16]);
+    setColWidths(ws, [12, 28, 14, 22, 18, 24, 14, 12, 16, 14, 16]);
     XLSX.utils.book_append_sheet(wb, ws, 'Nha cung cap');
 
     XLSX.writeFile(wb, `${filenamePrefix}_${now.toISOString().slice(0, 10)}.xlsx`);
@@ -425,6 +441,7 @@ export function exportPreviewErrorRows(errorRows) {
             r.phone || '',
             r.website || '',
             r.address || '',
+            r.service_categories || '',
             r.rating ?? '',
             r.notes || '',
             r.is_active === false ? 'Ngừng hoạt động' : 'Đang hoạt động',
@@ -440,7 +457,7 @@ export function exportPreviewErrorRows(errorRows) {
     });
 
     ws['!ref'] = `A1:${colLetter(extHeaders.length - 1)}${errorRows.length + 1}`;
-    setColWidths(ws, [28, 14, 14, 18, 24, 14, 22, 24, 12, 24, 16, 48]);
+    setColWidths(ws, [28, 14, 14, 18, 24, 14, 22, 24, 22, 12, 24, 16, 48]);
     XLSX.utils.book_append_sheet(wb, ws, 'Dong loi');
     XLSX.writeFile(wb, `VA_NhaCungCap_Loi_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }

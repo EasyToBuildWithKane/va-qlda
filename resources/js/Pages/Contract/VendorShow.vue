@@ -214,6 +214,34 @@ async function onDelete() {
               {{ displayOrEmpty(vendor.tax_code, EMPTY_LABELS.notUpdated) }}
             </dd>
           </div>
+          <div class="grid gap-1 py-3 sm:grid-cols-[11rem_minmax(0,1fr)] sm:items-start">
+            <dt>
+              <VendorFieldLabel
+                compact
+                label="Loại dịch vụ"
+                wide
+                tooltip="Các nhóm dịch vụ NCC cung cấp (có thể nhiều loại)."
+              />
+            </dt>
+            <dd class="text-sm">
+              <div
+                v-if="(vendor.service_categories || []).length"
+                class="flex flex-wrap gap-1.5"
+              >
+                <span
+                  v-for="c in vendor.service_categories"
+                  :key="c.id"
+                  class="inline-flex rounded-md bg-brand/5 px-2 py-0.5 text-xs font-medium text-brand ring-1 ring-brand/15"
+                >
+                  {{ c.name }}
+                </span>
+              </div>
+              <span
+                v-else
+                class="italic text-slate-400"
+              >{{ EMPTY_LABELS.notUpdated }}</span>
+            </dd>
+          </div>
         </dl>
       </section>
 
@@ -416,6 +444,7 @@ async function onDelete() {
     <VendorFormModal
       :show="showForm"
       :vendor="vendor"
+      :categories="options.categories || []"
       @close="showForm = false"
       @saved="reloadVendor"
     />
