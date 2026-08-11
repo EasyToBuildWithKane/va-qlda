@@ -80,6 +80,17 @@ function onUpdate(val) {
 
 .va-filter-date-picker :deep(.dp__input) {
     min-height: 2.5rem;
+    /* Chừa chỗ icon lịch (trái) + nút xóa (phải) — tránh đè placeholder */
+    padding-left: 2.5rem;
+    padding-right: 2.25rem;
+}
+
+.va-filter-date-picker :deep(.dp__input_icon) {
+    inset-inline-start: 0.65rem;
+}
+
+.va-filter-date-picker :deep(.dp__clear_icon) {
+    inset-inline-end: 0.55rem;
 }
 
 .va-filter-date-picker :deep(.dp__active_date),

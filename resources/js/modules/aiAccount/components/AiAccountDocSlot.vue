@@ -5,7 +5,6 @@ import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 
 const props = defineProps({
     title: { type: String, required: true },
-    hint: { type: String, default: '' },
     dateLabel: { type: String, required: true },
     dateValue: { type: String, default: '' },
     datePlaceholder: { type: String, default: 'Chọn ngày' },
@@ -61,12 +60,6 @@ function formatSize(bytes) {
         <h3 class="text-sm font-semibold text-slate-800">
           {{ title }}
         </h3>
-        <p
-          v-if="hint"
-          class="mt-0.5 text-[11px] leading-snug text-slate-500"
-        >
-          {{ hint }}
-        </p>
       </div>
       <button
         v-if="confirmLabel"
@@ -101,7 +94,6 @@ function formatSize(bytes) {
     <div class="min-h-0 flex-1">
       <span class="mb-1.5 block text-xs font-medium text-slate-600">
         File đính kèm
-        <span class="font-normal text-slate-400">(1 file)</span>
       </span>
 
       <div
@@ -178,7 +170,6 @@ function formatSize(bytes) {
           />
         </span>
         <span class="text-xs font-semibold text-slate-700">Chọn file</span>
-        <span class="text-[10px] text-slate-400">PDF / ảnh / Word / Excel · ≤10 MB</span>
       </button>
 
       <input

@@ -2,7 +2,6 @@
 import { computed, reactive, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
-import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PasswordInput from '@/shared/ui/form/PasswordInput.vue';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
@@ -13,7 +12,6 @@ import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
 import { useToast } from '@/shared/composables/useToast';
 import { AI_ACCOUNT_ACCESS_PERMISSIONS } from '@/modules/aiAccount/config/accessPermissions';
-import { formatVndNumber } from '@/modules/aiAccount/utils/formatVnd';
 
 const props = defineProps({
     show: Boolean,
@@ -71,18 +69,7 @@ const form = reactive({
 const isEdit = computed(() => !!props.account?.id);
 const canViewPassword = computed(() => props.can?.view_password || props.account?.can_view_password);
 const tabIndex = computed(() => TABS.findIndex((t) => t.key === activeTab.value));
-const reminderHint = computed(() => (
-    `Lịch nhắc: ${(props.reminderSchedule || []).join(', ') || '08:00, 14:00'}`
-));
 const isPasswordLogin = computed(() => form.login_method === 'password');
-const monthlyPreview = computed(() => {
-    const n = Math.round(Number(form.cost_amount) || 0);
-    if (!n) return 0;
-    if (form.cost_unit === 'yearly') return Math.round(n / 12);
-    if (form.cost_unit === 'quarterly') return Math.round(n / 3);
-    if (form.cost_unit === 'one_time') return 0;
-    return n;
-});
 
 const permissionOptions = computed(() => (
     props.options?.access_permissions?.length
@@ -334,14 +321,6 @@ const costInvalid = computed(() => (
       class="flex min-h-0 flex-1 flex-col overflow-hidden"
       @submit.prevent="onSubmit"
     >
-      <p class="mb-3 shrink-0 text-[11px] leading-relaxed text-slate-500">
-        Trường có
-        <span class="font-medium text-danger">*</span>
-        là bắt buộc. Chi phí tự format VNĐ (vd.
-        <span class="font-medium tabular-nums text-slate-700">1.000.000</span>).
-        Chỉ người được cấp quyền mới thấy từng tài khoản.
-      </p>
-
       <div
         class="mb-3 flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200"
         role="tablist"
@@ -424,7 +403,6 @@ const costInvalid = computed(() => (
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
                   Email đăng ký <span class="text-danger">*</span>
-                  <FieldTooltip :text="formHints.notify || 'Email dùng nhận nhắc hết hạn và liên hệ license.'" />
                 </span>
                 <input
                   v-model="form.email_registered"
@@ -464,17 +442,9 @@ const costInvalid = computed(() => (
                   @update:model-value="markDirty"
                 />
               </label>
-              <p
-                v-else-if="!isPasswordLogin"
-                class="sm:col-span-2 rounded-lg border border-sky-200/80 bg-sky-50/70 px-3 py-2 text-[11px] text-sky-900"
-              >
-                Đăng nhập Google — không lưu mật khẩu trên hệ thống.
-              </p>
-
               <div class="sm:col-span-2">
                 <span class="mb-1 block text-xs font-medium text-slate-600">
                   Link chỗ mua
-                  <FieldTooltip text="URL trang mua / quản lý license (ChatGPT, Cursor…)." />
                 </span>
                 <div class="flex gap-2">
                   <input
@@ -564,12 +534,6 @@ const costInvalid = computed(() => (
                   :invalid="costInvalid"
                   @update:model-value="markDirty"
                 />
-                <p
-                  v-if="form.cost_amount && monthlyPreview && form.cost_unit !== 'monthly'"
-                  class="mt-1 text-[11px] text-slate-500"
-                >
-                  ≈ {{ formatVndNumber(monthlyPreview) }} ₫ / tháng
-                </p>
               </div>
 
               <label class="block">
@@ -600,7 +564,6 @@ const costInvalid = computed(() => (
               <label class="block sm:col-span-2">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
                   Nhắc trước (ngày)
-                  <FieldTooltip :text="reminderHint" />
                 </span>
                 <input
                   v-model.number="form.notify_before_days"
@@ -629,7 +592,6 @@ const costInvalid = computed(() => (
                 class="h-full"
                 compact
                 title="Phiếu đề xuất (PĐX)"
-                hint="1 file gắn với ngày gửi. Nút xác nhận = đã duyệt."
                 date-label="Ngày gửi đề xuất"
                 :date-value="form.proposal_sent_at"
                 date-placeholder="Chọn ngày gửi đề xuất"
@@ -664,7 +626,6 @@ const costInvalid = computed(() => (
               class="h-full min-w-0"
               compact
               title="Đề nghị thanh toán (ĐNTT)"
-              hint="1 file gắn với ngày gửi đề nghị."
               date-label="Ngày gửi đề nghị thanh toán"
               :date-value="form.payment_request_sent_at"
               date-placeholder="Chọn ngày gửi đề nghị"
