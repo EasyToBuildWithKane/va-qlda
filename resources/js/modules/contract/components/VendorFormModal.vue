@@ -8,6 +8,7 @@ const props = defineProps({
     show: { type: Boolean, default: false },
     vendor: { type: Object, default: null },
     categories: { type: Array, default: () => [] },
+    cooperationStatuses: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -24,6 +25,15 @@ function resolveCategoryIds(v) {
     return [];
 }
 
+function resolveCooperationStatus(v) {
+    const raw = v?.cooperation_status?.value ?? v?.cooperation_status ?? null;
+    if (raw && ['active', 'potential', 'research', 'inactive'].includes(String(raw))) {
+        return String(raw);
+    }
+    if (v?.is_active === false) return 'inactive';
+    return 'active';
+}
+
 const form = useForm({
     name: '',
     tax_code: '',
@@ -33,7 +43,7 @@ const form = useForm({
     website: '',
     address: '',
     notes: '',
-    is_active: true,
+    cooperation_status: 'active',
     category_ids: [],
     category_names: [],
 });
@@ -51,7 +61,7 @@ watch(() => props.show, (open) => {
         website: v?.website ?? '',
         address: v?.address ?? '',
         notes: v?.notes ?? '',
-        is_active: v?.is_active ?? true,
+        cooperation_status: resolveCooperationStatus(v),
         category_ids: resolveCategoryIds(v),
         category_names: [],
     });
@@ -100,8 +110,10 @@ function submit() {
 
       <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
         <VendorFormFields
+          :key="`${isEdit ? vendor.id : 'new'}-${show ? 1 : 0}`"
           :vendor="vendor"
           :categories="categories"
+          :cooperation-statuses="cooperationStatuses"
         />
       </div>
 

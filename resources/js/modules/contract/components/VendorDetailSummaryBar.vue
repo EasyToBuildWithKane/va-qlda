@@ -46,11 +46,15 @@ const cards = computed(() => {
         {
             key: 'status',
             label: 'Trạng thái',
-            value: v.is_active ? 'Đang hợp tác' : 'Ngừng hoạt động',
+            value: v.cooperation_status?.label
+                ?? (v.is_active ? 'Đang hợp tác' : 'Ngừng hợp tác'),
             valueKind: 'text',
-            tone: v.is_active ? 'emerald' : 'slate',
+            tone: v.cooperation_status?.color
+                ?? (v.is_active ? 'emerald' : 'slate'),
             icon: 'vendor',
-            sub: v.is_active ? 'NCC đang mở' : 'Đã tắt trên hệ thống',
+            sub: v.cooperation_status?.value === 'inactive' || v.is_active === false
+                ? 'Đã tắt trên hệ thống'
+                : 'Theo trạng thái hợp tác',
             interactive: false,
         },
     ];

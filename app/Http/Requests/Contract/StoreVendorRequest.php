@@ -3,7 +3,9 @@
 namespace App\Http\Requests\Contract;
 
 use App\Models\Vendor;
+use App\Support\Enums\VendorCooperationStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreVendorRequest extends FormRequest
 {
@@ -27,7 +29,8 @@ class StoreVendorRequest extends FormRequest
             'address' => ['nullable', 'string', 'max:255'],
             'rating' => ['nullable', 'integer', 'min:1', 'max:5'],
             'notes' => ['nullable', 'string', 'max:2000'],
-            'is_active' => ['boolean'],
+            'is_active' => ['sometimes', 'boolean'],
+            'cooperation_status' => ['required', Rule::in(VendorCooperationStatus::values())],
             'category_ids' => ['nullable', 'array', 'max:50'],
             'category_ids.*' => ['integer', 'distinct', 'exists:contract_categories,id'],
             'category_names' => ['nullable', 'array', 'max:50'],
@@ -44,6 +47,8 @@ class StoreVendorRequest extends FormRequest
             'name.required' => 'Vui lòng nhập tên nhà cung cấp.',
             'email.email' => 'Email không hợp lệ.',
             'rating.max' => 'Đánh giá tối đa 5 sao.',
+            'cooperation_status.required' => 'Vui lòng chọn trạng thái hợp tác.',
+            'cooperation_status.in' => 'Trạng thái hợp tác không hợp lệ.',
             'category_ids.*.exists' => 'Nhóm dịch vụ không hợp lệ.',
             'category_ids.max' => 'Mỗi nhà cung cấp tối đa 50 loại dịch vụ.',
             'category_names.max' => 'Mỗi lần tối đa 50 loại dịch vụ mới.',

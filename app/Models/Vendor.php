@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\Enums\VendorCooperationStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -21,6 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * @property int|null $rating
  * @property string|null $notes
  * @property bool $is_active
+ * @property \App\Support\Enums\VendorCooperationStatus $cooperation_status
  */
 class Vendor extends Model
 {
@@ -36,19 +38,42 @@ class Vendor extends Model
         'rating',
         'notes',
         'is_active',
+        'cooperation_status',
     ];
 
     protected $casts = [
         'rating' => 'integer',
         'is_active' => 'boolean',
+        'cooperation_status' => VendorCooperationStatus::class,
     ];
 
     protected static function booted(): void
     {
+        static::saving(function (Vendor $vendor) {
+            if ($vendor->cooperation_status instanceof VendorCooperationStatus) {
+                $vendor->is_active = $vendor->cooperation_status->isActiveFlag();
+            } elseif (is_string($vendor->cooperation_status) && $vendor->cooperation_status !== '') {
+                $status = VendorCooperationStatus::tryFrom($vendor->cooperation_status);
+                if ($status) {
+                    $vendor->is_active = $status->isActiveFlag();
+                }
+            } elseif ($vendor->isDirty('is_active') && ! $vendor->isDirty('cooperation_status')) {
+                // Legacy payload chỉ gửi is_active.
+                $vendor->cooperation_status = $vendor->is_active
+                    ? VendorCooperationStatus::Active
+                    : VendorCooperationStatus::Inactive;
+            }
+        });
+
         static::creating(function (Vendor $vendor) {
             if (! $vendor->code) {
                 $seq = static::query()->count() + 1;
                 $vendor->code = 'NCC-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+            }
+            if (! $vendor->cooperation_status) {
+                $vendor->cooperation_status = $vendor->is_active
+                    ? VendorCooperationStatus::Active
+                    : VendorCooperationStatus::Inactive;
             }
         });
     }

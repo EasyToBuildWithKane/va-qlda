@@ -13,6 +13,7 @@ use App\Models\Vendor;
 use App\Models\VendorImportLog;
 use App\Support\ContractLifecycle\ContractServiceGroups;
 use App\Support\Enums\ContractReviewRecommendation;
+use App\Support\Enums\VendorCooperationStatus;
 use App\Support\Options;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -55,12 +56,7 @@ class VendorController extends Controller
             $query->whereHas('latestReview', fn ($q) => $q->where('total_score', '<', 7));
         }
 
-        $active = $request->query('active');
-        if ($active === '1') {
-            $query->where('is_active', true);
-        } elseif ($active === '0') {
-            $query->where('is_active', false);
-        }
+        $this->applyCooperationStatusFilter($query, $request->query('active'));
 
         $reviewed = $request->query('reviewed');
         if ($reviewed === 'yes') {
@@ -85,6 +81,7 @@ class VendorController extends Controller
                 'recommendation' => ContractReviewRecommendation::options(),
                 'criteria' => self::CRITERIA_LABELS,
                 'categories' => $this->serviceCategoryOptions(),
+                'cooperation_status' => VendorCooperationStatus::options(),
             ],
             'can' => [
                 'create' => $account->can('create', Vendor::class),
@@ -119,6 +116,7 @@ class VendorController extends Controller
                 'criteria' => self::CRITERIA_LABELS,
                 'employees' => Options::employees()->values()->all(),
                 'categories' => $this->serviceCategoryOptions(),
+                'cooperation_status' => VendorCooperationStatus::options(),
             ],
         ]);
     }
@@ -253,8 +251,12 @@ class VendorController extends Controller
                     'address' => $row['address'] ?? null,
                     'rating' => $row['rating'] ?? null,
                     'notes' => $row['notes'] ?? null,
-                    'is_active' => array_key_exists('is_active', $row) ? (bool) $row['is_active'] : true,
                 ];
+
+                $status = $this->resolveImportCooperationStatus($row);
+                if ($status) {
+                    $payload['cooperation_status'] = $status;
+                }
 
                 $code = isset($row['code']) ? trim((string) $row['code']) : '';
                 if ($code !== '') {
@@ -328,6 +330,8 @@ class VendorController extends Controller
             'rating' => $v->rating,
             'notes' => $v->notes,
             'is_active' => $v->is_active,
+            'cooperation_status' => $v->cooperation_status?->value
+                ?? ($v->is_active ? VendorCooperationStatus::Active->value : VendorCooperationStatus::Inactive->value),
             'service_categories' => $v->serviceCategories->map(fn ($c) => [
                 'id' => $c->id,
                 'name' => $c->name,
@@ -357,6 +361,52 @@ class VendorController extends Controller
             ]);
 
         return response()->json(['data' => $logs]);
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<Vendor>  $query
+     */
+    private function applyCooperationStatusFilter($query, mixed $active): void
+    {
+        $raw = is_string($active) ? trim($active) : '';
+        if ($raw === '') {
+            return;
+        }
+
+        // Tương thích filter cũ active=1|0.
+        if ($raw === '1') {
+            $query->where('cooperation_status', VendorCooperationStatus::Active->value);
+
+            return;
+        }
+        if ($raw === '0') {
+            $query->where('cooperation_status', VendorCooperationStatus::Inactive->value);
+
+            return;
+        }
+
+        if (in_array($raw, VendorCooperationStatus::values(), true)) {
+            $query->where('cooperation_status', $raw);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function resolveImportCooperationStatus(array $row): ?VendorCooperationStatus
+    {
+        if (! empty($row['cooperation_status']) && is_string($row['cooperation_status'])) {
+            return VendorCooperationStatus::tryFrom($row['cooperation_status'])
+                ?? VendorCooperationStatus::tryFromLabel($row['cooperation_status']);
+        }
+
+        if (array_key_exists('is_active', $row)) {
+            return (bool) $row['is_active']
+                ? VendorCooperationStatus::Active
+                : VendorCooperationStatus::Inactive;
+        }
+
+        return VendorCooperationStatus::Active;
     }
 
     /**
@@ -524,12 +574,7 @@ class VendorController extends Controller
             $query->whereHas('latestReview', fn ($q) => $q->where('total_score', '<', 7));
         }
 
-        $active = $request->query('active');
-        if ($active === '1') {
-            $query->where('is_active', true);
-        } elseif ($active === '0') {
-            $query->where('is_active', false);
-        }
+        $this->applyCooperationStatusFilter($query, $request->query('active'));
 
         $reviewed = $request->query('reviewed');
         if ($reviewed === 'yes') {

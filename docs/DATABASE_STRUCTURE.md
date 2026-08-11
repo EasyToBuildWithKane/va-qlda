@@ -947,7 +947,7 @@ Prefix `va_prd_`, Policy `ContractPolicy` (admin/lead/viewer).
 
 | Bảng | Mô tả |
 |---|---|
-| `va_prd_vendors` | Nhà cung cấp |
+| `va_prd_vendors` | Nhà cung cấp; `cooperation_status` (`active`/`potential`/`research`/`inactive`, migration `2026_08_11_064914`); `is_active` đồng bộ từ status |
 | `va_prd_contract_categories` | Nhóm dịch vụ (vendor_id nullable) |
 | `va_prd_vendor_service_categories` | Pivot NCC ↔ nhiều nhóm dịch vụ (`vendor_id`, `contract_category_id`, unique) — migration `2026_08_11_120000` |
 | `va_prd_contracts` | Hợp đồng; `root_contract_id` → self (phụ lục); `status` default `draft` = "Đang chờ duyệt" |

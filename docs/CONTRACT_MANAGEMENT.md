@@ -113,9 +113,13 @@ Bảng `va_prd_*` (migrations `2026_06_17_*`, pivot dịch vụ `2026_08_11_1200
 `contract_finances`, `contract_attachments`, `contract_renewals`, `contract_activities`,
 `vendor_reviews`, `contract_reviews`.
 
-**Loại dịch vụ NCC:** form Thêm/Sửa NCC chọn chip `category_ids` và/hoặc tự thêm `category_names`
-(server tạo `contract_categories` `vendor_id` null nếu chưa có) → sync `Vendor::serviceCategories()`;
-danh mục chuẩn seed `ContractServiceGroups`.
+**Loại dịch vụ NCC:** form Thêm/Sửa NCC dùng `SearchMultiSelect` (chọn nhiều + `creatable`) —
+`category_ids` / `category_names` → sync `Vendor::serviceCategories()`; tên mới tạo
+`contract_categories` (`vendor_id` null); danh mục chuẩn seed `ContractServiceGroups`.
+
+**Trạng thái hợp tác NCC:** enum `VendorCooperationStatus` (`active` Đang hợp tác · `potential` Tiềm năng ·
+`research` Nghiên cứu · `inactive` Ngừng hợp tác) trên cột `cooperation_status`; `is_active` đồng bộ
+(`false` chỉ khi inactive).
 
 ---
 

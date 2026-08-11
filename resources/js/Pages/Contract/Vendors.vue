@@ -127,6 +127,23 @@ function serviceLabels(v) {
     return list.map((c) => c.name).filter(Boolean);
 }
 
+function cooperationLabel(v) {
+    return v?.cooperation_status?.label
+        ?? (v?.is_active === false ? 'Ngừng hợp tác' : 'Đang hợp tác');
+}
+
+function cooperationBadgeClass(v) {
+    const color = v?.cooperation_status?.color
+        ?? (v?.is_active === false ? 'slate' : 'emerald');
+    const map = {
+        emerald: 'bg-emerald-50 text-emerald-700',
+        sky: 'bg-sky-50 text-sky-700',
+        violet: 'bg-violet-50 text-violet-700',
+        slate: 'bg-slate-100 text-slate-600',
+    };
+    return map[color] || map.slate;
+}
+
 function navigateVendors() {
     router.get(route('contracts.vendors.index'), vendorRouteParams(), {
         preserveState: true,
@@ -498,11 +515,12 @@ async function onDelete(v) {
                 <option value="">
                   Trạng thái NCC
                 </option>
-                <option value="1">
-                  Đang hoạt động
-                </option>
-                <option value="0">
-                  Ngừng hoạt động
+                <option
+                  v-for="opt in (options.cooperation_status || [])"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
                 </option>
               </select>
             </DatagridFilterField>
@@ -700,9 +718,9 @@ async function onDelete(v) {
               >
                 <span
                   class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  :class="v.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                  :class="cooperationBadgeClass(v)"
                 >
-                  {{ v.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động' }}
+                  {{ cooperationLabel(v) }}
                 </span>
               </td>
               <td class="px-5 py-3 text-right">
@@ -732,6 +750,7 @@ async function onDelete(v) {
       :show="showForm"
       :vendor="editing"
       :categories="categoryOptions"
+      :cooperation-statuses="options.cooperation_status || []"
       @close="showForm = false"
       @saved="onVendorSaved"
     />

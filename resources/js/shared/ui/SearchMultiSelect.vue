@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { matchesSearchQuery } from '@/shared/utils/normalizeSearchKey';
+import { matchesSearchQuery, normalizeSearchKey } from '@/shared/utils/normalizeSearchKey';
 
 /**
  * Searchable multi-select. modelValue is an array of option values.
@@ -25,9 +25,13 @@ const props = defineProps({
     maxChips: { type: Number, default: 3 },
     /** sm = min-h-9 (mặc định); md = h-10 cố định cho filter grid */
     controlSize: { type: String, default: 'sm' },
+    /** Cho phép tạo mục mới từ ô tìm khi không khớp danh mục. */
+    creatable: { type: Boolean, default: false },
+    /** Nhãn nút tạo — dùng `{query}` cho chuỗi đang gõ. */
+    createLabel: { type: String, default: 'Thêm «{query}»' },
 });
 
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'create']);
 
 const open = ref(false);
 const search = ref('');
@@ -56,6 +60,20 @@ const filtered = computed(() => {
     return props.options.filter((o) => matchesSearchQuery(keysForSearch.value.map((k) => o?.[k]), q));
 });
 
+const createQuery = computed(() => search.value.trim());
+
+const canCreate = computed(() => {
+    if (!props.creatable || props.disabled) return false;
+    const q = createQuery.value;
+    if (!q) return false;
+    const key = normalizeSearchKey(q);
+    return !props.options.some((o) => normalizeSearchKey(optionLabel(o)) === key);
+});
+
+const createButtonLabel = computed(() =>
+    props.createLabel.replaceAll('{query}', createQuery.value),
+);
+
 const toggle = (o) => {
     const v = optionValue(o);
     const exists = isSelected(o);
@@ -63,6 +81,13 @@ const toggle = (o) => {
         ? props.modelValue.filter((x) => String(x) !== String(v))
         : [...props.modelValue, v];
     emit('update:modelValue', next);
+};
+
+const createFromSearch = () => {
+    if (!canCreate.value) return;
+    const name = createQuery.value;
+    emit('create', name);
+    search.value = '';
 };
 
 const removeValue = (v) => {
@@ -220,10 +245,24 @@ const visibleChips = computed(() => selectedOptions.value.slice(0, props.maxChip
               class="input py-1.5 pl-8 text-sm"
               :placeholder="searchPlaceholder"
               autofocus
+              @keydown.enter.prevent="canCreate ? createFromSearch() : undefined"
             >
           </div>
         </div>
         <ul class="max-h-56 overflow-y-auto py-1">
+          <li
+            v-if="canCreate"
+            class="flex cursor-pointer items-center gap-2 border-b border-slate-100 px-3 py-2 text-sm text-brand hover:bg-brand-50 dark:border-slate-700 dark:hover:bg-brand-950/30"
+            @click="createFromSearch"
+          >
+            <span class="grid h-4 w-4 shrink-0 place-items-center rounded border border-brand/40 bg-brand/10 text-brand">
+              <AppIcon
+                name="plus"
+                :size="12"
+              />
+            </span>
+            <span class="min-w-0 flex-1 font-medium">{{ createButtonLabel }}</span>
+          </li>
           <li
             v-for="o in filtered"
             :key="optionValue(o)"
@@ -260,7 +299,7 @@ const visibleChips = computed(() => selectedOptions.value.slice(0, props.maxChip
             </div>
           </li>
           <li
-            v-if="filtered.length === 0"
+            v-if="filtered.length === 0 && !canCreate"
             class="px-3 py-3 text-center text-sm text-slate-400"
           >
             Không tìm thấy.

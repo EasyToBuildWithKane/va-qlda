@@ -1,84 +1,119 @@
 <script setup>
-import { computed, inject, ref } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import VendorFieldLabel from '@/modules/contract/components/VendorFieldLabel.vue';
-import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
+import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 import { normalizeSearchKey } from '@/shared/utils/normalizeSearchKey';
 
 const props = defineProps({
     vendor: { type: Object, default: null },
     categories: { type: Array, default: () => [] },
+    cooperationStatuses: { type: Array, default: () => [] },
     inputClass: { type: String, default: 'input h-9 w-full text-sm' },
 });
 
 const form = inject('vendorForm');
-const newCategoryName = ref('');
-const addHint = ref('');
 
-const selectedCategoryIds = computed(() =>
-    (form.category_ids ?? []).map((id) => Number(id)).filter((id) => !Number.isNaN(id)),
+const DEFAULT_COOPERATION = [
+    { value: 'active', label: 'Đang hợp tác', color: 'emerald', hint: 'Đang có quan hệ hợp tác / cung cấp dịch vụ.' },
+    { value: 'potential', label: 'Tiềm năng', color: 'sky', hint: 'NCC tiềm năng — chưa ký hoặc đang xem xét.' },
+    { value: 'research', label: 'Nghiên cứu', color: 'violet', hint: 'Đang nghiên cứu, khảo sát thị trường.' },
+    { value: 'inactive', label: 'Ngừng hợp tác', color: 'slate', hint: 'Ngừng hợp tác — vẫn giữ lịch sử hợp đồng và đánh giá.' },
+];
+
+const cooperationOptions = computed(() => (
+    props.cooperationStatuses?.length ? props.cooperationStatuses : DEFAULT_COOPERATION
+));
+
+function statusToneClass(color) {
+    const map = {
+        emerald: 'border-emerald-300 bg-emerald-50/80 ring-1 ring-emerald-200/80',
+        sky: 'border-sky-300 bg-sky-50/80 ring-1 ring-sky-200/80',
+        violet: 'border-violet-300 bg-violet-50/80 ring-1 ring-violet-200/80',
+        slate: 'border-slate-300 bg-slate-50 ring-1 ring-slate-200/80',
+    };
+    return map[color] || map.slate;
+}
+
+/** Mục vừa tạo trong phiên (id tạm `new:…`) để hiện chip trong dropdown. */
+const sessionOptions = ref([]);
+
+watch(
+    () => props.categories,
+    () => {
+        sessionOptions.value = [];
+    },
 );
 
-const customCategoryNames = computed(() =>
-    (form.category_names ?? []).map((n) => String(n).trim()).filter(Boolean),
-);
+const NEW_PREFIX = 'new:';
 
-const selectedCount = computed(() => selectedCategoryIds.value.length + customCategoryNames.value.length);
-
-function isCategorySelected(id) {
-    return selectedCategoryIds.value.includes(Number(id));
+function toNewId(name) {
+    return `${NEW_PREFIX}${name}`;
 }
 
-function toggleCategory(id) {
-    const n = Number(id);
-    if (Number.isNaN(n)) return;
-    const current = selectedCategoryIds.value;
-    form.category_ids = current.includes(n)
-        ? current.filter((x) => x !== n)
-        : [...current, n];
+function parseNewName(value) {
+    const s = String(value ?? '');
+    return s.startsWith(NEW_PREFIX) ? s.slice(NEW_PREFIX.length) : null;
 }
 
-function removeCustomCategory(name) {
-    const key = normalizeSearchKey(name);
-    form.category_names = customCategoryNames.value.filter((n) => normalizeSearchKey(n) !== key);
-}
+const categoryOptions = computed(() => {
+    const base = (props.categories ?? []).map((c) => ({
+        id: c.id,
+        name: c.name,
+    }));
+    const known = new Set(base.map((c) => normalizeSearchKey(c.name)));
+    const extras = sessionOptions.value.filter((o) => !known.has(normalizeSearchKey(o.name)));
+    return [...base, ...extras];
+});
 
-function addCustomCategory() {
-    addHint.value = '';
-    const name = newCategoryName.value.trim();
-    if (!name) {
-        addHint.value = 'Nhập tên loại dịch vụ cần thêm.';
-        return;
-    }
-    if (name.length > 255) {
-        addHint.value = 'Tên loại dịch vụ tối đa 255 ký tự.';
-        return;
-    }
-
-    const key = normalizeSearchKey(name);
-    const existing = props.categories.find((c) => normalizeSearchKey(c.name) === key);
-    if (existing) {
-        if (!isCategorySelected(existing.id)) {
-            toggleCategory(existing.id);
+const selectedServiceValues = computed({
+    get() {
+        const ids = (form.category_ids ?? []).map((id) => Number(id)).filter((id) => !Number.isNaN(id));
+        const names = (form.category_names ?? []).map((n) => String(n).trim()).filter(Boolean);
+        return [...ids, ...names.map(toNewId)];
+    },
+    set(vals) {
+        const ids = [];
+        const names = [];
+        for (const v of vals ?? []) {
+            const newName = parseNewName(v);
+            if (newName !== null) {
+                if (newName) names.push(newName);
+            } else {
+                const n = Number(v);
+                if (!Number.isNaN(n)) ids.push(n);
+            }
         }
-        newCategoryName.value = '';
-        addHint.value = `«${existing.name}» đã có trong danh mục — đã chọn.`;
+        form.category_ids = [...new Set(ids)];
+        form.category_names = [...new Set(names)];
+    },
+});
+
+const selectedCount = computed(() => selectedServiceValues.value.length);
+
+function onCreateCategory(rawName) {
+    const name = String(rawName ?? '').trim();
+    if (!name || name.length > 255) return;
+
+    const key = normalizeSearchKey(name);
+    const existing = (props.categories ?? []).find((c) => normalizeSearchKey(c.name) === key);
+    if (existing) {
+        const cur = selectedServiceValues.value;
+        if (!cur.map(String).includes(String(existing.id))) {
+            selectedServiceValues.value = [...cur, existing.id];
+        }
         return;
     }
 
-    if (customCategoryNames.value.some((n) => normalizeSearchKey(n) === key)) {
-        newCategoryName.value = '';
-        addHint.value = 'Loại dịch vụ này đã được thêm.';
-        return;
+    const tempId = toNewId(name);
+    if (!sessionOptions.value.some((o) => normalizeSearchKey(o.name) === key)) {
+        sessionOptions.value = [...sessionOptions.value, { id: tempId, name }];
     }
 
-    if (selectedCount.value >= 50) {
-        addHint.value = 'Mỗi nhà cung cấp tối đa 50 loại dịch vụ.';
-        return;
+    const cur = selectedServiceValues.value;
+    if (!cur.map(String).includes(String(tempId))) {
+        selectedServiceValues.value = [...cur, tempId];
     }
-
-    form.category_names = [...customCategoryNames.value, name];
-    newCategoryName.value = '';
 }
 </script>
 
@@ -142,15 +177,45 @@ function addCustomCategory() {
             >
           </div>
 
-          <label class="mt-1 flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200/80 bg-white px-2.5 py-2 text-sm text-slate-600 transition has-[:checked]:border-brand/40 has-[:checked]:bg-brand/5">
-            <input
-              v-model="form.is_active"
-              type="checkbox"
-              class="rounded border-slate-300 text-brand focus:ring-brand/30"
+          <div>
+            <VendorFieldLabel
+              label="Trạng thái hợp tác"
+              compact
+              wide
+              tooltip="Đang hợp tác · Tiềm năng · Nghiên cứu · Ngừng hợp tác — dùng lọc danh sách và theo dõi pipeline NCC."
+            />
+            <div
+              class="grid grid-cols-1 gap-1.5 sm:grid-cols-2"
+              role="radiogroup"
+              aria-label="Trạng thái hợp tác"
             >
-            <span class="min-w-0 flex-1 font-medium text-slate-700">Đang hợp tác</span>
-            <FieldTooltip text="Bỏ chọn nếu ngừng hợp tác — NCC vẫn giữ lịch sử hợp đồng và đánh giá." />
-          </label>
+              <label
+                v-for="opt in cooperationOptions"
+                :key="opt.value"
+                class="flex cursor-pointer items-start gap-2 rounded-lg border px-2.5 py-2 text-sm transition"
+                :class="form.cooperation_status === opt.value
+                  ? statusToneClass(opt.color)
+                  : 'border-slate-200/90 bg-white text-slate-600 hover:border-slate-300'"
+              >
+                <input
+                  v-model="form.cooperation_status"
+                  type="radio"
+                  class="mt-0.5 border-slate-300 text-brand focus:ring-brand/30"
+                  :value="opt.value"
+                >
+                <span class="min-w-0">
+                  <span class="block font-medium leading-snug text-slate-800">{{ opt.label }}</span>
+                  <span class="mt-0.5 block text-[11px] leading-snug text-slate-400">{{ opt.hint }}</span>
+                </span>
+              </label>
+            </div>
+            <p
+              v-if="form.errors.cooperation_status"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.cooperation_status }}
+            </p>
+          </div>
         </div>
       </section>
 
@@ -275,7 +340,7 @@ function addCustomCategory() {
       </section>
     </div>
 
-    <!-- Loại dịch vụ · lưới 3 cột + thêm mới -->
+    <!-- Loại dịch vụ · multi-select dropdown -->
     <section
       class="rounded-xl border border-slate-200/80 bg-gradient-to-b from-brand/[0.03] to-white p-3 sm:p-3.5"
       aria-labelledby="vendor-services-heading"
@@ -294,7 +359,7 @@ function addCustomCategory() {
             Loại dịch vụ
           </h3>
           <p class="mt-0.5 text-[11px] text-slate-400">
-            Chọn sẵn hoặc tự thêm nhóm mới — dùng lọc danh sách và phân loại hồ sơ.
+            Chọn nhiều từ danh mục — gõ tên mới rồi chọn «Thêm» để tạo loại dịch vụ.
           </p>
         </div>
         <span
@@ -307,113 +372,31 @@ function addCustomCategory() {
         </span>
       </div>
 
-      <div
-        class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"
-        role="group"
-        aria-label="Chọn loại dịch vụ"
-      >
-        <button
-          v-for="cat in categories"
-          :key="cat.id"
-          type="button"
-          :aria-pressed="isCategorySelected(cat.id)"
-          class="group flex min-h-[2.75rem] items-center gap-2.5 rounded-lg border px-3 py-2 text-left text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
-          :class="isCategorySelected(cat.id)
-            ? 'border-brand bg-brand/10 text-brand shadow-sm ring-1 ring-brand/20'
-            : 'border-slate-200/90 bg-white text-slate-700 hover:border-brand/35 hover:bg-brand/[0.04]'"
-          @click="toggleCategory(cat.id)"
-        >
-          <span
-            class="grid h-5 w-5 shrink-0 place-items-center rounded-md border transition"
-            :class="isCategorySelected(cat.id)
-              ? 'border-brand bg-brand text-white'
-              : 'border-slate-300 bg-slate-50 text-transparent group-hover:border-brand/40'"
-            aria-hidden="true"
-          >
-            <AppIcon
-              name="check"
-              :size="12"
-            />
-          </span>
-          <span class="min-w-0 flex-1 truncate font-medium leading-snug">
-            {{ cat.name }}
-          </span>
-        </button>
-
-        <div
-          v-for="name in customCategoryNames"
-          :key="`new:${name}`"
-          class="flex min-h-[2.75rem] items-center gap-2 rounded-lg border border-dashed border-brand/40 bg-brand/5 px-3 py-2 text-sm text-brand ring-1 ring-brand/15"
-        >
-          <span
-            class="grid h-5 w-5 shrink-0 place-items-center rounded-md border border-brand bg-brand text-white"
-            aria-hidden="true"
-          >
-            <AppIcon
-              name="check"
-              :size="12"
-            />
-          </span>
-          <span class="min-w-0 flex-1 truncate font-medium leading-snug">
-            {{ name }}
-          </span>
-          <span class="shrink-0 rounded-full bg-brand/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide">
-            Mới
-          </span>
-          <button
-            type="button"
-            class="grid h-6 w-6 shrink-0 place-items-center rounded-md text-brand/70 hover:bg-brand/10 hover:text-brand"
-            :aria-label="`Gỡ ${name}`"
-            @click="removeCustomCategory(name)"
-          >
-            <AppIcon
-              name="close"
-              :size="14"
-            />
-          </button>
-        </div>
-      </div>
-
-      <p
-        v-if="!categories.length && !customCategoryNames.length"
-        class="rounded-lg border border-dashed border-slate-200 bg-slate-50/80 px-3 py-4 text-center text-xs text-slate-500"
-      >
-        Chưa có danh mục — hãy thêm loại dịch vụ bên dưới.
-      </p>
-
-      <div class="mt-3 flex flex-col gap-1.5 sm:flex-row sm:items-center">
-        <div class="relative min-w-0 flex-1">
-          <input
-            id="vendor-new-service"
-            v-model="newCategoryName"
-            type="text"
-            maxlength="255"
-            class="input h-9 w-full pr-3 text-sm"
-            placeholder="Thêm loại dịch vụ mới… (vd: Đào tạo, Bảo trì)"
-            @keydown.enter.prevent="addCustomCategory"
-          >
-        </div>
-        <button
-          type="button"
-          class="btn-ghost inline-flex h-9 shrink-0 items-center justify-center gap-1.5 px-3 text-sm"
-          @click="addCustomCategory"
-        >
-          <AppIcon
-            name="plus"
-            :size="15"
-          />
-          Thêm
-        </button>
-      </div>
-      <p
-        v-if="addHint"
-        class="text-[11px] text-slate-500"
-      >
-        {{ addHint }}
-      </p>
+      <VendorFieldLabel
+        for-id="vendor-services"
+        label="Nhóm dịch vụ"
+        compact
+        wide
+        tooltip="Chọn một hoặc nhiều nhóm dịch vụ. Gõ tên chưa có trong danh mục rồi bấm Thêm «…» để tạo mới khi lưu NCC."
+      />
+      <SearchMultiSelect
+        id="vendor-services"
+        v-model="selectedServiceValues"
+        :options="categoryOptions"
+        value-key="id"
+        label-key="name"
+        placeholder="Tìm & chọn loại dịch vụ…"
+        search-placeholder="Tìm hoặc gõ tên mới…"
+        :max-chips="8"
+        control-size="md"
+        :panel-z-index="120"
+        creatable
+        create-label="Thêm «{query}»"
+        @create="onCreateCategory"
+      />
       <p
         v-if="form.errors.category_ids || form.errors.category_names"
-        class="text-xs text-rose-600"
+        class="mt-1.5 text-xs text-rose-600"
       >
         {{ form.errors.category_ids || form.errors.category_names }}
       </p>

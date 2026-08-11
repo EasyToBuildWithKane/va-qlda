@@ -445,6 +445,7 @@ async function onDelete() {
       :show="showForm"
       :vendor="vendor"
       :categories="options.categories || []"
+      :cooperation-statuses="options.cooperation_status || []"
       @close="showForm = false"
       @saved="reloadVendor"
     />

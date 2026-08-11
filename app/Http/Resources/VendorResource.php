@@ -38,6 +38,17 @@ class VendorResource extends JsonResource
             'rating' => $this->rating,
             'notes' => $this->notes,
             'is_active' => $this->is_active,
+            'cooperation_status' => $this->cooperation_status
+                ? [
+                    'value' => $this->cooperation_status->value,
+                    'label' => $this->cooperation_status->label(),
+                    'color' => $this->cooperation_status->color(),
+                ]
+                : [
+                    'value' => $this->is_active ? 'active' : 'inactive',
+                    'label' => $this->is_active ? 'Đang hợp tác' : 'Ngừng hợp tác',
+                    'color' => $this->is_active ? 'emerald' : 'slate',
+                ],
             'category_ids' => $this->whenLoaded(
                 'serviceCategories',
                 fn () => $this->serviceCategories->pluck('id')->values()->all(),

@@ -28,8 +28,19 @@ const SAMPLE_ROW_NAMES = [
     'Công ty CP Phần mềm Mẫu B',
 ];
 
-const ACTIVE_LABELS = ['Đang hoạt động', 'Hoạt động', '1', 'true', 'active', 'Có'];
-const INACTIVE_LABELS = ['Ngừng hoạt động', 'Ngừng', '0', 'false', 'inactive', 'Không'];
+const STATUS_ALIASES = {
+    inactive: ['ngung hop tac', 'ngung hoat dong', 'ngung', '0', 'false', 'inactive', 'khong'],
+    potential: ['tiem nang', 'potential'],
+    research: ['nghien cuu', 'research'],
+    active: ['dang hop tac', 'dang hoat dong', 'hoat dong', '1', 'true', 'active', 'co'],
+};
+
+const STATUS_LABELS = {
+    active: 'Đang hợp tác',
+    potential: 'Tiềm năng',
+    research: 'Nghiên cứu',
+    inactive: 'Ngừng hợp tác',
+};
 
 export const VENDOR_IMPORT_HEADERS = [
     'Tên NCC *',
@@ -72,21 +83,27 @@ export function normalizeHeader(h) {
     return String(h || '')
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
         .toLowerCase()
         .trim();
 }
 
-function parseIsActive(raw) {
+function parseCooperationStatus(raw) {
     const s = String(raw ?? '').trim();
-    if (!s) return true;
+    if (!s) return 'active';
     const n = normalizeHeader(s);
-    if (INACTIVE_LABELS.some((l) => normalizeHeader(l) === n || n.includes('ngung'))) {
-        return false;
-    }
-    if (ACTIVE_LABELS.some((l) => normalizeHeader(l) === n) || n.includes('dang hoat dong')) {
-        return true;
+    if (['active', 'potential', 'research', 'inactive'].includes(n)) return n;
+    for (const [value, aliases] of Object.entries(STATUS_ALIASES)) {
+        if (aliases.some((a) => n === a || n.includes(a))) return value;
     }
     return null;
+}
+
+function cooperationStatusLabel(v) {
+    const value = v?.cooperation_status?.value
+        ?? v?.cooperation_status
+        ?? (v?.is_active === false ? 'inactive' : 'active');
+    return STATUS_LABELS[value] || STATUS_LABELS.active;
 }
 
 function parseRating(raw) {
@@ -99,7 +116,7 @@ function parseRating(raw) {
 
 function mapRowFromHeaders(headers, row) {
     const obj = {
-        is_active: true,
+        cooperation_status: 'active',
     };
     headers.forEach((h, idx) => {
         const key = normalizeHeader(String(h));
@@ -128,13 +145,13 @@ function mapRowFromHeaders(headers, row) {
         } else if (key.includes('ghi chu') || key.includes('notes')) {
             obj.notes = val;
         } else if (key.includes('trang thai')) {
-            obj.is_active_raw = val;
+            obj.status_raw = val;
         }
     });
-    if (obj.is_active_raw !== undefined) {
-        const parsed = parseIsActive(obj.is_active_raw);
-        if (parsed !== null) obj.is_active = parsed;
-        delete obj.is_active_raw;
+    if (obj.status_raw !== undefined) {
+        const parsed = parseCooperationStatus(obj.status_raw);
+        obj.cooperation_status = parsed;
+        delete obj.status_raw;
     }
     if (obj.rating !== undefined && obj.rating !== null && obj.rating !== '') {
         const r = parseRating(obj.rating);
@@ -159,7 +176,7 @@ export function downloadVendorTemplate() {
         ['3. CỘT BẮT BUỘC (*)', 'Tên NCC — để trống sẽ bị lỗi.'],
         ['4. MÃ NCC', 'Để trống: hệ thống tự sinh (NCC-001, …). Nếu điền: tối đa 40 ký tự, không trùng mã có sẵn.'],
         ['5. LOẠI DỊCH VỤ', 'Nhiều nhóm cách nhau bằng ; hoặc | (vd: License; SaaS). Khớp tên danh mục CLM; bỏ trống = không đổi khi ghi đè.'],
-        ['6. TRẠNG THÁI / ĐÁNH GIÁ', `${ACTIVE_LABELS.slice(0, 2).join(' | ')} hoặc ${INACTIVE_LABELS.slice(0, 2).join(' | ')} (mặc định: Đang hoạt động). Đánh giá sao 1–5 (tuỳ chọn).`],
+        ['6. TRẠNG THÁI / ĐÁNH GIÁ', `${Object.values(STATUS_LABELS).join(' | ')} (mặc định: Đang hợp tác). Đánh giá sao 1–5 (tuỳ chọn).`],
         ['7. GHI ĐÈ', 'Bật «Ghi đè» khi nhập: khớp theo Mã NCC → Mã số thuế → Tên (không phân biệt hoa thường).'],
         ['8. GIỚI HẠN', 'Tối đa 200 dòng mỗi lần nhập.'],
         ['9. LỖI THƯỜNG GẶP', '• Email sai định dạng\n• Trạng thái không nhận diện\n• Mã NCC trùng\n• Dòng mẫu italic (6–7) không import'],
@@ -184,8 +201,8 @@ export function downloadVendorTemplate() {
     });
 
     const samples = [
-        ['Công ty TNHH Dịch vụ Mẫu A', 'NCC-MAU-01', '0123456789', 'Nguyễn Văn A', 'contact@mau-a.vn', '0901234567', 'https://mau-a.vn', 'Hà Nội', 'License; SaaS', '4', 'Dòng mẫu — không import', 'Đang hoạt động'],
-        ['Công ty CP Phần mềm Mẫu B', '', '9876543210', 'Trần Thị B', 'sales@mau-b.vn', '0912345678', '', 'TP. HCM', 'Cloud', '5', '', 'Đang hoạt động'],
+        ['Công ty TNHH Dịch vụ Mẫu A', 'NCC-MAU-01', '0123456789', 'Nguyễn Văn A', 'contact@mau-a.vn', '0901234567', 'https://mau-a.vn', 'Hà Nội', 'License; SaaS', '4', 'Dòng mẫu — không import', 'Đang hợp tác'],
+        ['Công ty CP Phần mềm Mẫu B', '', '9876543210', 'Trần Thị B', 'sales@mau-b.vn', '0912345678', '', 'TP. HCM', 'Cloud', '5', '', 'Tiềm năng'],
     ];
     samples.forEach((row, ri) => {
         row.forEach((val, ci) => {
@@ -281,10 +298,12 @@ export function revalidateVendorRow(row, allRows = null) {
     if (row.rating != null && row.rating !== '' && (row.rating < 1 || row.rating > 5)) {
         errors.push('Đánh giá phải từ 1 đến 5');
     }
-    if (row.is_active_raw !== undefined) {
-        const parsed = parseIsActive(row.is_active_raw);
+    if (row.cooperation_status == null) {
+        errors.push('Trạng thái không hợp lệ');
+    } else if (!STATUS_LABELS[row.cooperation_status]) {
+        const parsed = parseCooperationStatus(row.cooperation_status);
         if (parsed === null) errors.push('Trạng thái không hợp lệ');
-        else row.is_active = parsed;
+        else row.cooperation_status = parsed;
     }
 
     const peers = allRows || [];
@@ -317,7 +336,7 @@ export function vendorRowToPayload(row) {
         website: row.website?.trim() || undefined,
         address: row.address?.trim() || undefined,
         notes: row.notes?.trim() || undefined,
-        is_active: row.is_active !== false,
+        cooperation_status: row.cooperation_status || 'active',
     };
     if (row.rating != null && row.rating !== '') payload.rating = row.rating;
     const services = String(row.service_categories ?? '').trim();
@@ -346,7 +365,7 @@ function vendorExportRow(v) {
         v.contracts_count ?? 0,
         formatMoneyShort(v.total_annual_cost ?? 0),
         v.review_score != null ? `${v.review_score}/10` : 'Chưa đánh giá',
-        v.is_active ? 'Đang hoạt động' : 'Ngừng hoạt động',
+        cooperationStatusLabel(v),
     ];
 }
 
@@ -444,7 +463,7 @@ export function exportPreviewErrorRows(errorRows) {
             r.service_categories || '',
             r.rating ?? '',
             r.notes || '',
-            r.is_active === false ? 'Ngừng hoạt động' : 'Đang hoạt động',
+            STATUS_LABELS[r.cooperation_status] || STATUS_LABELS.active,
             r._errors?.join('; ') || '',
         ];
         rowData.forEach((val, ci) => {
@@ -504,11 +523,12 @@ export function reconcileVendors(rows) {
                 vendorName: name,
             });
         }
-        if (v.is_active === false && (v.contracts_count ?? 0) > 0) {
+        if ((v.cooperation_status?.value === 'inactive' || v.cooperation_status === 'inactive' || v.is_active === false)
+            && (v.contracts_count ?? 0) > 0) {
             issues.push({
                 level: 'error',
                 code: 'inactive_with_contracts',
-                message: `«${name}»: đang ngừng hoạt động nhưng vẫn có hợp đồng.`,
+                message: `«${name}»: đang ngừng hợp tác nhưng vẫn có hợp đồng.`,
                 vendorId,
                 vendorName: name,
             });
