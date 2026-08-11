@@ -43,6 +43,7 @@ Form (`AiAccountFormModal`, `max-w-4xl`): 4 tab **Thông tin** · **Chi phí & h
 - Chi phí: `MoneyInput` → format `1.000.000 ₫`
 - Ngày: `FilterDatePicker` (`dd/MM/yyyy`)
 - Đăng nhập: segmented Google / Tài khoản thường
+- Chứng từ: lưới **2 cột** (PĐX | ĐNTT) trên `lg+`, `AiAccountDocSlot` `compact`; modal `fit-viewport` cuộn vùng nội dung (`overflow-y-auto`)
 - Phân quyền: `AiAccountAccessGrantsPanel` (sau khi đã lưu)
 
 ### Quyền ACL (`AiAccountPermission`)

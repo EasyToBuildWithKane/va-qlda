@@ -331,7 +331,7 @@ const costInvalid = computed(() => (
     @close="onClose"
   >
     <form
-      class="flex h-full min-h-0 flex-col"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden"
       @submit.prevent="onSubmit"
     >
       <p class="mb-3 shrink-0 text-[11px] leading-relaxed text-slate-500">
@@ -374,7 +374,7 @@ const costInvalid = computed(() => (
         </button>
       </div>
 
-      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5">
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
         <!-- Tab: Thông tin -->
         <div
           v-show="activeTab === 'info'"
@@ -617,67 +617,74 @@ const costInvalid = computed(() => (
           </div>
         </div>
 
-        <!-- Tab: Chứng từ -->
+        <!-- Tab: Chứng từ — 2 cột ngang (PĐX | ĐNTT) -->
         <div
           v-show="activeTab === 'docs'"
           class="space-y-3"
           role="tabpanel"
         >
-          <AiAccountDocSlot
-            title="Phiếu đề xuất (PĐX)"
-            hint="Mỗi lần gửi đề xuất gắn đúng 1 file. Bấm nút để xác nhận đề xuất đã được duyệt."
-            date-label="Ngày gửi đề xuất"
-            :date-value="form.proposal_sent_at"
-            date-placeholder="Chọn ngày gửi đề xuất"
-            :existing-doc="existingProposalDoc"
-            :pending-file="proposalFile"
-            confirm-label="Xác nhận đề xuất đã duyệt"
-            :confirmed="proposalApprovedToday"
-            @update:date-value="(v) => { form.proposal_sent_at = v; markDirty(); }"
-            @file-change="onProposalFile"
-            @clear-file="clearProposalFile"
-            @confirm="confirmProposalApproved"
-          />
-
-          <div
-            v-if="form.proposal_approved_at || form.proposal_sent_at"
-            class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-3 sm:px-4"
-          >
-            <label class="block min-w-[12rem]">
-              <span class="mb-1 block text-xs font-medium text-emerald-900">
-                Ngày đề xuất được duyệt
-              </span>
-              <FilterDatePicker
-                v-model="form.proposal_approved_at"
-                placeholder="Chọn ngày duyệt"
-                :min-date="form.proposal_sent_at || null"
-                @update:model-value="markDirty"
+          <div class="grid grid-cols-1 gap-3 lg:grid-cols-2 lg:items-stretch">
+            <div class="flex min-w-0 flex-col gap-2">
+              <AiAccountDocSlot
+                class="h-full"
+                compact
+                title="Phiếu đề xuất (PĐX)"
+                hint="1 file gắn với ngày gửi. Nút xác nhận = đã duyệt."
+                date-label="Ngày gửi đề xuất"
+                :date-value="form.proposal_sent_at"
+                date-placeholder="Chọn ngày gửi đề xuất"
+                :existing-doc="existingProposalDoc"
+                :pending-file="proposalFile"
+                confirm-label="Xác nhận đã duyệt"
+                :confirmed="proposalApprovedToday"
+                @update:date-value="(v) => { form.proposal_sent_at = v; markDirty(); }"
+                @file-change="onProposalFile"
+                @clear-file="clearProposalFile"
+                @confirm="confirmProposalApproved"
               />
-            </label>
+              <div
+                v-if="form.proposal_approved_at || form.proposal_sent_at"
+                class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-2.5"
+              >
+                <label class="block">
+                  <span class="mb-1 block text-xs font-medium text-emerald-900">
+                    Ngày đề xuất được duyệt
+                  </span>
+                  <FilterDatePicker
+                    v-model="form.proposal_approved_at"
+                    placeholder="Chọn ngày duyệt"
+                    :min-date="form.proposal_sent_at || null"
+                    @update:model-value="markDirty"
+                  />
+                </label>
+              </div>
+            </div>
+
+            <AiAccountDocSlot
+              class="h-full min-w-0"
+              compact
+              title="Đề nghị thanh toán (ĐNTT)"
+              hint="1 file gắn với ngày gửi đề nghị."
+              date-label="Ngày gửi đề nghị thanh toán"
+              :date-value="form.payment_request_sent_at"
+              date-placeholder="Chọn ngày gửi đề nghị"
+              :existing-doc="existingPaymentDoc"
+              :pending-file="paymentFile"
+              confirm-label="Xác nhận đã gửi"
+              :confirmed="paymentSentToday"
+              :min-date="form.proposal_approved_at || form.proposal_sent_at || null"
+              @update:date-value="(v) => { form.payment_request_sent_at = v; markDirty(); }"
+              @file-change="onPaymentFile"
+              @clear-file="clearPaymentFile"
+              @confirm="confirmPaymentSent"
+            />
           </div>
 
-          <AiAccountDocSlot
-            title="Đề nghị thanh toán (ĐNTT)"
-            hint="Gắn 1 file phiếu đề nghị với ngày gửi."
-            date-label="Ngày gửi đề nghị thanh toán"
-            :date-value="form.payment_request_sent_at"
-            date-placeholder="Chọn ngày gửi đề nghị"
-            :existing-doc="existingPaymentDoc"
-            :pending-file="paymentFile"
-            confirm-label="Xác nhận đã gửi đề nghị"
-            :confirmed="paymentSentToday"
-            :min-date="form.proposal_approved_at || form.proposal_sent_at || null"
-            @update:date-value="(v) => { form.payment_request_sent_at = v; markDirty(); }"
-            @file-change="onPaymentFile"
-            @clear-file="clearPaymentFile"
-            @confirm="confirmPaymentSent"
-          />
-
-          <label class="block rounded-xl border border-slate-200/90 bg-white p-3 sm:p-4">
+          <label class="block rounded-xl border border-slate-200/90 bg-white px-3 py-2.5 sm:px-4">
             <span class="mb-1 block text-xs font-medium text-slate-600">Ghi chú</span>
             <textarea
               v-model="form.notes"
-              rows="3"
+              rows="2"
               class="input w-full text-sm"
               placeholder="Ghi chú nội bộ: số hợp đồng, seat, link admin portal…"
               @input="markDirty"

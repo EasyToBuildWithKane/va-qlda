@@ -81,7 +81,7 @@ defineExpose({ tryClose });
               />
             </button>
           </div>
-          <div :class="fitViewport ? 'min-h-0 flex-1 overflow-hidden' : ''">
+          <div :class="fitViewport ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : ''">
             <slot />
           </div>
         </div>

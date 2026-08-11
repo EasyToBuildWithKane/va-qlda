@@ -15,6 +15,8 @@ const props = defineProps({
     confirmed: { type: Boolean, default: false },
     /** ISO yyyy-MM-dd — ngày tối thiểu (vd. sau ngày gửi đề xuất) */
     minDate: { type: String, default: null },
+    /** Gọn hơn khi xếp 2 cột ngang */
+    compact: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['update:dateValue', 'file-change', 'confirm', 'clear-file']);
@@ -47,15 +49,21 @@ function formatSize(bytes) {
 </script>
 
 <template>
-  <div class="rounded-xl border border-slate-200/90 bg-white p-3 shadow-sm sm:p-4">
-    <div class="mb-3 flex flex-wrap items-start justify-between gap-2">
+  <div
+    class="flex flex-col rounded-xl border border-slate-200/90 bg-white shadow-sm"
+    :class="compact ? 'p-2.5 sm:p-3' : 'p-3 sm:p-4'"
+  >
+    <div
+      class="flex flex-wrap items-start justify-between gap-2"
+      :class="compact ? 'mb-2' : 'mb-3'"
+    >
       <div class="min-w-0">
         <h3 class="text-sm font-semibold text-slate-800">
           {{ title }}
         </h3>
         <p
           v-if="hint"
-          class="mt-0.5 text-[11px] leading-relaxed text-slate-500"
+          class="mt-0.5 text-[11px] leading-snug text-slate-500"
         >
           {{ hint }}
         </p>
@@ -73,11 +81,14 @@ function formatSize(bytes) {
           :name="confirmed ? 'check' : 'calendar'"
           :size="13"
         />
-        {{ confirmed ? 'Đã ghi nhận hôm nay' : confirmLabel }}
+        {{ confirmed ? 'Đã ghi hôm nay' : confirmLabel }}
       </button>
     </div>
 
-    <label class="mb-3 block">
+    <label
+      class="block"
+      :class="compact ? 'mb-2' : 'mb-3'"
+    >
       <span class="mb-1 block text-xs font-medium text-slate-600">{{ dateLabel }}</span>
       <FilterDatePicker
         :model-value="dateValue"
@@ -87,20 +98,20 @@ function formatSize(bytes) {
       />
     </label>
 
-    <div>
+    <div class="min-h-0 flex-1">
       <span class="mb-1.5 block text-xs font-medium text-slate-600">
         File đính kèm
-        <span class="font-normal text-slate-400">(1 file · PDF / ảnh / Word / Excel)</span>
+        <span class="font-normal text-slate-400">(1 file)</span>
       </span>
 
       <div
         v-if="hasFile"
-        class="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"
+        class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-2"
       >
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
+        <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white ring-1 ring-slate-200">
           <AppIcon
             name="documents"
-            :size="18"
+            :size="16"
             class="text-brand"
           />
         </div>
@@ -110,15 +121,15 @@ function formatSize(bytes) {
             :href="existingDoc.url"
             target="_blank"
             rel="noopener"
-            class="block truncate text-sm font-medium text-brand underline-offset-2 hover:underline"
+            class="block truncate text-xs font-medium text-brand underline-offset-2 hover:underline"
           >{{ fileName }}</a>
           <p
             v-else
-            class="truncate text-sm font-medium text-slate-800"
+            class="truncate text-xs font-medium text-slate-800"
           >
             {{ fileName }}
           </p>
-          <p class="text-[11px] text-slate-500">
+          <p class="text-[10px] text-slate-500">
             <template v-if="pendingFile">
               Mới chọn · {{ formatSize(pendingFile.size) }}
             </template>
@@ -126,22 +137,22 @@ function formatSize(bytes) {
               Đã lưu · {{ formatSize(existingDoc.size) }}
             </template>
             <template v-else>
-              Đã lưu trên hệ thống
+              Đã lưu
             </template>
           </p>
         </div>
-        <div class="flex shrink-0 items-center gap-1">
+        <div class="flex shrink-0 flex-col items-stretch gap-0.5 sm:flex-row sm:items-center">
           <button
             type="button"
-            class="btn-ghost h-8 px-2 text-xs"
+            class="btn-ghost h-7 px-2 text-[11px]"
             @click="openPicker"
           >
-            Đổi file
+            Đổi
           </button>
           <button
             v-if="pendingFile"
             type="button"
-            class="btn-ghost h-8 px-2 text-xs text-rose-600"
+            class="btn-ghost h-7 px-2 text-[11px] text-rose-600"
             @click="emit('clear-file')"
           >
             Bỏ
@@ -152,18 +163,22 @@ function formatSize(bytes) {
       <button
         v-else
         type="button"
-        class="group flex w-full flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed border-slate-300 bg-gradient-to-b from-slate-50/90 to-white px-4 py-6 text-center transition hover:border-brand/45 hover:from-brand/[0.04] hover:to-white"
+        class="group flex w-full flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-slate-300 bg-gradient-to-b from-slate-50/90 to-white text-center transition hover:border-brand/45 hover:from-brand/[0.04] hover:to-white"
+        :class="compact ? 'px-3 py-3' : 'px-4 py-6'"
         @click="openPicker"
       >
-        <span class="flex h-11 w-11 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition group-hover:ring-brand/30">
+        <span
+          class="flex items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-slate-200 transition group-hover:ring-brand/30"
+          :class="compact ? 'h-9 w-9' : 'h-11 w-11'"
+        >
           <AppIcon
             name="upload"
-            :size="18"
+            :size="compact ? 16 : 18"
             class="text-slate-400 group-hover:text-brand"
           />
         </span>
-        <span class="text-xs font-semibold text-slate-700">Kéo thả hoặc bấm để chọn file</span>
-        <span class="text-[11px] text-slate-400">Tối đa 10 MB · gắn 1–1 với ngày ở trên</span>
+        <span class="text-xs font-semibold text-slate-700">Chọn file</span>
+        <span class="text-[10px] text-slate-400">PDF / ảnh / Word / Excel · ≤10 MB</span>
       </button>
 
       <input
