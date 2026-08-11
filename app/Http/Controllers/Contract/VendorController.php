@@ -18,6 +18,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -168,11 +169,15 @@ class VendorController extends Controller
     public function store(StoreVendorRequest $request): RedirectResponse
     {
         $validated = $request->validated();
-        $hasCategories = array_key_exists('category_ids', $validated);
+        $hasCategories = array_key_exists('category_ids', $validated)
+            || array_key_exists('category_names', $validated);
         $categoryIds = $hasCategories
-            ? array_values(array_unique(array_map('intval', $validated['category_ids'] ?? [])))
+            ? $this->resolveServiceCategoryIds(
+                $validated['category_ids'] ?? [],
+                $validated['category_names'] ?? [],
+            )
             : [];
-        unset($validated['category_ids']);
+        unset($validated['category_ids'], $validated['category_names']);
 
         $vendor = DB::transaction(function () use ($validated, $hasCategories, $categoryIds) {
             $vendor = Vendor::create($validated);
@@ -192,11 +197,15 @@ class VendorController extends Controller
     public function update(UpdateVendorRequest $request, Vendor $vendor): RedirectResponse
     {
         $validated = $request->validated();
-        $hasCategories = array_key_exists('category_ids', $validated);
+        $hasCategories = array_key_exists('category_ids', $validated)
+            || array_key_exists('category_names', $validated);
         $categoryIds = $hasCategories
-            ? array_values(array_unique(array_map('intval', $validated['category_ids'] ?? [])))
+            ? $this->resolveServiceCategoryIds(
+                $validated['category_ids'] ?? [],
+                $validated['category_names'] ?? [],
+            )
             : [];
-        unset($validated['category_ids']);
+        unset($validated['category_ids'], $validated['category_names']);
 
         DB::transaction(function () use ($vendor, $validated, $hasCategories, $categoryIds) {
             $vendor->update($validated);
@@ -363,6 +372,53 @@ class VendorController extends Controller
             ->map(fn (ContractCategory $c) => ['id' => $c->id, 'name' => $c->name])
             ->values()
             ->all();
+    }
+
+    /**
+     * Gộp id đã chọn + tên loại dịch vụ mới (tạo danh mục chung nếu chưa có).
+     *
+     * @param  list<int|string>  $ids
+     * @param  list<string>  $names
+     * @return list<int>
+     */
+    private function resolveServiceCategoryIds(array $ids, array $names): array
+    {
+        $resolved = [];
+
+        foreach ($ids as $id) {
+            $n = (int) $id;
+            if ($n > 0) {
+                $resolved[] = $n;
+            }
+        }
+
+        $maxSort = (int) ContractCategory::query()->whereNull('vendor_id')->max('sort_order');
+
+        foreach ($names as $rawName) {
+            $name = trim((string) $rawName);
+            if ($name === '') {
+                continue;
+            }
+
+            $cat = ContractCategory::query()
+                ->whereNull('vendor_id')
+                ->whereRaw('LOWER(name) = ?', [mb_strtolower($name)])
+                ->first();
+
+            if (! $cat) {
+                $maxSort++;
+                $cat = ContractCategory::create([
+                    'name' => $name,
+                    'vendor_id' => null,
+                    'slug' => Str::slug($name) ?: 'nhom-dv-'.$maxSort,
+                    'sort_order' => $maxSort,
+                ]);
+            }
+
+            $resolved[] = $cat->id;
+        }
+
+        return array_values(array_unique($resolved));
     }
 
     /**

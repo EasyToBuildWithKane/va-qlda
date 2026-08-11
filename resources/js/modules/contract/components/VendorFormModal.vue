@@ -35,6 +35,7 @@ const form = useForm({
     notes: '',
     is_active: true,
     category_ids: [],
+    category_names: [],
 });
 
 watch(() => props.show, (open) => {
@@ -52,6 +53,7 @@ watch(() => props.show, (open) => {
         notes: v?.notes ?? '',
         is_active: v?.is_active ?? true,
         category_ids: resolveCategoryIds(v),
+        category_names: [],
     });
     form.reset();
 });
@@ -75,42 +77,45 @@ function submit() {
   <Modal
     :show="show"
     :title="isEdit ? 'Sửa nhà cung cấp' : 'Thêm nhà cung cấp'"
-    max-width="max-w-4xl"
+    max-width="max-w-5xl"
+    fit-viewport
     :dirty="form.isDirty"
     @close="emit('close')"
   >
     <form
-      class="space-y-5"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden"
       @submit.prevent="submit"
     >
-      <p class="text-[11px] leading-relaxed text-slate-500">
+      <p class="mb-3 shrink-0 text-[11px] leading-relaxed text-slate-500">
         Trường có dấu
         <span class="font-medium text-danger">*</span>
-        là bắt buộc — bấm biểu tượng
+        là bắt buộc — bấm
         <span class="font-medium text-slate-600">ⓘ</span>
         cạnh nhãn để xem gợi ý.
         <template v-if="!isEdit">
-          Sau khi lưu, bạn có thể
+          Sau khi lưu có thể
           <span class="font-medium text-brand">đánh giá NCC trên 6 tiêu chí</span>.
         </template>
       </p>
 
-      <VendorFormFields
-        :vendor="vendor"
-        :categories="categories"
-      />
+      <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
+        <VendorFormFields
+          :vendor="vendor"
+          :categories="categories"
+        />
+      </div>
 
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
+      <div class="mt-3 flex shrink-0 justify-end gap-2 border-t border-slate-100 pt-3">
         <button
           type="button"
-          class="btn-ghost"
+          class="btn-ghost h-9"
           @click="emit('close')"
         >
           Huỷ
         </button>
         <button
           type="submit"
-          class="btn-primary"
+          class="btn-primary h-9"
           :disabled="form.processing"
         >
           {{ form.processing ? 'Đang lưu…' : (isEdit ? 'Lưu thay đổi' : 'Thêm & tiếp tục đánh giá') }}
