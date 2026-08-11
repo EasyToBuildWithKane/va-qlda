@@ -282,7 +282,7 @@ Prefix Inertia `ai-accounts.*`, JSON `api.ai-accounts.*` (middleware `auth`). **
 | Method | URI | Response | Mô Tả |
 |---|---|---|---|
 | GET | `/ai-accounts`, `/ai-accounts/cost-report` | Inertia | Tài khoản AI + Chi phí AI |
-| * | `/api/ai-accounts/*` | JSON | CRUD TK, summary, renew, reminder, serve file phiếu |
+| * | `/api/ai-accounts/*` | JSON | CRUD (scoped visibility), access-grants, renew, reminder, file phiếu |
 
 ### 2.18 Hồ sơ cá nhân
 

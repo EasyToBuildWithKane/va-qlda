@@ -187,8 +187,32 @@ function formatDate(value) {
                   :class="rowClasses(row)"
                 >
                   <td class="px-3 py-2.5 sm:px-4">
-                    <div class="font-medium text-slate-900">
-                      {{ row.tool_name }}
+                    <div class="flex flex-wrap items-center gap-1.5">
+                      <span class="font-medium text-slate-900">
+                        {{ row.tool_name }}
+                      </span>
+                      <span
+                        class="inline-flex items-center rounded-md px-1.5 py-0.5 text-[10px] font-semibold ring-1"
+                        :class="row.login_method === 'google'
+                          ? 'bg-sky-50 text-sky-800 ring-sky-200'
+                          : 'bg-slate-50 text-slate-700 ring-slate-200'"
+                      >
+                        {{ row.login_method_label || (row.login_method === 'google' ? 'Google' : 'Thường') }}
+                      </span>
+                      <a
+                        v-if="row.purchase_url"
+                        :href="row.purchase_url"
+                        target="_blank"
+                        rel="noopener"
+                        class="inline-flex items-center text-brand hover:underline"
+                        title="Mở link chỗ mua"
+                        @click.stop
+                      >
+                        <AppIcon
+                          name="external-link"
+                          :size="12"
+                        />
+                      </a>
                     </div>
                     <div
                       v-if="row.has_password && row.password"

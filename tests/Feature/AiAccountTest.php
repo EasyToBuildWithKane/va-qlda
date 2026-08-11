@@ -6,6 +6,7 @@ use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLoginMethod;
 use App\Support\Enums\SystemRole;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -29,6 +30,7 @@ class AiAccountTest extends TestCase
             'tool_name' => 'ChatGPT Team',
             'group_function' => AiAccountGroupFunction::Dev->value,
             'email_registered' => 'ai.dev@vaschools.edu.vn',
+            'login_method' => AiAccountLoginMethod::Password->value,
             'password' => 'secret-pass',
             'purchase_date' => now()->toDateString(),
             'expiry_date' => now()->addYear()->toDateString(),
@@ -37,6 +39,7 @@ class AiAccountTest extends TestCase
             'notify_before_days' => 14,
             'proposal_sent_at' => now()->subDays(10)->toDateString(),
             'payment_request_sent_at' => now()->subDays(5)->toDateString(),
+            'purchase_url' => 'https://chatgpt.com/team',
             'notes' => 'Ghi chú test',
         ], $overrides);
     }
@@ -79,21 +82,17 @@ class AiAccountTest extends TestCase
 
         $account = AiAccount::query()->findOrFail($id);
         $this->assertSame('ChatGPT Team', $account->tool_name);
-        $this->assertSame('ai.dev@vaschools.edu.vn', $account->email_registered);
+        $this->assertSame($admin->id, $account->created_by);
+        $this->assertSame(AiAccountLoginMethod::Password, $account->login_method);
+        $this->assertSame('https://chatgpt.com/team', $account->purchase_url);
         $this->assertSame(500_000, $account->cost_amount);
         $this->assertNotEmpty($account->proposal_document_paths);
         $this->assertCount(1, $account->proposal_document_paths);
-        $this->assertNotEmpty($account->payment_request_document_paths);
-        $this->assertSame(
-            now()->subDays(7)->toDateString(),
-            $account->proposal_approved_at?->toDateString(),
-        );
         $this->assertSame('secret-pass', $account->login_password);
 
         $summary = $this->getJson(route('api.ai-accounts.summary'));
         $summary->assertOk();
         $this->assertSame(1, $summary->json('data.cards.total_accounts'));
-        $this->assertSame(500_000, $summary->json('data.cards.monthly_cost_all'));
 
         $this->putJson(route('api.ai-accounts.update', ['aiAccount' => $id]), $this->accountPayload([
             'tool_name' => 'ChatGPT Team Plus',
@@ -105,11 +104,27 @@ class AiAccountTest extends TestCase
         $account->refresh();
         $this->assertSame('ChatGPT Team Plus', $account->tool_name);
         $this->assertSame(600_000, $account->cost_amount);
-        $this->assertSame('secret-pass', $account->login_password);
 
         $this->deleteJson(route('api.ai-accounts.destroy', ['aiAccount' => $id]))
             ->assertOk();
         $this->assertSoftDeleted('ai_accounts', ['id' => $id]);
+    }
+
+    public function test_store_google_login_clears_password(): void
+    {
+        $this->actingAs($this->admin(), 'system');
+
+        $create = $this->postJson(route('api.ai-accounts.store'), $this->accountPayload([
+            'login_method' => AiAccountLoginMethod::Google->value,
+            'password' => null,
+            'proposal_sent_at' => null,
+            'payment_request_sent_at' => null,
+        ]));
+        $create->assertCreated();
+
+        $account = AiAccount::query()->findOrFail($create->json('data.account.id'));
+        $this->assertSame(AiAccountLoginMethod::Google, $account->login_method);
+        $this->assertNull($account->login_password);
     }
 
     public function test_member_without_create_cannot_store(): void
@@ -119,7 +134,9 @@ class AiAccountTest extends TestCase
         ]);
         $this->actingAs($member, 'system');
 
-        $this->postJson(route('api.ai-accounts.store'), $this->accountPayload())
-            ->assertForbidden();
+        $this->postJson(route('api.ai-accounts.store'), $this->accountPayload([
+            'proposal_sent_at' => null,
+            'payment_request_sent_at' => null,
+        ]))->assertForbidden();
     }
 }

@@ -25,6 +25,7 @@ const props = defineProps({
     options: { type: Object, required: true },
     formHints: { type: Object, default: () => ({}) },
     reminderSchedule: { type: Array, default: () => ['08:00', '14:00'] },
+    accessAccountOptions: { type: Array, default: () => [] },
 });
 
 const dialog = useDialog();
@@ -374,6 +375,7 @@ function showAttentionOnly() {
       :reminder-schedule="reminderSchedule"
       :status-options="options.status ?? []"
       :options="options"
+      :access-account-options="accessAccountOptions"
       @close="formOpen = false"
       @submit="onFormSubmit"
     />

@@ -4,17 +4,24 @@ namespace App\Models;
 
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLoginMethod;
+use App\Support\Enums\AiAccountPermission;
 use App\Support\Enums\AiAccountStatus;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 
 /**
  * @property string $id
+ * @property int|null $created_by
  * @property string $tool_name
  * @property AiAccountGroupFunction $group_function
  * @property string $email_registered
+ * @property AiAccountLoginMethod $login_method
  * @property string|null $login_password
  * @property \Illuminate\Support\Carbon $purchase_date
  * @property \Illuminate\Support\Carbon $expiry_date
@@ -29,6 +36,7 @@ use Illuminate\Support\Facades\Storage;
  * @property int $notify_before_days
  * @property \Illuminate\Support\Carbon|null $last_reminded_at
  * @property string|null $notes
+ * @property string|null $purchase_url
  */
 class AiAccount extends Model
 {
@@ -36,9 +44,11 @@ class AiAccount extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'created_by',
         'tool_name',
         'group_function',
         'email_registered',
+        'login_method',
         'login_password',
         'purchase_date',
         'expiry_date',
@@ -53,10 +63,12 @@ class AiAccount extends Model
         'notify_before_days',
         'last_reminded_at',
         'notes',
+        'purchase_url',
     ];
 
     protected $casts = [
         'group_function' => AiAccountGroupFunction::class,
+        'login_method' => AiAccountLoginMethod::class,
         'cost_unit' => AiAccountCostUnit::class,
         'status' => AiAccountStatus::class,
         'purchase_date' => 'date',
@@ -71,6 +83,64 @@ class AiAccount extends Model
         'last_reminded_at' => 'datetime',
         'login_password' => 'encrypted',
     ];
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(SystemAccount::class, 'created_by');
+    }
+
+    public function accessGrants(): HasMany
+    {
+        return $this->hasMany(AiAccountAccessGrant::class, 'ai_account_id');
+    }
+
+    public function scopeVisibleTo(Builder $query, SystemAccount $account): Builder
+    {
+        if ($account->isAdminTier()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($account) {
+            $q->where('created_by', $account->id)
+                ->orWhereHas('accessGrants', fn (Builder $g) => $g
+                    ->where('account_id', $account->id)
+                    ->where(function (Builder $g2) {
+                        $g2->whereNull('expires_at')
+                            ->orWhere('expires_at', '>', now());
+                    }));
+        });
+    }
+
+    public function grantFor(SystemAccount $account): ?AiAccountAccessGrant
+    {
+        return $this->accessGrants()
+            ->where('account_id', $account->id)
+            ->where(function (Builder $q) {
+                $q->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            })
+            ->first();
+    }
+
+    public function hasPermission(SystemAccount $account, AiAccountPermission $permission): bool
+    {
+        if ($account->isAdminTier()) {
+            return true;
+        }
+
+        if ($this->created_by === $account->id) {
+            return true;
+        }
+
+        $grant = $this->grantFor($account);
+        if (! $grant) {
+            return false;
+        }
+
+        $permissions = $grant->permissions ?? [];
+
+        return in_array($permission->value, $permissions, true);
+    }
 
     /**
      * @param  'proposal'|'payment_request'  $kind

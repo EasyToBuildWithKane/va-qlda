@@ -15,6 +15,8 @@ use App\Services\AiAccount\AiAccountReminderService;
 use App\Services\AiAccount\AiAccountStatusSync;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLoginMethod;
+use App\Support\Enums\AiAccountPermission;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\SecurityAuditLogger;
 use Carbon\Carbon;
@@ -38,7 +40,7 @@ class AiAccountController extends Controller
     {
         $this->authorize('viewAny', AiAccount::class);
 
-        $accounts = $this->loadAndSyncAccounts();
+        $accounts = $this->loadAndSyncAccounts($request->user());
         $search = $request->query('search');
         $payload = $this->grouper->grouped($accounts, is_string($search) ? $search : null, $request->user());
         $summary = $this->costSummaryBuilder->build($accounts);
@@ -54,6 +56,8 @@ class AiAccountController extends Controller
                     'group_function' => AiAccountGroupFunction::options(),
                     'cost_unit' => AiAccountCostUnit::options(),
                     'status' => AiAccountStatus::options(),
+                    'login_method' => AiAccountLoginMethod::options(),
+                    'access_permissions' => AiAccountPermission::options(),
                 ],
             ],
         ]);
@@ -63,7 +67,7 @@ class AiAccountController extends Controller
     {
         $this->authorize('viewAny', AiAccount::class);
 
-        $accounts = $this->loadAndSyncAccounts();
+        $accounts = $this->loadAndSyncAccounts($request->user());
         $summary = $this->costSummaryBuilder->build($accounts);
 
         return response()->json([
@@ -88,13 +92,20 @@ class AiAccountController extends Controller
         $validated = $request->validated();
 
         $account = DB::transaction(function () use ($request, $validated) {
+            $loginMethod = AiAccountLoginMethod::from($validated['login_method']);
+            $canStorePassword = $loginMethod === AiAccountLoginMethod::Password
+                && (
+                    $request->user()->isAdminTier()
+                    || $request->user()->allows('ai_account.view_password')
+                );
+
             $account = AiAccount::query()->create([
+                'created_by' => $request->user()->id,
                 'tool_name' => $validated['tool_name'],
                 'group_function' => $validated['group_function'],
                 'email_registered' => $validated['email_registered'],
-                'login_password' => $request->user()->isAdminTier()
-                    ? ($validated['password'] ?? null)
-                    : null,
+                'login_method' => $loginMethod,
+                'login_password' => $canStorePassword ? ($validated['password'] ?? null) : null,
                 'purchase_date' => $validated['purchase_date'],
                 'expiry_date' => $validated['expiry_date'],
                 'cost_amount' => (int) $validated['cost_amount'],
@@ -105,6 +116,7 @@ class AiAccountController extends Controller
                 'proposal_approved_at' => $validated['proposal_approved_at'] ?? null,
                 'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'purchase_url' => $validated['purchase_url'] ?? null,
                 'status' => AiAccountStatus::Active,
                 'proposal_document_paths' => [],
                 'payment_request_document_paths' => [],
@@ -148,10 +160,12 @@ class AiAccountController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($request, $aiAccount, $validated) {
+            $loginMethod = AiAccountLoginMethod::from($validated['login_method']);
             $data = [
                 'tool_name' => $validated['tool_name'],
                 'group_function' => $validated['group_function'],
                 'email_registered' => $validated['email_registered'],
+                'login_method' => $loginMethod,
                 'purchase_date' => $validated['purchase_date'],
                 'expiry_date' => $validated['expiry_date'],
                 'cost_amount' => (int) $validated['cost_amount'],
@@ -161,9 +175,15 @@ class AiAccountController extends Controller
                 'proposal_approved_at' => $validated['proposal_approved_at'] ?? null,
                 'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
                 'notes' => $validated['notes'] ?? null,
+                'purchase_url' => $validated['purchase_url'] ?? null,
             ];
 
-            if ($request->user()->isAdminTier() && ! empty($validated['password'])) {
+            if ($loginMethod === AiAccountLoginMethod::Google) {
+                $data['login_password'] = null;
+            } elseif (
+                ! empty($validated['password'])
+                && $request->user()->can('viewPassword', $aiAccount)
+            ) {
                 $data['login_password'] = $validated['password'];
             }
 
@@ -355,11 +375,13 @@ class AiAccountController extends Controller
         $account->update([$attr => array_values(array_merge($existing, $uploaded))]);
     }
 
-    private function loadAndSyncAccounts()
+    private function loadAndSyncAccounts(?\App\Models\SystemAccount $viewer = null)
     {
-        $accounts = AiAccount::query()
-            ->orderBy('tool_name')
-            ->get();
+        $query = AiAccount::query()->orderBy('tool_name');
+        if ($viewer) {
+            $query->visibleTo($viewer);
+        }
+        $accounts = $query->get();
         $this->statusSync->syncCollection($accounts);
 
         return $accounts->map(fn (AiAccount $a) => $a->fresh())->filter()->values();

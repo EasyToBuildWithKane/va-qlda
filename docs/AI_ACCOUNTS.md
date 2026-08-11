@@ -8,16 +8,16 @@ Schema: `docs/DATABASE_STRUCTURE.md` §6.
 
 ## Phạm vi (2026-08)
 
-Một thực thể **Tài khoản AI** (`AiAccount`) — không còn workflow duyệt PĐX/ĐNTT, OCR quét phiếu, password viewers, Dashboard BI / Analytics.
+Một thực thể **Tài khoản AI** (`AiAccount`) — không còn workflow duyệt PĐX/ĐNTT, OCR quét phiếu, Dashboard BI / Analytics.
 
 | Trang | Route |
 |-------|--------|
 | Tài khoản AI | `ai-accounts.index` → `/ai-accounts` |
 | Chi phí AI | `ai-accounts.cost-report` → `/ai-accounts/cost-report` |
 
-Nav AI Workspace chỉ còn 2 mục trên.
+**Visibility:** admin tier thấy tất cả; `created_by` luôn thấy; user khác chỉ thấy tài khoản có grant còn hiệu lực (ít nhất `view`) qua bảng `ai_account_access_grants`.
 
-**Index `/ai-accounts`:** toolbar gọn — ô tìm + **Lọc** + **Thêm tài khoản** (`ml-auto`, không trên `PageHeader`; không nút Cột / Chi phí AI / Nhắc nhở / Thu nhóm; Chi phí AI vào qua nav). Nội dung dùng `AppLayout` flush + `p-3 sm:p-4`.
+**Index `/ai-accounts`:** toolbar — ô tìm + **Lọc** + **Thêm tài khoản**; `AppLayout` flush + `p-3 sm:p-4`.
 
 ---
 
@@ -25,18 +25,31 @@ Nav AI Workspace chỉ còn 2 mục trên.
 
 | Trường | Ý nghĩa |
 |--------|---------|
+| `created_by` | Người tạo (system_accounts) |
 | `tool_name`, `group_function` | Tên công cụ + nhóm (DEV/BA/…) |
-| `email_registered`, `login_password` | Email đăng ký; mật khẩu (encrypted, quyền `ai_account.view_password`) |
+| `email_registered` | Email đăng ký |
+| `login_method` | `password` (tài khoản thường) \| `google` |
+| `login_password` | Encrypted — chỉ khi `login_method=password` |
+| `purchase_url` | Link chỗ mua / quản lý license |
 | `purchase_date`, `expiry_date` | Ngày mua / hết hạn |
 | `notify_before_days` | Nhắc trước N ngày hết hạn |
 | `cost_amount`, `cost_unit` | Chi phí + đơn vị (tháng/quý/năm/một lần) |
 | `proposal_sent_at`, `proposal_approved_at`, `payment_request_sent_at` | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT |
-| `proposal_document_paths`, `payment_request_document_paths` | Mỗi loại **1 file** gắn 1–1 với ngày gửi (JSON: path, original_name, mime, size) |
-| `status` | `active` / `expiring_soon` / `expired` / `cancelled` — sync từ `expiry_date` (+ `notify_before_days`) |
+| `proposal_document_paths`, `payment_request_document_paths` | Mỗi loại **1 file** gắn 1–1 với ngày gửi |
+| `status` | `active` / `expiring_soon` / `expired` / `cancelled` |
 
-Form tạo/sửa (`AiAccountFormModal`): modal `fit-viewport`, 3 tab **Thông tin** · **Chi phí & hạn** · **Chứng từ**. Chi phí dùng `MoneyInput` (chỉ số, format VNĐ); ngày dùng `FilterDatePicker` (`dd/MM/yyyy`). Tab chứng từ: mỗi ngày gửi PĐX/ĐNTT kèm đúng 1 file (`AiAccountDocSlot`); nút **Xác nhận đề xuất đã duyệt** / **Xác nhận đã gửi đề nghị** ghi nhận ngày hôm nay.
+Form (`AiAccountFormModal`, `max-w-4xl`): 4 tab **Thông tin** · **Chi phí & hạn** · **Chứng từ** · **Phân quyền**.
 
-Chi phí KPI / Chi phí AI: **trực tiếp** từ `cost_amount` (quy tháng qua `AiAccountCostCalculator`) — không còn «phiếu đếm ngân sách».
+- Chi phí: `MoneyInput` → format `1.000.000 ₫`
+- Ngày: `FilterDatePicker` (`dd/MM/yyyy`)
+- Đăng nhập: segmented Google / Tài khoản thường
+- Phân quyền: `AiAccountAccessGrantsPanel` (sau khi đã lưu)
+
+### Quyền ACL (`AiAccountPermission`)
+
+`view` · `view_password` · `edit` · `delete` · `share`
+
+Ability global: `ai_account.share` / `ai_account.manage_access` / `ai_account.view_password` (admin/lead).
 
 ---
 
@@ -44,25 +57,26 @@ Chi phí KPI / Chi phí AI: **trực tiếp** từ `cost_amount` (quy tháng qua
 
 | Method | URI | Name |
 |--------|-----|------|
-| GET | `/` | `index` |
+| GET | `/` | `index` (scoped `visibleTo`) |
 | GET | `/summary` | `summary` |
-| POST | `/` | `store` (JSON hoặc multipart + file) |
+| POST | `/` | `store` |
 | GET | `/{aiAccount}` | `show` |
 | PUT | `/{aiAccount}` | `update` |
-| POST | `/{aiAccount}` | `update.multipart` (`_method=PUT` + file) |
+| POST | `/{aiAccount}` | `update.multipart` |
 | PATCH | `/{aiAccount}/status` | `update-status` |
 | DELETE | `/{aiAccount}` | `destroy` |
 | POST | `/{aiAccount}/renew` | `renew` |
 | POST | `/trigger-reminder` | `trigger-reminder` |
-| GET | `/{aiAccount}/documents/{kind}/{index}` | `documents.file` (`kind`: `proposal` \| `payment-request`) |
-
-Upload: disk `public`, path `ai-accounts/{id}/proposal|payment-request/…`. URL file chỉ khi tồn tại trên disk.
+| GET | `/{aiAccount}/documents/{kind}/{index}` | `documents.file` |
+| GET | `/{aiAccount}/access-grants` | `access-grants.index` |
+| POST | `/{aiAccount}/access-grants` | `access-grants.store` |
+| DELETE | `/{aiAccount}/access-grants/{accessGrant}` | `access-grants.destroy` |
 
 ---
 
 ## Nhắc hết hạn
 
-`AiAccountReminderService` + schedule `ai-accounts:send-reminders` (08:00, 14:00). Config: `config/ai_accounts.php` → `reminder.*`.
+`AiAccountReminderService` + schedule `ai-accounts:send-reminders` (08:00, 14:00). Config: `config/ai_accounts.php`.
 
 ---
 
@@ -70,10 +84,8 @@ Upload: disk `public`, path `ai-accounts/{id}/proposal|payment-request/…`. URL
 
 | Thành phần | Path |
 |------------|------|
-| API / pages | `AiAccountController`, `AiAccountPageController` |
-| Nhóm + summary | `AiAccountGrouper`, `AiAccountCostSummaryBuilder`, `AiAccountCostCalculator` |
-| File phiếu | `AiAccountDocumentService` |
-| Model | `app/Models/AiAccount.php` |
-| Test | `tests/Feature/AiAccountTest.php`, `AiAccountStatusUpdateTest.php` |
-
-**Đã gỡ:** PĐX/ĐNTT controllers & tables, OCR (`ocr-service/`, proposal-scans), password viewers, Analytics/Dashboard pages.
+| API / pages | `AiAccountController`, `AiAccountPageController`, `AiAccountAccessController` |
+| Policy / grants | `AiAccountPolicy`, `AiAccountAccessGrant` |
+| Enums | `AiAccountLoginMethod`, `AiAccountPermission` |
+| FE | `AiAccountFormModal`, `AiAccountDocSlot`, `AiAccountAccessGrantsPanel` |
+| Test | `tests/Feature/AiAccountTest.php`, `AiAccountAccessTest.php` |

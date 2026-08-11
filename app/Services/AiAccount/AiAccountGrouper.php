@@ -5,6 +5,7 @@ namespace App\Services\AiAccount;
 use App\Models\AiAccount;
 use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLoginMethod;
 use App\Support\Enums\AiAccountStatus;
 use App\Support\SecurityAuditLogger;
 use Illuminate\Support\Collection;
@@ -156,12 +157,18 @@ class AiAccountGrouper
             SecurityAuditLogger::aiAccountPasswordViewed($viewer, $account->id, $account->tool_name);
         }
 
+        $loginMethod = $account->login_method ?? AiAccountLoginMethod::Password;
+        $isPasswordLogin = $loginMethod === AiAccountLoginMethod::Password;
+
         return [
             'id' => $account->id,
+            'created_by' => $account->created_by,
             'tool_name' => $account->tool_name,
             'group_function' => $account->group_function->value,
             'group_label' => $this->groupLabel($account->group_function),
             'email_registered' => $account->email_registered,
+            'login_method' => $loginMethod->value,
+            'login_method_label' => $loginMethod->labelVi(),
             'purchase_date' => $account->purchase_date->format('Y-m-d'),
             'expiry_date' => $account->expiry_date->format('Y-m-d'),
             'proposal_sent_at' => $account->proposal_sent_at?->format('Y-m-d'),
@@ -181,14 +188,18 @@ class AiAccountGrouper
             'last_reminded_at' => $account->last_reminded_at?->format('d/m/Y H:i'),
             'notify_before_days' => $account->notify_before_days,
             'notes' => $account->notes,
-            'can_view_password' => $canViewPassword,
-            'has_password' => $canViewPassword && filled($account->login_password),
-            'password' => $canViewPassword ? $account->login_password : null,
-            'can_renew' => in_array($account->status, [
+            'purchase_url' => $account->purchase_url,
+            'can_view_password' => $canViewPassword && $isPasswordLogin,
+            'has_password' => $canViewPassword && $isPasswordLogin && filled($account->login_password),
+            'password' => ($canViewPassword && $isPasswordLogin) ? $account->login_password : null,
+            'can_renew' => ($viewer?->can('renew', $account) ?? false) && in_array($account->status, [
                 AiAccountStatus::ExpiringSoon,
                 AiAccountStatus::Expired,
             ], true),
             'can_update_status' => $viewer?->can('updateStatus', $account) ?? false,
+            'can_manage_access' => $viewer?->can('manageAccess', $account) ?? false,
+            'can_update' => $viewer?->can('update', $account) ?? false,
+            'can_delete' => $viewer?->can('delete', $account) ?? false,
         ];
     }
 

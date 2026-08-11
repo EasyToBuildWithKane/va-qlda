@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AiAccount\AiAccountAccessController;
 use App\Http\Controllers\AiAccount\AiAccountController;
 use App\Http\Controllers\AiAccount\AiAccountPageController;
 use Illuminate\Support\Facades\Route;
@@ -25,6 +26,10 @@ Route::prefix('api/ai-accounts')->name('api.ai-accounts.')->group(function () {
         ->where('kind', 'proposal|payment-request')
         ->whereNumber('index')
         ->name('documents.file');
+    Route::get('/{aiAccount}/access-grants', [AiAccountAccessController::class, 'index'])->name('access-grants.index');
+    Route::post('/{aiAccount}/access-grants', [AiAccountAccessController::class, 'store'])->name('access-grants.store');
+    Route::delete('/{aiAccount}/access-grants/{accessGrant}', [AiAccountAccessController::class, 'destroy'])
+        ->name('access-grants.destroy');
 });
 
 Route::prefix('ai-accounts')->name('ai-accounts.')->group(function () {

@@ -6,10 +6,14 @@ import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PasswordInput from '@/shared/ui/form/PasswordInput.vue';
 import MoneyInput from '@/shared/ui/MoneyInput.vue';
 import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
+import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import AiAccountDocSlot from '@/modules/aiAccount/components/AiAccountDocSlot.vue';
+import AiAccountAccessGrantsPanel from '@/modules/aiAccount/components/AiAccountAccessGrantsPanel.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
 import { useToast } from '@/shared/composables/useToast';
+import { AI_ACCOUNT_ACCESS_PERMISSIONS } from '@/modules/aiAccount/config/accessPermissions';
+import { formatVndNumber } from '@/modules/aiAccount/utils/formatVnd';
 
 const props = defineProps({
     show: Boolean,
@@ -19,6 +23,7 @@ const props = defineProps({
     reminderSchedule: { type: Array, default: () => ['08:00', '14:00'] },
     statusOptions: { type: Array, default: () => [] },
     options: { type: Object, default: () => ({}) },
+    accessAccountOptions: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['close', 'submit']);
@@ -28,6 +33,12 @@ const TABS = [
     { key: 'info', label: 'Thông tin', icon: 'account' },
     { key: 'billing', label: 'Chi phí & hạn', icon: 'budget' },
     { key: 'docs', label: 'Chứng từ', icon: 'documents' },
+    { key: 'access', label: 'Phân quyền', icon: 'lock' },
+];
+
+const LOGIN_ITEMS = [
+    { key: 'google', label: 'Google', icon: 'sparkles', title: 'Đăng nhập bằng Google' },
+    { key: 'password', label: 'Tài khoản thường', icon: 'lock', title: 'Email + mật khẩu' },
 ];
 
 const activeTab = ref('info');
@@ -42,6 +53,7 @@ const form = reactive({
     tool_name: '',
     group_function: 'DEV',
     email_registered: '',
+    login_method: 'password',
     password: '',
     purchase_date: '',
     expiry_date: '',
@@ -52,6 +64,7 @@ const form = reactive({
     proposal_approved_at: '',
     payment_request_sent_at: '',
     notes: '',
+    purchase_url: '',
     status: 'active',
 });
 
@@ -60,6 +73,21 @@ const canViewPassword = computed(() => props.can?.view_password || props.account
 const tabIndex = computed(() => TABS.findIndex((t) => t.key === activeTab.value));
 const reminderHint = computed(() => (
     `Lịch nhắc: ${(props.reminderSchedule || []).join(', ') || '08:00, 14:00'}`
+));
+const isPasswordLogin = computed(() => form.login_method === 'password');
+const monthlyPreview = computed(() => {
+    const n = Math.round(Number(form.cost_amount) || 0);
+    if (!n) return 0;
+    if (form.cost_unit === 'yearly') return Math.round(n / 12);
+    if (form.cost_unit === 'quarterly') return Math.round(n / 3);
+    if (form.cost_unit === 'one_time') return 0;
+    return n;
+});
+
+const permissionOptions = computed(() => (
+    props.options?.access_permissions?.length
+        ? props.options.access_permissions
+        : AI_ACCOUNT_ACCESS_PERMISSIONS
 ));
 
 const accountDraftScope = computed(() => (
@@ -75,7 +103,6 @@ const existingProposalDoc = computed(() => (props.account?.proposal_documents ??
 const existingPaymentDoc = computed(() => (props.account?.payment_request_documents ?? [])[0] ?? null);
 
 const todayIso = () => new Date().toISOString().slice(0, 10);
-
 const proposalApprovedToday = computed(() => form.proposal_approved_at === todayIso());
 const paymentSentToday = computed(() => form.payment_request_sent_at === todayIso());
 
@@ -86,6 +113,7 @@ const missingByTab = computed(() => {
     if (!form.tool_name?.trim()) info.push('tool_name');
     if (!form.group_function) info.push('group_function');
     if (!form.email_registered?.trim()) info.push('email_registered');
+    if (!form.login_method) info.push('login_method');
     if (!form.purchase_date) billing.push('purchase_date');
     if (!form.expiry_date) billing.push('expiry_date');
     if (
@@ -97,7 +125,6 @@ const missingByTab = computed(() => {
         billing.push('cost_amount');
     }
     if (!form.cost_unit) billing.push('cost_unit');
-
     if (form.proposal_sent_at && !proposalFile.value && !existingProposalDoc.value) {
         docs.push('proposal_file');
     }
@@ -107,7 +134,7 @@ const missingByTab = computed(() => {
     if (form.proposal_approved_at && !form.proposal_sent_at) {
         docs.push('proposal_approved_at');
     }
-    return { info, billing, docs };
+    return { info, billing, docs, access: [] };
 });
 
 const tabHasGap = (key) => attemptedSubmit.value && (missingByTab.value[key]?.length ?? 0) > 0;
@@ -123,6 +150,7 @@ watch(() => props.show, (open) => {
         form.tool_name = props.account.tool_name ?? '';
         form.group_function = props.account.group_function ?? 'DEV';
         form.email_registered = props.account.email_registered ?? '';
+        form.login_method = props.account.login_method ?? 'password';
         form.password = '';
         form.purchase_date = props.account.purchase_date ?? '';
         form.expiry_date = props.account.expiry_date ?? '';
@@ -133,11 +161,13 @@ watch(() => props.show, (open) => {
         form.proposal_approved_at = props.account.proposal_approved_at ?? '';
         form.payment_request_sent_at = props.account.payment_request_sent_at ?? '';
         form.notes = props.account.notes ?? '';
+        form.purchase_url = props.account.purchase_url ?? '';
         form.status = props.account.status ?? 'active';
     } else {
         form.tool_name = '';
         form.group_function = props.options?.group_function?.[0]?.value ?? 'DEV';
         form.email_registered = '';
+        form.login_method = 'password';
         form.password = '';
         form.purchase_date = '';
         form.expiry_date = '';
@@ -148,6 +178,7 @@ watch(() => props.show, (open) => {
         form.proposal_approved_at = '';
         form.payment_request_sent_at = '';
         form.notes = '';
+        form.purchase_url = '';
         form.status = 'active';
         const draft = formDraft.load();
         if (draft?.data) {
@@ -201,6 +232,7 @@ function onSubmit() {
         tool_name: form.tool_name.trim(),
         group_function: form.group_function,
         email_registered: form.email_registered.trim(),
+        login_method: form.login_method,
         purchase_date: form.purchase_date,
         expiry_date: form.expiry_date,
         cost_amount: Number(form.cost_amount) || 0,
@@ -210,8 +242,9 @@ function onSubmit() {
         proposal_approved_at: form.proposal_approved_at || null,
         payment_request_sent_at: form.payment_request_sent_at || null,
         notes: form.notes || null,
+        purchase_url: form.purchase_url?.trim() || null,
     };
-    if (form.password) payload.password = form.password;
+    if (isPasswordLogin.value && form.password) payload.password = form.password;
     if (isEdit.value && props.account?.can_update_status) {
         payload.status = form.status;
     }
@@ -270,6 +303,12 @@ function confirmPaymentSent() {
     markDirty();
 }
 
+function openPurchaseUrl() {
+    const url = form.purchase_url?.trim();
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+}
+
 const inputClass = 'input h-10 w-full text-sm';
 
 function fieldClass(tabKey, field) {
@@ -287,7 +326,7 @@ const costInvalid = computed(() => (
     :show="show"
     :title="isEdit ? 'Sửa tài khoản AI' : 'Tạo tài khoản AI'"
     :dirty="dirty"
-    max-width="max-w-3xl"
+    max-width="max-w-4xl"
     fit-viewport
     @close="onClose"
   >
@@ -296,13 +335,15 @@ const costInvalid = computed(() => (
       @submit.prevent="onSubmit"
     >
       <p class="mb-3 shrink-0 text-[11px] leading-relaxed text-slate-500">
-        Trường có dấu
+        Trường có
         <span class="font-medium text-danger">*</span>
-        là bắt buộc. Ngày gửi PĐX / ĐNTT phải kèm đúng 1 file chứng từ.
+        là bắt buộc. Chi phí tự format VNĐ (vd.
+        <span class="font-medium tabular-nums text-slate-700">1.000.000</span>).
+        Chỉ người được cấp quyền mới thấy từng tài khoản.
       </p>
 
       <div
-        class="mb-3 flex shrink-0 gap-1 border-b border-slate-200"
+        class="mb-3 flex shrink-0 gap-1 overflow-x-auto border-b border-slate-200"
         role="tablist"
         aria-label="Các bước form tài khoản AI"
       >
@@ -329,7 +370,6 @@ const costInvalid = computed(() => (
           <span
             v-if="tabHasGap(tab.key)"
             class="ml-0.5 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-rose-100 px-1 text-[10px] font-semibold text-rose-700"
-            aria-label="Thiếu trường bắt buộc"
           >!</span>
         </button>
       </div>
@@ -341,16 +381,11 @@ const costInvalid = computed(() => (
           class="space-y-3"
           role="tabpanel"
         >
-          <div class="rounded-lg border border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-white p-3 sm:p-4">
+          <div class="rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white p-3 shadow-sm sm:p-4">
             <div class="grid gap-3 sm:grid-cols-2">
               <label class="block sm:col-span-2">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Tên công cụ AI
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Tên công cụ AI <span class="text-danger">*</span>
                 </span>
                 <input
                   v-model="form.tool_name"
@@ -363,12 +398,7 @@ const costInvalid = computed(() => (
 
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Nhóm chức năng
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Nhóm chức năng <span class="text-danger">*</span>
                 </span>
                 <select
                   v-model="form.group_function"
@@ -393,12 +423,7 @@ const costInvalid = computed(() => (
 
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Email đăng ký
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Email đăng ký <span class="text-danger">*</span>
                   <FieldTooltip :text="formHints.notify || 'Email dùng nhận nhắc hết hạn và liên hệ license.'" />
                 </span>
                 <input
@@ -410,8 +435,20 @@ const costInvalid = computed(() => (
                 >
               </label>
 
+              <div class="sm:col-span-2">
+                <span class="mb-1.5 block text-xs font-medium text-slate-600">
+                  Cách đăng nhập <span class="text-danger">*</span>
+                </span>
+                <DatagridSegmentedControl
+                  v-model="form.login_method"
+                  :items="LOGIN_ITEMS"
+                  aria-label="Cách đăng nhập"
+                  @update:model-value="markDirty"
+                />
+              </div>
+
               <label
-                v-if="canViewPassword"
+                v-if="isPasswordLogin && canViewPassword"
                 class="block sm:col-span-2"
               >
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
@@ -427,6 +464,41 @@ const costInvalid = computed(() => (
                   @update:model-value="markDirty"
                 />
               </label>
+              <p
+                v-else-if="!isPasswordLogin"
+                class="sm:col-span-2 rounded-lg border border-sky-200/80 bg-sky-50/70 px-3 py-2 text-[11px] text-sky-900"
+              >
+                Đăng nhập Google — không lưu mật khẩu trên hệ thống.
+              </p>
+
+              <div class="sm:col-span-2">
+                <span class="mb-1 block text-xs font-medium text-slate-600">
+                  Link chỗ mua
+                  <FieldTooltip text="URL trang mua / quản lý license (ChatGPT, Cursor…)." />
+                </span>
+                <div class="flex gap-2">
+                  <input
+                    v-model="form.purchase_url"
+                    type="url"
+                    :class="inputClass"
+                    class="flex-1"
+                    placeholder="https://…"
+                    @input="markDirty"
+                  >
+                  <button
+                    type="button"
+                    class="btn-ghost inline-flex h-10 shrink-0 items-center gap-1.5 border border-slate-200 px-3 text-xs"
+                    :disabled="!form.purchase_url?.trim()"
+                    @click="openPurchaseUrl"
+                  >
+                    <AppIcon
+                      name="external-link"
+                      :size="14"
+                    />
+                    Mở
+                  </button>
+                </div>
+              </div>
 
               <label
                 v-if="isEdit && account?.can_update_status"
@@ -457,16 +529,11 @@ const costInvalid = computed(() => (
           class="space-y-3"
           role="tabpanel"
         >
-          <div class="rounded-lg border border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-white p-3 sm:p-4">
+          <div class="rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white p-3 shadow-sm sm:p-4">
             <div class="grid gap-3 sm:grid-cols-2">
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Ngày mua
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Ngày mua <span class="text-danger">*</span>
                 </span>
                 <FilterDatePicker
                   v-model="form.purchase_date"
@@ -477,12 +544,7 @@ const costInvalid = computed(() => (
 
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Ngày hết hạn
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Ngày hết hạn <span class="text-danger">*</span>
                 </span>
                 <FilterDatePicker
                   v-model="form.expiry_date"
@@ -494,29 +556,25 @@ const costInvalid = computed(() => (
 
               <div class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Chi phí (VNĐ)
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Chi phí (VNĐ) <span class="text-danger">*</span>
                 </span>
                 <MoneyInput
                   v-model="form.cost_amount"
-                  placeholder="VD: 500.000"
+                  placeholder="1.000.000"
                   :invalid="costInvalid"
                   @update:model-value="markDirty"
                 />
+                <p
+                  v-if="form.cost_amount && monthlyPreview && form.cost_unit !== 'monthly'"
+                  class="mt-1 text-[11px] text-slate-500"
+                >
+                  ≈ {{ formatVndNumber(monthlyPreview) }} ₫ / tháng
+                </p>
               </div>
 
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
-                  Đơn vị chi phí
-                  <span
-                    class="text-danger"
-                    aria-hidden="true"
-                    title="Bắt buộc"
-                  >*</span>
+                  Đơn vị chi phí <span class="text-danger">*</span>
                 </span>
                 <select
                   v-model="form.cost_unit"
@@ -554,9 +612,6 @@ const costInvalid = computed(() => (
                   placeholder="VD: 14"
                   @input="markDirty"
                 >
-                <p class="mt-1 text-[11px] text-slate-400">
-                  Hệ thống gửi nhắc theo lịch {{ (reminderSchedule || []).join(', ') || '08:00, 14:00' }}.
-                </p>
               </label>
             </div>
           </div>
@@ -588,36 +643,22 @@ const costInvalid = computed(() => (
             v-if="form.proposal_approved_at || form.proposal_sent_at"
             class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-3 sm:px-4"
           >
-            <div class="flex flex-wrap items-end justify-between gap-3">
-              <label class="min-w-[12rem] flex-1">
-                <span class="mb-1 block text-xs font-medium text-emerald-900">
-                  Ngày đề xuất được duyệt
-                </span>
-                <FilterDatePicker
-                  v-model="form.proposal_approved_at"
-                  placeholder="Chọn ngày duyệt"
-                  :min-date="form.proposal_sent_at || null"
-                  @update:model-value="markDirty"
-                />
-              </label>
-              <p
-                v-if="attemptedSubmit && missingByTab.docs.includes('proposal_approved_at')"
-                class="w-full text-[11px] text-rose-600"
-              >
-                Cần có ngày gửi đề xuất trước khi ghi nhận duyệt.
-              </p>
-              <p
-                v-else-if="form.proposal_approved_at"
-                class="text-[11px] text-emerald-800"
-              >
-                Đã duyệt ngày {{ form.proposal_approved_at.split('-').reverse().join('/') }}.
-              </p>
-            </div>
+            <label class="block min-w-[12rem]">
+              <span class="mb-1 block text-xs font-medium text-emerald-900">
+                Ngày đề xuất được duyệt
+              </span>
+              <FilterDatePicker
+                v-model="form.proposal_approved_at"
+                placeholder="Chọn ngày duyệt"
+                :min-date="form.proposal_sent_at || null"
+                @update:model-value="markDirty"
+              />
+            </label>
           </div>
 
           <AiAccountDocSlot
             title="Đề nghị thanh toán (ĐNTT)"
-            hint="Gắn 1 file phiếu đề nghị với ngày gửi. Bấm nút để ghi nhận đã gửi hôm nay."
+            hint="Gắn 1 file phiếu đề nghị với ngày gửi."
             date-label="Ngày gửi đề nghị thanh toán"
             :date-value="form.payment_request_sent_at"
             date-placeholder="Chọn ngày gửi đề nghị"
@@ -632,19 +673,6 @@ const costInvalid = computed(() => (
             @confirm="confirmPaymentSent"
           />
 
-          <p
-            v-if="attemptedSubmit && (missingByTab.docs.includes('proposal_file') || missingByTab.docs.includes('payment_file'))"
-            class="text-[11px] text-rose-600"
-          >
-            <template v-if="missingByTab.docs.includes('proposal_file')">
-              Ngày gửi đề xuất cần kèm 1 file phiếu đề xuất.
-            </template>
-            <template v-if="missingByTab.docs.includes('payment_file')">
-              <span v-if="missingByTab.docs.includes('proposal_file')" />
-              Ngày gửi đề nghị cần kèm 1 file đề nghị thanh toán.
-            </template>
-          </p>
-
           <label class="block rounded-xl border border-slate-200/90 bg-white p-3 sm:p-4">
             <span class="mb-1 block text-xs font-medium text-slate-600">Ghi chú</span>
             <textarea
@@ -655,6 +683,20 @@ const costInvalid = computed(() => (
               @input="markDirty"
             />
           </label>
+        </div>
+
+        <!-- Tab: Phân quyền -->
+        <div
+          v-show="activeTab === 'access'"
+          class="space-y-3"
+          role="tabpanel"
+        >
+          <AiAccountAccessGrantsPanel
+            :ai-account-id="account?.id || null"
+            :can-manage-access="isEdit ? !!account?.can_manage_access : false"
+            :permission-options="permissionOptions"
+            :owner-options="accessAccountOptions"
+          />
         </div>
       </div>
 

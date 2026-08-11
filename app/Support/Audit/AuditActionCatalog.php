@@ -69,6 +69,8 @@ final class AuditActionCatalog
             'ai_account.updated' => ['label' => 'Sửa tài khoản AI', 'module' => 'ai_account', 'severity' => 'notice'],
             'ai_account.deleted' => ['label' => 'Xóa tài khoản AI', 'module' => 'ai_account', 'severity' => 'warning'],
             'ai_account.password_viewed' => ['label' => 'Xem mật khẩu AI', 'module' => 'ai_account', 'severity' => 'warning'],
+            'ai_account.access_granted' => ['label' => 'Cấp quyền tài khoản AI', 'module' => 'ai_account', 'severity' => 'notice'],
+            'ai_account.access_revoked' => ['label' => 'Thu hồi quyền tài khoản AI', 'module' => 'ai_account', 'severity' => 'warning'],
             'ai_payment.created' => ['label' => 'Tạo đề nghị thanh toán AI', 'module' => 'ai_proposal', 'severity' => 'notice'],
             'ai_payment.updated' => ['label' => 'Cập nhật thanh toán AI', 'module' => 'ai_proposal', 'severity' => 'notice'],
             'ai_payment.approved' => ['label' => 'Duyệt thanh toán AI', 'module' => 'ai_proposal', 'severity' => 'notice'],

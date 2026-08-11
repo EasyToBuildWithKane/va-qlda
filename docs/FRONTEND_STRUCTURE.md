@@ -69,7 +69,7 @@ resources/js/
 │   ├── onboarding/               ← useOnboarding / useSmartContext (hint UI đã gỡ khỏi AppLayout)
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
-│   ├── aiAccount/                ← Tài khoản AI: FormModal (MoneyInput/DatePicker + DocSlot 1 file/ngày) + Index + cost report
+│   ├── aiAccount/                ← Tài khoản AI: FormModal 4 tab (login/purchase/MoneyInput/DocSlot/ACL) + AccessGrantsPanel + Index
 │   ├── evaluation/               ← Tiêu chí đánh giá: SummaryBar, CriterionFormModal, ActivityTimeline, CategoryTabs, RowActions, DepartmentAutocomplete, columns, export
 │   ├── evaluation-template/      ← Mẫu đánh giá: SummaryBar, EvaluationTemplateForm (+ FormModal sửa), MultiCatalogSelect, DataModal, columns, import/export composables
 │   └── workspace-config/         ← Hub: ProfileCard/Grid, InsightsBanner, ProfileDrawer, export composable

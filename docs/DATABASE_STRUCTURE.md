@@ -760,10 +760,12 @@ Migration flatten: `2026_08_10_100000_simplify_ai_accounts_flat_workspace.php` �
 | Cột | Kiểu | Mô tả |
 |---|---|---|
 | `id` | uuid PK | — |
+| `created_by` | FK system_accounts nullable | Người tạo |
 | `tool_name` | string | Tên công cụ AI |
 | `group_function` | string(32) | DEV / BA / PM / Design / QA / Other |
 | `email_registered` | string | Email đăng ký |
-| `login_password` | text nullable | Encrypted |
+| `login_method` | string(16) | `password` \| `google` (default password) |
+| `login_password` | text nullable | Encrypted — chỉ khi password |
 | `purchase_date` / `expiry_date` | date | Ngày mua / hết hạn |
 | `proposal_sent_at` / `proposal_approved_at` / `payment_request_sent_at` | date nullable | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT |
 | `proposal_document_paths` / `payment_request_document_paths` | json nullable | Mỗi loại tối đa 1 file: `[{path, original_name, mime_type, size}]` |
@@ -773,9 +775,21 @@ Migration flatten: `2026_08_10_100000_simplify_ai_accounts_flat_workspace.php` �
 | `notify_before_days` | smallint | Mặc định 14 |
 | `last_reminded_at` | timestamp nullable | Lần nhắc hết hạn gần nhất |
 | `notes` | text nullable | — |
+| `purchase_url` | string(2048) nullable | Link chỗ mua |
 | `deleted_at` | soft delete | — |
 
-Chi phí KPI / báo cáo: quy tháng từ `cost_amount` + `cost_unit` (`AiAccountCostCalculator`).
+### 6.2 Bảng `va_prd_ai_account_access_grants`
+
+| Cột | Kiểu | Mô tả |
+|---|---|---|
+| `ai_account_id` | uuid FK cascade | Tài khoản AI |
+| `account_id` | FK system_accounts | Người được cấp |
+| `permissions` | json | `view`, `view_password`, `edit`, `delete`, `share` |
+| `granted_by` | FK nullable | Người cấp |
+| `expires_at` | timestamp nullable | Hết hạn grant |
+| unique | `(ai_account_id, account_id)` | `ai_acct_grant_unique` |
+
+Chi phí KPI / báo cáo: quy tháng từ `cost_amount` + `cost_unit` (`AiAccountCostCalculator`). Visibility list: `AiAccount::scopeVisibleTo`.
 
 ---
 

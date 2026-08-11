@@ -4,8 +4,11 @@ namespace App\Http\Controllers\AiAccount;
 
 use App\Http\Controllers\Controller;
 use App\Models\AiAccount;
+use App\Models\SystemAccount;
 use App\Support\Enums\AiAccountCostUnit;
 use App\Support\Enums\AiAccountGroupFunction;
+use App\Support\Enums\AiAccountLoginMethod;
+use App\Support\Enums\AiAccountPermission;
 use App\Support\Enums\AiAccountStatus;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -24,17 +27,23 @@ class AiAccountPageController extends Controller
                     || $request->user()->allows('ai_account.view_password'),
                 'trigger_reminder' => $request->user()->can('triggerReminder', AiAccount::class),
             ],
-            'form_hints' => [
+            'formHints' => [
                 'notify' => config('ai_accounts.defaults.notify_hint'),
                 'billing_monthly' => config('ai_accounts.defaults.billing_hint_monthly'),
                 'billing_yearly' => config('ai_accounts.defaults.billing_hint_yearly'),
             ],
-            'reminder_schedule' => config('ai_accounts.reminder.schedule_times', ['08:00', '14:00']),
+            'reminderSchedule' => config('ai_accounts.reminder.schedule_times', ['08:00', '14:00']),
             'options' => [
                 'group_function' => AiAccountGroupFunction::options(),
                 'cost_unit' => AiAccountCostUnit::options(),
                 'status' => AiAccountStatus::options(),
+                'login_method' => AiAccountLoginMethod::options(),
+                'access_permissions' => AiAccountPermission::options(),
             ],
+            'accessAccountOptions' => SystemAccount::query()
+                ->where('is_active', true)
+                ->orderBy('display_name')
+                ->get(['id', 'display_name', 'username']),
             'exchange_rate' => (int) config('ai_accounts.exchange_rate', 25_500),
         ]);
     }

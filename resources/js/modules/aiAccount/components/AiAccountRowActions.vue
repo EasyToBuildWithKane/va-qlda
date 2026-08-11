@@ -96,11 +96,16 @@ function onDelete() {
     emit('delete', props.row);
 }
 
-const hasMenuItems = computed(() => true);
+const canEdit = computed(() => props.row.can_update !== false);
+const canDelete = computed(() => props.row.can_delete === true);
+const hasMenuItems = computed(() => canEdit.value || props.row.can_renew || canDelete.value);
 </script>
 
 <template>
-  <div class="inline-flex justify-end">
+  <div
+    v-if="hasMenuItems"
+    class="inline-flex justify-end"
+  >
     <button
       ref="triggerRef"
       type="button"
@@ -126,6 +131,7 @@ const hasMenuItems = computed(() => true);
         :style="dropdownStyle"
       >
         <button
+          v-if="canEdit"
           type="button"
           role="menuitem"
           class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
@@ -151,6 +157,7 @@ const hasMenuItems = computed(() => true);
           Gia hạn
         </button>
         <button
+          v-if="canDelete"
           type="button"
           role="menuitem"
           class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-rose-700 hover:bg-rose-50"

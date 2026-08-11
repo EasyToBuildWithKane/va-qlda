@@ -90,6 +90,8 @@ final class PermissionCatalog
             'ai_account' => ['label' => 'Tài khoản AI', 'icon' => 'sparkles', 'group' => 'AI', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'renew' => 'Gia hạn',
                 'view_password' => 'Xem mật khẩu',
+                'share' => 'Chia sẻ / cấp quyền',
+                'manage_access' => 'Quản lý quyền truy cập',
                 'trigger_reminder' => 'Gửi nhắc thủ công',
             ]],
 
@@ -236,6 +238,7 @@ final class PermissionCatalog
                 'contract.view', 'contract.create', 'contract.update', 'contract.delete', 'contract.manage', 'contract.import', 'contract.export',
                 'vendor.view', 'vendor.create', 'vendor.update', 'vendor.delete',
                 'ai_account.create', 'ai_account.update', 'ai_account.delete', 'ai_account.renew',
+                'ai_account.view_password', 'ai_account.share', 'ai_account.manage_access',
                 'ai_account.trigger_reminder',
                 'credential.create',
                 'department.create', 'department.update',
