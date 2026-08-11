@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
  * @property \Illuminate\Support\Carbon $purchase_date
  * @property \Illuminate\Support\Carbon $expiry_date
  * @property \Illuminate\Support\Carbon|null $proposal_sent_at
+ * @property \Illuminate\Support\Carbon|null $proposal_approved_at
  * @property \Illuminate\Support\Carbon|null $payment_request_sent_at
  * @property array<int, array<string, mixed>>|null $proposal_document_paths
  * @property array<int, array<string, mixed>>|null $payment_request_document_paths
@@ -42,6 +43,7 @@ class AiAccount extends Model
         'purchase_date',
         'expiry_date',
         'proposal_sent_at',
+        'proposal_approved_at',
         'payment_request_sent_at',
         'proposal_document_paths',
         'payment_request_document_paths',
@@ -60,6 +62,7 @@ class AiAccount extends Model
         'purchase_date' => 'date',
         'expiry_date' => 'date',
         'proposal_sent_at' => 'date',
+        'proposal_approved_at' => 'date',
         'payment_request_sent_at' => 'date',
         'proposal_document_paths' => 'array',
         'payment_request_document_paths' => 'array',

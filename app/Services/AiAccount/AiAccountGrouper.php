@@ -165,6 +165,7 @@ class AiAccountGrouper
             'purchase_date' => $account->purchase_date->format('Y-m-d'),
             'expiry_date' => $account->expiry_date->format('Y-m-d'),
             'proposal_sent_at' => $account->proposal_sent_at?->format('Y-m-d'),
+            'proposal_approved_at' => $account->proposal_approved_at?->format('Y-m-d'),
             'payment_request_sent_at' => $account->payment_request_sent_at?->format('Y-m-d'),
             'proposal_documents' => $account->documentsFor('proposal'),
             'payment_request_documents' => $account->documentsFor('payment_request'),

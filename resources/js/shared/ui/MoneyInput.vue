@@ -46,7 +46,7 @@ const words = computed(() => dongToWords(props.modelValue));
         type="text"
         inputmode="numeric"
         :placeholder="placeholder"
-        class="input pr-9 text-right font-medium tabular-nums"
+        class="input h-10 w-full pr-9 text-right text-sm font-medium tabular-nums"
         :class="invalid ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
         @input="onInput"
       >

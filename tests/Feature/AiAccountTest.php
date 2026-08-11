@@ -61,11 +61,17 @@ class AiAccountTest extends TestCase
         $admin = $this->admin();
         $this->actingAs($admin, 'system');
 
-        $file = UploadedFile::fake()->create('pdx.pdf', 100, 'application/pdf');
+        $proposalFile = UploadedFile::fake()->create('pdx.pdf', 100, 'application/pdf');
+        $paymentFile = UploadedFile::fake()->create('dntt.pdf', 100, 'application/pdf');
 
         $create = $this->post(route('api.ai-accounts.store'), array_merge(
-            $this->accountPayload(),
-            ['proposal_documents' => [$file]],
+            $this->accountPayload([
+                'proposal_approved_at' => now()->subDays(7)->toDateString(),
+            ]),
+            [
+                'proposal_documents' => [$proposalFile],
+                'payment_request_documents' => [$paymentFile],
+            ],
         ));
         $create->assertCreated();
         $id = $create->json('data.account.id');
@@ -76,6 +82,12 @@ class AiAccountTest extends TestCase
         $this->assertSame('ai.dev@vaschools.edu.vn', $account->email_registered);
         $this->assertSame(500_000, $account->cost_amount);
         $this->assertNotEmpty($account->proposal_document_paths);
+        $this->assertCount(1, $account->proposal_document_paths);
+        $this->assertNotEmpty($account->payment_request_document_paths);
+        $this->assertSame(
+            now()->subDays(7)->toDateString(),
+            $account->proposal_approved_at?->toDateString(),
+        );
         $this->assertSame('secret-pass', $account->login_password);
 
         $summary = $this->getJson(route('api.ai-accounts.summary'));

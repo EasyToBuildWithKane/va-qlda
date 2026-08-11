@@ -4,8 +4,12 @@ import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import PasswordInput from '@/shared/ui/form/PasswordInput.vue';
+import MoneyInput from '@/shared/ui/MoneyInput.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
+import AiAccountDocSlot from '@/modules/aiAccount/components/AiAccountDocSlot.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
+import { useToast } from '@/shared/composables/useToast';
 
 const props = defineProps({
     show: Boolean,
@@ -18,6 +22,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'submit']);
+const toast = useToast();
 
 const TABS = [
     { key: 'info', label: 'Thông tin', icon: 'account' },
@@ -28,8 +33,10 @@ const TABS = [
 const activeTab = ref('info');
 const dirty = ref(false);
 const attemptedSubmit = ref(false);
-const proposalFiles = ref([]);
-const paymentFiles = ref([]);
+/** @type {import('vue').Ref<File|null>} */
+const proposalFile = ref(null);
+/** @type {import('vue').Ref<File|null>} */
+const paymentFile = ref(null);
 
 const form = reactive({
     tool_name: '',
@@ -38,10 +45,11 @@ const form = reactive({
     password: '',
     purchase_date: '',
     expiry_date: '',
-    cost_amount: 0,
+    cost_amount: null,
     cost_unit: 'monthly',
     notify_before_days: 14,
     proposal_sent_at: '',
+    proposal_approved_at: '',
     payment_request_sent_at: '',
     notes: '',
     status: 'active',
@@ -63,9 +71,18 @@ const formDraft = useModalFormDraft('ai-account', {
     pick: () => ({ ...form, activeTab: activeTab.value }),
 });
 
+const existingProposalDoc = computed(() => (props.account?.proposal_documents ?? [])[0] ?? null);
+const existingPaymentDoc = computed(() => (props.account?.payment_request_documents ?? [])[0] ?? null);
+
+const todayIso = () => new Date().toISOString().slice(0, 10);
+
+const proposalApprovedToday = computed(() => form.proposal_approved_at === todayIso());
+const paymentSentToday = computed(() => form.payment_request_sent_at === todayIso());
+
 const missingByTab = computed(() => {
     const info = [];
     const billing = [];
+    const docs = [];
     if (!form.tool_name?.trim()) info.push('tool_name');
     if (!form.group_function) info.push('group_function');
     if (!form.email_registered?.trim()) info.push('email_registered');
@@ -80,7 +97,17 @@ const missingByTab = computed(() => {
         billing.push('cost_amount');
     }
     if (!form.cost_unit) billing.push('cost_unit');
-    return { info, billing, docs: [] };
+
+    if (form.proposal_sent_at && !proposalFile.value && !existingProposalDoc.value) {
+        docs.push('proposal_file');
+    }
+    if (form.payment_request_sent_at && !paymentFile.value && !existingPaymentDoc.value) {
+        docs.push('payment_file');
+    }
+    if (form.proposal_approved_at && !form.proposal_sent_at) {
+        docs.push('proposal_approved_at');
+    }
+    return { info, billing, docs };
 });
 
 const tabHasGap = (key) => attemptedSubmit.value && (missingByTab.value[key]?.length ?? 0) > 0;
@@ -90,8 +117,8 @@ watch(() => props.show, (open) => {
     dirty.value = false;
     attemptedSubmit.value = false;
     activeTab.value = 'info';
-    proposalFiles.value = [];
-    paymentFiles.value = [];
+    proposalFile.value = null;
+    paymentFile.value = null;
     if (props.account) {
         form.tool_name = props.account.tool_name ?? '';
         form.group_function = props.account.group_function ?? 'DEV';
@@ -99,10 +126,11 @@ watch(() => props.show, (open) => {
         form.password = '';
         form.purchase_date = props.account.purchase_date ?? '';
         form.expiry_date = props.account.expiry_date ?? '';
-        form.cost_amount = props.account.cost_amount ?? 0;
+        form.cost_amount = props.account.cost_amount ?? null;
         form.cost_unit = props.account.cost_unit ?? 'monthly';
         form.notify_before_days = props.account.notify_before_days ?? 14;
         form.proposal_sent_at = props.account.proposal_sent_at ?? '';
+        form.proposal_approved_at = props.account.proposal_approved_at ?? '';
         form.payment_request_sent_at = props.account.payment_request_sent_at ?? '';
         form.notes = props.account.notes ?? '';
         form.status = props.account.status ?? 'active';
@@ -113,10 +141,11 @@ watch(() => props.show, (open) => {
         form.password = '';
         form.purchase_date = '';
         form.expiry_date = '';
-        form.cost_amount = 0;
+        form.cost_amount = null;
         form.cost_unit = 'monthly';
         form.notify_before_days = 14;
         form.proposal_sent_at = '';
+        form.proposal_approved_at = '';
         form.payment_request_sent_at = '';
         form.notes = '';
         form.status = 'active';
@@ -163,6 +192,9 @@ function onSubmit() {
     const invalid = firstInvalidTab();
     if (invalid) {
         activeTab.value = invalid;
+        if (invalid === 'docs') {
+            toast.warning('Ngày gửi đề xuất / đề nghị cần kèm đúng 1 file chứng từ.');
+        }
         return;
     }
     const payload = {
@@ -175,6 +207,7 @@ function onSubmit() {
         cost_unit: form.cost_unit,
         notify_before_days: Number(form.notify_before_days) || 14,
         proposal_sent_at: form.proposal_sent_at || null,
+        proposal_approved_at: form.proposal_approved_at || null,
         payment_request_sent_at: form.payment_request_sent_at || null,
         notes: form.notes || null,
     };
@@ -182,27 +215,60 @@ function onSubmit() {
     if (isEdit.value && props.account?.can_update_status) {
         payload.status = form.status;
     }
-    if (proposalFiles.value.length) {
-        payload.proposal_documents = [...proposalFiles.value];
+    if (proposalFile.value) {
+        payload.proposal_documents = [proposalFile.value];
+        payload.replace_proposal_documents = true;
     }
-    if (paymentFiles.value.length) {
-        payload.payment_request_documents = [...paymentFiles.value];
+    if (paymentFile.value) {
+        payload.payment_request_documents = [paymentFile.value];
+        payload.replace_payment_request_documents = true;
     }
     emit('submit', payload);
 }
 
-function onProposalFiles(e) {
-    proposalFiles.value = [...(e.target.files || [])];
+function onProposalFile(file) {
+    proposalFile.value = file;
     markDirty();
 }
 
-function onPaymentFiles(e) {
-    paymentFiles.value = [...(e.target.files || [])];
+function onPaymentFile(file) {
+    paymentFile.value = file;
     markDirty();
 }
 
-const existingProposalDocs = computed(() => props.account?.proposal_documents ?? []);
-const existingPaymentDocs = computed(() => props.account?.payment_request_documents ?? []);
+function clearProposalFile() {
+    proposalFile.value = null;
+    markDirty();
+}
+
+function clearPaymentFile() {
+    paymentFile.value = null;
+    markDirty();
+}
+
+function confirmProposalApproved() {
+    if (!form.proposal_sent_at) {
+        toast.warning('Chọn ngày gửi đề xuất và đính kèm file trước khi xác nhận duyệt.');
+        return;
+    }
+    if (!proposalFile.value && !existingProposalDoc.value) {
+        toast.warning('Đính kèm 1 file phiếu đề xuất trước khi xác nhận duyệt.');
+        return;
+    }
+    form.proposal_approved_at = todayIso();
+    markDirty();
+    toast.success('Đã ghi nhận đề xuất được duyệt hôm nay.');
+}
+
+function confirmPaymentSent() {
+    form.payment_request_sent_at = todayIso();
+    if (!paymentFile.value && !existingPaymentDoc.value) {
+        toast.warning('Đã ghi ngày hôm nay — nhớ đính kèm 1 file đề nghị thanh toán trước khi lưu.');
+    } else {
+        toast.success('Đã ghi nhận ngày gửi đề nghị thanh toán hôm nay.');
+    }
+    markDirty();
+}
 
 const inputClass = 'input h-10 w-full text-sm';
 
@@ -210,6 +276,10 @@ function fieldClass(tabKey, field) {
     const bad = attemptedSubmit.value && (missingByTab.value[tabKey] || []).includes(field);
     return bad ? `${inputClass} border-rose-400 ring-1 ring-rose-200` : inputClass;
 }
+
+const costInvalid = computed(() => (
+    attemptedSubmit.value && missingByTab.value.billing.includes('cost_amount')
+));
 </script>
 
 <template>
@@ -228,7 +298,7 @@ function fieldClass(tabKey, field) {
       <p class="mb-3 shrink-0 text-[11px] leading-relaxed text-slate-500">
         Trường có dấu
         <span class="font-medium text-danger">*</span>
-        là bắt buộc. Chia thành 3 tab để điền nhanh trong một màn hình.
+        là bắt buộc. Ngày gửi PĐX / ĐNTT phải kèm đúng 1 file chứng từ.
       </p>
 
       <div
@@ -398,12 +468,11 @@ function fieldClass(tabKey, field) {
                     title="Bắt buộc"
                   >*</span>
                 </span>
-                <input
+                <FilterDatePicker
                   v-model="form.purchase_date"
-                  type="date"
-                  :class="fieldClass('billing', 'purchase_date')"
-                  @change="markDirty"
-                >
+                  placeholder="Chọn ngày mua"
+                  @update:model-value="markDirty"
+                />
               </label>
 
               <label class="block">
@@ -415,15 +484,15 @@ function fieldClass(tabKey, field) {
                     title="Bắt buộc"
                   >*</span>
                 </span>
-                <input
+                <FilterDatePicker
                   v-model="form.expiry_date"
-                  type="date"
-                  :class="fieldClass('billing', 'expiry_date')"
-                  @change="markDirty"
-                >
+                  placeholder="Chọn ngày hết hạn"
+                  :min-date="form.purchase_date || null"
+                  @update:model-value="markDirty"
+                />
               </label>
 
-              <label class="block">
+              <div class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
                   Chi phí (VNĐ)
                   <span
@@ -432,15 +501,13 @@ function fieldClass(tabKey, field) {
                     title="Bắt buộc"
                   >*</span>
                 </span>
-                <input
-                  v-model.number="form.cost_amount"
-                  type="number"
-                  min="0"
-                  :class="fieldClass('billing', 'cost_amount')"
-                  placeholder="VD: 500000"
-                  @input="markDirty"
-                >
-              </label>
+                <MoneyInput
+                  v-model="form.cost_amount"
+                  placeholder="VD: 500.000"
+                  :invalid="costInvalid"
+                  @update:model-value="markDirty"
+                />
+              </div>
 
               <label class="block">
                 <span class="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
@@ -482,6 +549,7 @@ function fieldClass(tabKey, field) {
                   type="number"
                   min="1"
                   max="365"
+                  inputmode="numeric"
                   :class="inputClass"
                   placeholder="VD: 14"
                   @input="markDirty"
@@ -500,128 +568,93 @@ function fieldClass(tabKey, field) {
           class="space-y-3"
           role="tabpanel"
         >
-          <div class="rounded-lg border border-slate-200/80 bg-gradient-to-b from-slate-50/80 to-white p-3 sm:p-4">
-            <div class="grid gap-3 sm:grid-cols-2">
-              <label class="block">
-                <span class="mb-1 block text-xs font-medium text-slate-600">Ngày gửi đề xuất</span>
-                <input
-                  v-model="form.proposal_sent_at"
-                  type="date"
-                  :class="inputClass"
-                  @change="markDirty"
-                >
-              </label>
+          <AiAccountDocSlot
+            title="Phiếu đề xuất (PĐX)"
+            hint="Mỗi lần gửi đề xuất gắn đúng 1 file. Bấm nút để xác nhận đề xuất đã được duyệt."
+            date-label="Ngày gửi đề xuất"
+            :date-value="form.proposal_sent_at"
+            date-placeholder="Chọn ngày gửi đề xuất"
+            :existing-doc="existingProposalDoc"
+            :pending-file="proposalFile"
+            confirm-label="Xác nhận đề xuất đã duyệt"
+            :confirmed="proposalApprovedToday"
+            @update:date-value="(v) => { form.proposal_sent_at = v; markDirty(); }"
+            @file-change="onProposalFile"
+            @clear-file="clearProposalFile"
+            @confirm="confirmProposalApproved"
+          />
 
-              <label class="block">
-                <span class="mb-1 block text-xs font-medium text-slate-600">Ngày gửi đề nghị thanh toán</span>
-                <input
-                  v-model="form.payment_request_sent_at"
-                  type="date"
-                  :class="inputClass"
-                  @change="markDirty"
-                >
-              </label>
-
-              <div class="sm:col-span-2">
-                <span class="mb-1.5 block text-xs font-medium text-slate-600">Phiếu đề xuất (file)</span>
-                <ul
-                  v-if="existingProposalDocs.length"
-                  class="mb-2 space-y-1 text-xs text-slate-600"
-                >
-                  <li
-                    v-for="(doc, i) in existingProposalDocs"
-                    :key="`p-${i}`"
-                  >
-                    <a
-                      v-if="doc.url"
-                      :href="doc.url"
-                      target="_blank"
-                      rel="noopener"
-                      class="text-brand underline"
-                    >{{ doc.original_name }}</a>
-                    <span v-else>{{ doc.original_name }}</span>
-                  </li>
-                </ul>
-                <label class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-center transition hover:border-brand/40 hover:bg-brand/5">
-                  <AppIcon
-                    name="upload"
-                    :size="16"
-                    class="text-slate-400"
-                  />
-                  <span class="text-xs font-medium text-slate-600">Chọn file phiếu đề xuất</span>
-                  <span class="text-[11px] text-slate-400">PDF, ảnh, Word, Excel — tối đa 5 file</span>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                    class="sr-only"
-                    @change="onProposalFiles"
-                  >
-                </label>
-                <p
-                  v-if="proposalFiles.length"
-                  class="mt-1.5 text-[11px] text-slate-500"
-                >
-                  Đã chọn {{ proposalFiles.length }} file mới.
-                </p>
-              </div>
-
-              <div class="sm:col-span-2">
-                <span class="mb-1.5 block text-xs font-medium text-slate-600">Phiếu đề nghị thanh toán (file)</span>
-                <ul
-                  v-if="existingPaymentDocs.length"
-                  class="mb-2 space-y-1 text-xs text-slate-600"
-                >
-                  <li
-                    v-for="(doc, i) in existingPaymentDocs"
-                    :key="`pay-${i}`"
-                  >
-                    <a
-                      v-if="doc.url"
-                      :href="doc.url"
-                      target="_blank"
-                      rel="noopener"
-                      class="text-brand underline"
-                    >{{ doc.original_name }}</a>
-                    <span v-else>{{ doc.original_name }}</span>
-                  </li>
-                </ul>
-                <label class="flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-slate-300 bg-white px-3 py-4 text-center transition hover:border-brand/40 hover:bg-brand/5">
-                  <AppIcon
-                    name="upload"
-                    :size="16"
-                    class="text-slate-400"
-                  />
-                  <span class="text-xs font-medium text-slate-600">Chọn file đề nghị thanh toán</span>
-                  <span class="text-[11px] text-slate-400">PDF, ảnh, Word, Excel — tối đa 5 file</span>
-                  <input
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
-                    class="sr-only"
-                    @change="onPaymentFiles"
-                  >
-                </label>
-                <p
-                  v-if="paymentFiles.length"
-                  class="mt-1.5 text-[11px] text-slate-500"
-                >
-                  Đã chọn {{ paymentFiles.length }} file mới.
-                </p>
-              </div>
-
-              <label class="block sm:col-span-2">
-                <span class="mb-1 block text-xs font-medium text-slate-600">Ghi chú</span>
-                <textarea
-                  v-model="form.notes"
-                  rows="3"
-                  class="input w-full text-sm"
-                  placeholder="Ghi chú nội bộ: số hợp đồng, seat, link admin portal…"
-                  @input="markDirty"
+          <div
+            v-if="form.proposal_approved_at || form.proposal_sent_at"
+            class="rounded-xl border border-emerald-200/80 bg-emerald-50/50 px-3 py-3 sm:px-4"
+          >
+            <div class="flex flex-wrap items-end justify-between gap-3">
+              <label class="min-w-[12rem] flex-1">
+                <span class="mb-1 block text-xs font-medium text-emerald-900">
+                  Ngày đề xuất được duyệt
+                </span>
+                <FilterDatePicker
+                  v-model="form.proposal_approved_at"
+                  placeholder="Chọn ngày duyệt"
+                  :min-date="form.proposal_sent_at || null"
+                  @update:model-value="markDirty"
                 />
               </label>
+              <p
+                v-if="attemptedSubmit && missingByTab.docs.includes('proposal_approved_at')"
+                class="w-full text-[11px] text-rose-600"
+              >
+                Cần có ngày gửi đề xuất trước khi ghi nhận duyệt.
+              </p>
+              <p
+                v-else-if="form.proposal_approved_at"
+                class="text-[11px] text-emerald-800"
+              >
+                Đã duyệt ngày {{ form.proposal_approved_at.split('-').reverse().join('/') }}.
+              </p>
             </div>
           </div>
+
+          <AiAccountDocSlot
+            title="Đề nghị thanh toán (ĐNTT)"
+            hint="Gắn 1 file phiếu đề nghị với ngày gửi. Bấm nút để ghi nhận đã gửi hôm nay."
+            date-label="Ngày gửi đề nghị thanh toán"
+            :date-value="form.payment_request_sent_at"
+            date-placeholder="Chọn ngày gửi đề nghị"
+            :existing-doc="existingPaymentDoc"
+            :pending-file="paymentFile"
+            confirm-label="Xác nhận đã gửi đề nghị"
+            :confirmed="paymentSentToday"
+            :min-date="form.proposal_approved_at || form.proposal_sent_at || null"
+            @update:date-value="(v) => { form.payment_request_sent_at = v; markDirty(); }"
+            @file-change="onPaymentFile"
+            @clear-file="clearPaymentFile"
+            @confirm="confirmPaymentSent"
+          />
+
+          <p
+            v-if="attemptedSubmit && (missingByTab.docs.includes('proposal_file') || missingByTab.docs.includes('payment_file'))"
+            class="text-[11px] text-rose-600"
+          >
+            <template v-if="missingByTab.docs.includes('proposal_file')">
+              Ngày gửi đề xuất cần kèm 1 file phiếu đề xuất.
+            </template>
+            <template v-if="missingByTab.docs.includes('payment_file')">
+              <span v-if="missingByTab.docs.includes('proposal_file')" />
+              Ngày gửi đề nghị cần kèm 1 file đề nghị thanh toán.
+            </template>
+          </p>
+
+          <label class="block rounded-xl border border-slate-200/90 bg-white p-3 sm:p-4">
+            <span class="mb-1 block text-xs font-medium text-slate-600">Ghi chú</span>
+            <textarea
+              v-model="form.notes"
+              rows="3"
+              class="input w-full text-sm"
+              placeholder="Ghi chú nội bộ: số hợp đồng, seat, link admin portal…"
+              @input="markDirty"
+            />
+          </label>
         </div>
       </div>
 

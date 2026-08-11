@@ -28,11 +28,12 @@ class StoreAiAccountRequest extends FormRequest
             'cost_unit' => ['required', Rule::in(AiAccountCostUnit::values())],
             'notify_before_days' => ['nullable', 'integer', 'min:1', 'max:365'],
             'proposal_sent_at' => ['nullable', 'date'],
+            'proposal_approved_at' => ['nullable', 'date', 'after_or_equal:proposal_sent_at'],
             'payment_request_sent_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
-            'proposal_documents' => ['nullable', 'array', 'max:5'],
+            'proposal_documents' => ['nullable', 'array', 'max:1'],
             'proposal_documents.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
-            'payment_request_documents' => ['nullable', 'array', 'max:5'],
+            'payment_request_documents' => ['nullable', 'array', 'max:1'],
             'payment_request_documents.*' => ['file', 'max:10240', 'mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx'],
         ];
     }
@@ -42,6 +43,27 @@ class StoreAiAccountRequest extends FormRequest
         $validator->after(function ($validator) {
             if ($this->filled('password') && ! $this->user()->isAdminTier()) {
                 $validator->errors()->add('password', 'Chỉ quản trị viên được lưu mật khẩu đăng nhập.');
+            }
+
+            if ($this->filled('proposal_sent_at') && ! $this->hasFile('proposal_documents')) {
+                $validator->errors()->add(
+                    'proposal_documents',
+                    'Ngày gửi đề xuất cần kèm đúng 1 file phiếu đề xuất.',
+                );
+            }
+
+            if ($this->filled('payment_request_sent_at') && ! $this->hasFile('payment_request_documents')) {
+                $validator->errors()->add(
+                    'payment_request_documents',
+                    'Ngày gửi đề nghị thanh toán cần kèm đúng 1 file.',
+                );
+            }
+
+            if ($this->filled('proposal_approved_at') && ! $this->filled('proposal_sent_at')) {
+                $validator->errors()->add(
+                    'proposal_approved_at',
+                    'Cần có ngày gửi đề xuất trước khi ghi nhận duyệt.',
+                );
             }
         });
     }
@@ -58,6 +80,9 @@ class StoreAiAccountRequest extends FormRequest
             'expiry_date.after_or_equal' => 'Ngày hết hạn phải sau hoặc bằng ngày mua.',
             'cost_amount.required' => 'Vui lòng nhập chi phí.',
             'cost_unit.required' => 'Vui lòng chọn đơn vị chi phí.',
+            'proposal_approved_at.after_or_equal' => 'Ngày duyệt phải sau hoặc bằng ngày gửi đề xuất.',
+            'proposal_documents.max' => 'Chỉ được đính kèm 1 file phiếu đề xuất.',
+            'payment_request_documents.max' => 'Chỉ được đính kèm 1 file đề nghị thanh toán.',
         ];
     }
 }

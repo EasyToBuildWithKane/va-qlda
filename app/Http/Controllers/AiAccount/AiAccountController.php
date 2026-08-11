@@ -102,6 +102,7 @@ class AiAccountController extends Controller
                 'notify_before_days' => $validated['notify_before_days']
                     ?? (int) config('ai_accounts.defaults.notify_before_days', 14),
                 'proposal_sent_at' => $validated['proposal_sent_at'] ?? null,
+                'proposal_approved_at' => $validated['proposal_approved_at'] ?? null,
                 'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
                 'notes' => $validated['notes'] ?? null,
                 'status' => AiAccountStatus::Active,
@@ -157,6 +158,7 @@ class AiAccountController extends Controller
                 'cost_unit' => $validated['cost_unit'],
                 'notify_before_days' => $validated['notify_before_days'] ?? $aiAccount->notify_before_days,
                 'proposal_sent_at' => $validated['proposal_sent_at'] ?? null,
+                'proposal_approved_at' => $validated['proposal_approved_at'] ?? null,
                 'payment_request_sent_at' => $validated['payment_request_sent_at'] ?? null,
                 'notes' => $validated['notes'] ?? null,
             ];

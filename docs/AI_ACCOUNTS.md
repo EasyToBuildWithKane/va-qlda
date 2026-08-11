@@ -30,11 +30,11 @@ Nav AI Workspace chỉ còn 2 mục trên.
 | `purchase_date`, `expiry_date` | Ngày mua / hết hạn |
 | `notify_before_days` | Nhắc trước N ngày hết hạn |
 | `cost_amount`, `cost_unit` | Chi phí + đơn vị (tháng/quý/năm/một lần) |
-| `proposal_sent_at`, `payment_request_sent_at` | Ngày gửi đề xuất / đề nghị thanh toán |
-| `proposal_document_paths`, `payment_request_document_paths` | File phiếu (JSON: path, original_name, mime, size) |
+| `proposal_sent_at`, `proposal_approved_at`, `payment_request_sent_at` | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT |
+| `proposal_document_paths`, `payment_request_document_paths` | Mỗi loại **1 file** gắn 1–1 với ngày gửi (JSON: path, original_name, mime, size) |
 | `status` | `active` / `expiring_soon` / `expired` / `cancelled` — sync từ `expiry_date` (+ `notify_before_days`) |
 
-Form tạo/sửa (`AiAccountFormModal`): modal `fit-viewport`, 3 tab **Thông tin** · **Chi phí & hạn** · **Chứng từ**; nhãn bắt buộc có dấu `*`; input có placeholder gợi ý.
+Form tạo/sửa (`AiAccountFormModal`): modal `fit-viewport`, 3 tab **Thông tin** · **Chi phí & hạn** · **Chứng từ**. Chi phí dùng `MoneyInput` (chỉ số, format VNĐ); ngày dùng `FilterDatePicker` (`dd/MM/yyyy`). Tab chứng từ: mỗi ngày gửi PĐX/ĐNTT kèm đúng 1 file (`AiAccountDocSlot`); nút **Xác nhận đề xuất đã duyệt** / **Xác nhận đã gửi đề nghị** ghi nhận ngày hôm nay.
 
 Chi phí KPI / Chi phí AI: **trực tiếp** từ `cost_amount` (quy tháng qua `AiAccountCostCalculator`) — không còn «phiếu đếm ngân sách».
 

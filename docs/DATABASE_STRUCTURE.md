@@ -765,8 +765,8 @@ Migration flatten: `2026_08_10_100000_simplify_ai_accounts_flat_workspace.php` �
 | `email_registered` | string | Email đăng ký |
 | `login_password` | text nullable | Encrypted |
 | `purchase_date` / `expiry_date` | date | Ngày mua / hết hạn |
-| `proposal_sent_at` / `payment_request_sent_at` | date nullable | Ngày gửi PĐX / ĐNTT |
-| `proposal_document_paths` / `payment_request_document_paths` | json nullable | `[{path, original_name, mime_type, size}]` |
+| `proposal_sent_at` / `proposal_approved_at` / `payment_request_sent_at` | date nullable | Ngày gửi PĐX / duyệt PĐX / gửi ĐNTT |
+| `proposal_document_paths` / `payment_request_document_paths` | json nullable | Mỗi loại tối đa 1 file: `[{path, original_name, mime_type, size}]` |
 | `cost_amount` | bigint | Chi phí (VNĐ) |
 | `cost_unit` | string(16) | monthly / quarterly / yearly / one_time |
 | `status` | string(24) | active / expiring_soon / expired / cancelled |
