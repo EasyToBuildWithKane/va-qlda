@@ -1,6 +1,7 @@
 <script setup>
-/* eslint-disable vue/no-v-html -- xlsx sheet preview HTML */
+/* eslint-disable vue/no-v-html -- xlsx sheet + markdown preview HTML */
 import { computed, toRef, watch } from 'vue';
+import MarkdownIt from 'markdown-it';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useDocumentPreview } from '@/composables/useDocumentPreview';
 
@@ -13,6 +14,12 @@ const props = defineProps({
 const emit = defineEmits(['update:draft', 'update:editing']);
 
 const fileRef = toRef(() => props.file);
+
+const md = new MarkdownIt({
+    html: false,
+    linkify: true,
+    breaks: true,
+});
 
 const {
     kind,
@@ -56,6 +63,35 @@ const showFallback = computed(() =>
     props.file && !loading.value && !error.value
     && kind.value === 'none',
 );
+
+const isTextLikeKind = computed(() =>
+    kind.value === 'text' || kind.value === 'markdown' || kind.value === 'html',
+);
+
+const markdownHtml = computed(() => {
+    const raw = textContent.value ?? '';
+    if (!raw.trim()) return '';
+    return md.render(raw);
+});
+
+/** Sandboxed HTML preview — no scripts; wrap fragment files with base styles. */
+const htmlSrcdoc = computed(() => {
+    const raw = String(textContent.value ?? '');
+    const trimmed = raw.trim();
+    if (!trimmed) {
+        return '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body></body></html>';
+    }
+    const looksFullDoc = /<!DOCTYPE\s+html/i.test(trimmed) || /<html[\s>]/i.test(trimmed);
+    if (looksFullDoc) return raw;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><style>
+body{margin:16px;font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;color:#0f172a;line-height:1.55;font-size:14px}
+img,video{max-width:100%;height:auto}
+table{border-collapse:collapse;max-width:100%}
+td,th{border:1px solid #e2e8f0;padding:6px 8px;vertical-align:top}
+pre{overflow:auto;background:#f8fafc;padding:12px;border-radius:8px}
+a{color:#9A0036}
+</style></head><body>${raw}</body></html>`;
+});
 
 /** Fit = thu trọn một trang trong khung iframe, không cuộn nội bộ */
 const pdfPreviewUrl = computed(() => {
@@ -141,7 +177,7 @@ defineExpose({ reload, textContent, kind });
       </div>
 
       <div
-        v-else-if="kind === 'text'"
+        v-else-if="isTextLikeKind"
         class="flex min-h-0 flex-1 flex-col"
       >
         <textarea
@@ -149,6 +185,29 @@ defineExpose({ reload, textContent, kind });
           v-model="draft"
           class="min-h-0 flex-1 resize-none border-0 bg-slate-50 px-4 py-3 font-mono text-sm leading-relaxed text-slate-800 outline-none focus:ring-0 dark:bg-slate-950 dark:text-slate-100"
           spellcheck="false"
+        />
+        <div
+          v-else-if="kind === 'markdown'"
+          class="doc-preview-markdown min-h-0 flex-1 overflow-auto bg-white px-5 py-4 dark:bg-slate-900"
+        >
+          <div
+            v-if="markdownHtml"
+            class="prose prose-sm max-w-none text-slate-800 dark:prose-invert dark:text-slate-100"
+            v-html="markdownHtml"
+          />
+          <p
+            v-else
+            class="text-sm text-slate-400"
+          >
+            File trống
+          </p>
+        </div>
+        <iframe
+          v-else-if="kind === 'html'"
+          class="doc-preview-html__iframe min-h-0 flex-1"
+          title="Xem trước HTML"
+          sandbox=""
+          :srcdoc="htmlSrcdoc"
         />
         <pre
           v-else
@@ -377,6 +436,19 @@ defineExpose({ reload, textContent, kind });
 </template>
 
 <style scoped>
+.doc-preview-html__iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+    background: #fff;
+}
+
+.doc-preview-markdown :deep(a) {
+    color: #9a0036;
+}
+
 .doc-preview-pdf {
     height: 100%;
     min-height: 0;

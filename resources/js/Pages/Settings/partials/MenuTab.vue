@@ -108,15 +108,6 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydownSave));
     class="flex h-full flex-col"
     @submit.prevent="submit"
   >
-    <div class="mb-5">
-      <h2 class="text-[15px] font-semibold text-slate-800">
-        Tùy chỉnh menu
-      </h2>
-      <p class="mt-0.5 text-[12.5px] text-slate-400">
-        Ẩn/hiện nhóm menu trên thanh điều hướng — áp dụng cho toàn hệ thống.
-      </p>
-    </div>
-
     <!-- Hướng dẫn sử dụng -->
     <div class="mb-4 flex gap-2.5 rounded-xl border border-brand/15 bg-brand/[0.04] px-3.5 py-3">
       <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
@@ -130,7 +121,9 @@ onUnmounted(() => document.removeEventListener('keydown', onKeydownSave));
           Cách hoạt động
         </p>
         <ul class="mt-1 space-y-0.5 text-slate-500">
-          <li>• Tắt công tắc để ẩn nhóm menu khỏi thanh điều hướng của <span class="font-medium text-slate-600">mọi người dùng</span>.</li>
+          <li>• Tắt công tắc để ẩn nhóm menu khỏi thanh điều hướng của <span class="font-medium text-slate-600">mọi người dùng</span> (lớp toàn hệ thống).</li>
+          <li>• Module tương ứng trên <span class="font-medium text-slate-600">Cấu hình workspace</span> cũng bị ẩn theo (vd. ẩn «Báo cáo» → ẩn trọng số BC ngày).</li>
+          <li>• Menu theo từng phòng ban cấu hình tại shell workspace phòng ban — user thường chỉ thấy nhóm đã bật cho PB của họ; siêu quản trị không bị giới hạn lớp này.</li>
           <li>• Nhấn <span class="font-medium text-slate-600">“Lưu thay đổi”</span> để áp dụng — chưa lưu thì chưa có hiệu lực.</li>
           <li>• Nhóm có dấu <span class="font-bold text-rose-500">*</span> là nhóm bắt buộc, không thể ẩn.</li>
         </ul>

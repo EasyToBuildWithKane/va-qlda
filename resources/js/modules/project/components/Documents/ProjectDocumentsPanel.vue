@@ -1296,7 +1296,6 @@ const activityTone = (event) => ({
                 :selected-id="selectedId"
                 :selected-ids="selectedRowIds"
                 :format-size="formatSize"
-                :format-date="formatCardDate"
                 :file-ext="fileExt"
                 :can-edit="canEdit && !isDriveRoot"
                 :can-delete="canDelete && !isDriveRoot"

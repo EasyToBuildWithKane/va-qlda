@@ -5,6 +5,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import { datetime } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
 import { normalizeEntities } from '@/composables/useNormalizeList';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     taskId: { type: Number, required: true },
@@ -67,7 +68,7 @@ const formatSize = (bytes) => {
   <section class="rounded-xl border border-slate-200/80 dark:border-slate-700">
     <div class="flex items-center justify-between border-b border-slate-100 px-3 py-2 dark:border-slate-800">
       <h3 class="text-xs font-bold uppercase tracking-wide text-slate-500">
-        Đính kèm task
+        Tài liệu đính kèm
       </h3>
       <button
         v-if="canEdit"
@@ -131,7 +132,7 @@ const formatSize = (bytes) => {
             {{ f.original_name }}
           </a>
           <p class="text-[10px] text-slate-400">
-            v{{ f.version }} · {{ formatSize(f.size) }} · {{ f.uploaded_by?.name || '—' }} · {{ datetime(f.created_at) }}
+            v{{ f.version }} · {{ formatSize(f.size) }} · {{ displayOrEmpty(f.uploaded_by?.name, EMPTY_LABELS.notUpdated) }} · {{ datetime(f.created_at) }}
           </p>
         </div>
         <a

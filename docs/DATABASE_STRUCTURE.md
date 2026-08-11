@@ -488,7 +488,7 @@ Bảng `bugs` và `bug_activities` không còn trên môi trường đã migrate
 |---|---|---|---|
 | id | bigint UNSIGNED | NO | PK |
 | project_id | bigint UNSIGNED | NO | FK → projects |
-| category | varchar(50) | YES | Enum: ProjectAttachmentCategory |
+| category | varchar(50) | YES | Enum: ProjectAttachmentCategory (`customer`, `uiux`, `ba`, `dev`, `customer_data`, `images`, `showcase`) |
 | uploaded_by_id | bigint UNSIGNED | YES | FK → employees |
 | updated_by_id | bigint UNSIGNED | YES | FK → employees |
 | original_name | varchar(500) | NO | |
@@ -691,7 +691,7 @@ Xem `docs/WORKSPACE_CONFIG.md`. Migration: `2026_07_30_160000_create_workspace_p
 
 | Bảng | Mô tả |
 |------|--------|
-| `workspace_profiles` | Shell workspace theo `department_code` (unique); status draft\|active\|archived; SoftDeletes; FK optional `local_department_id` → departments |
+| `workspace_profiles` | Shell workspace theo `department_code` (unique); status draft\|active\|archived; `enabled_nav_groups` JSON nullable (allow-list sidebar); SoftDeletes; FK optional `local_department_id` → departments |
 
 ---
 

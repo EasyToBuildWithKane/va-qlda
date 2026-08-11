@@ -1,7 +1,5 @@
 <script setup>
 import AppIcon from '@/Components/AppIcon.vue';
-import Avatar from '@/shared/ui/Avatar.vue';
-import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 defineProps({
     folders: { type: Array, default: () => [] },
@@ -9,7 +7,6 @@ defineProps({
     selectedId: { type: [Number, String], default: null },
     selectedIds: { type: Array, default: () => [] },
     formatSize: { type: Function, required: true },
-    formatDate: { type: Function, required: true },
     fileExt: { type: Function, required: true },
     canEdit: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
@@ -43,7 +40,10 @@ const typeIcon = (item) => {
     if (item.is_image) return 'image';
     if (item.is_pdf || (item.original_name || '').toLowerCase().endsWith('.pdf')) return 'pdf';
     if (item.is_external_link) return 'link';
-    if (item.can_edit_content || item.preview_kind === 'text') return 'documents';
+    if (
+        item.can_edit_content
+        || ['text', 'markdown', 'html'].includes(item.preview_kind)
+    ) return 'documents';
     return 'documents';
 };
 
@@ -76,14 +76,6 @@ const showActions = (canEdit, canDelete) => canEdit || canDelete;
           class="w-[4.75rem]"
         >
         <col
-          v-if="!compact"
-          class="w-[8.25rem]"
-        >
-        <col
-          v-if="!compact"
-          class="w-10"
-        >
-        <col
           v-if="showActions(canEdit, canDelete)"
           class="w-[7.5rem]"
         >
@@ -110,18 +102,6 @@ const showActions = (canEdit, canDelete) => canEdit || canDelete;
             class="px-1.5 py-2 font-semibold"
           >
             Định dạng
-          </th>
-          <th
-            v-if="!compact"
-            class="px-1.5 py-2 font-semibold"
-          >
-            Ngày tạo
-          </th>
-          <th
-            v-if="!compact"
-            class="px-1 py-2 text-center font-semibold"
-          >
-            <span class="sr-only">Người tạo</span>
           </th>
           <th
             v-if="showActions(canEdit, canDelete)"
@@ -175,31 +155,6 @@ const showActions = (canEdit, canDelete) => canEdit || canDelete;
             class="px-1.5 py-2 align-top text-slate-500"
           >
             {{ formatLabel(folder, fileExt) }}
-          </td>
-          <td
-            v-if="!compact"
-            class="whitespace-nowrap px-1.5 py-2 align-top tabular-nums text-slate-500"
-          >
-            {{ folder.created_at ? formatDate(folder.created_at) : displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}
-          </td>
-          <td
-            v-if="!compact"
-            class="px-1 py-2 align-top"
-          >
-            <div class="flex justify-center">
-              <Avatar
-                v-if="folder.uploaded_by"
-                :name="folder.uploaded_by.name"
-                :src="folder.uploaded_by.avatar_path"
-                :size="24"
-              />
-              <span
-                v-else
-                class="inline-block h-6 w-6 rounded-full bg-slate-100 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:ring-slate-700"
-                :title="EMPTY_LABELS.notUpdated"
-                :aria-label="EMPTY_LABELS.notUpdated"
-              />
-            </div>
           </td>
           <td
             v-if="showActions(canEdit, canDelete)"
@@ -276,31 +231,6 @@ const showActions = (canEdit, canDelete) => canEdit || canDelete;
             class="px-1.5 py-2 align-top lowercase text-slate-500"
           >
             {{ formatLabel(file, fileExt) }}
-          </td>
-          <td
-            v-if="!compact"
-            class="whitespace-nowrap px-1.5 py-2 align-top tabular-nums text-slate-500"
-          >
-            {{ file.created_at ? formatDate(file.created_at) : displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}
-          </td>
-          <td
-            v-if="!compact"
-            class="px-1 py-2 align-top"
-          >
-            <div class="flex justify-center">
-              <Avatar
-                v-if="file.uploaded_by"
-                :name="file.uploaded_by.name"
-                :src="file.uploaded_by.avatar_path"
-                :size="24"
-              />
-              <span
-                v-else
-                class="inline-block h-6 w-6 rounded-full bg-slate-100 ring-1 ring-slate-200/80 dark:bg-slate-800 dark:ring-slate-700"
-                :title="EMPTY_LABELS.notUpdated"
-                :aria-label="EMPTY_LABELS.notUpdated"
-              />
-            </div>
           </td>
           <td
             v-if="showActions(canEdit, canDelete)"

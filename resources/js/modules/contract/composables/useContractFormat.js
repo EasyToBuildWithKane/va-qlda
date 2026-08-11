@@ -44,10 +44,34 @@ export function formatMoneyShort(value, currency = 'VND') {
     return `${vndFormatterFor(t).format(t)} ${currency}`;
 }
 
-function formatDecimalVi(value) {
-    const t = truncateMoneyAmount(value, 4);
+function formatDecimalVi(value, decimals = 4) {
+    const t = truncateMoneyAmount(value, decimals);
     if (Number.isInteger(t)) return String(t);
     return String(t).replace('.', ',');
+}
+
+/**
+ * Hiển thị gọn trên KPI card: 4,2 triệu vnđ — tránh dãy số 0 dài.
+ * @param {number|string|null|undefined} value
+ * @param {string} currency
+ */
+export function formatMoneyCompact(value, currency = 'vnđ') {
+    if (value === null || value === undefined || value === '') return `0 ${currency}`;
+    const num = Number(value);
+    if (Number.isNaN(num)) return `0 ${currency}`;
+    const t = truncateMoneyAmount(num);
+    if (t === 0) return `0 ${currency}`;
+    const abs = Math.abs(t);
+    if (abs >= 1_000_000_000) {
+        return `${formatDecimalVi(t / 1_000_000_000, 1)} tỷ ${currency}`;
+    }
+    if (abs >= 1_000_000) {
+        return `${formatDecimalVi(t / 1_000_000, 1)} triệu ${currency}`;
+    }
+    if (abs >= 1_000) {
+        return `${formatDecimalVi(t / 1_000, 1)} nghìn ${currency}`;
+    }
+    return `${vndFormatterFor(t).format(t)} ${currency}`;
 }
 
 /** Đọc ngắn tiếng Việt từ số đồng nguyên (cắt, không làm tròn). */

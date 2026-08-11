@@ -7,6 +7,7 @@ enum ProjectAttachmentCategory: string
     case Customer = 'customer';
     case UiUx = 'uiux';
     case Ba = 'ba';
+    case Dev = 'dev';
     case CustomerData = 'customer_data';
     case Images = 'images';
     /** Ảnh hiển thị trên cổng /congnghe (modal chi tiết dự án). */
@@ -18,6 +19,7 @@ enum ProjectAttachmentCategory: string
             self::Customer => 'Tài liệu khách hàng',
             self::UiUx => 'Tài liệu UI/UX',
             self::Ba => 'Tài liệu BA',
+            self::Dev => 'Tài liệu Dev',
             self::CustomerData => 'Data khách hàng',
             self::Images => 'Hình ảnh & media',
             self::Showcase => 'Hình ảnh cổng Công nghệ',
@@ -30,6 +32,7 @@ enum ProjectAttachmentCategory: string
             self::Customer => 'Tài liệu, brief, email xác nhận từ phía khách hàng.',
             self::UiUx => 'Wireframe, mockup, design system, prototype UI/UX.',
             self::Ba => 'BRD, SRS, FRS, use case, flow nghiệp vụ.',
+            self::Dev => 'Tài liệu kỹ thuật lập trình: API, kiến trúc, hướng dẫn deploy, changelog.',
             self::CustomerData => 'File Excel/CSV, mẫu dữ liệu, import từ khách hàng.',
             self::Images => 'Screenshot, ảnh hiện trạng, sơ đồ, tài liệu hình ảnh liên quan.',
             self::Showcase => 'Ảnh tham chiếu, giao diện, demo — hiển thị khi bấm xem dự án trên trang Phòng Công nghệ.',
@@ -42,6 +45,7 @@ enum ProjectAttachmentCategory: string
             self::Customer => 'building',
             self::UiUx => 'design-system',
             self::Ba => 'template',
+            self::Dev => 'coding-standards',
             self::CustomerData => 'download',
             self::Images => 'image',
             self::Showcase => 'image',
@@ -54,6 +58,7 @@ enum ProjectAttachmentCategory: string
             self::Customer => 'sky',
             self::UiUx => 'violet',
             self::Ba => 'amber',
+            self::Dev => 'indigo',
             self::CustomerData => 'emerald',
             self::Images => 'rose',
             self::Showcase => 'brand',

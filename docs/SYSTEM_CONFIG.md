@@ -85,9 +85,12 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `renewal_alert_days` | string | `clm.renewal_alert_days` |
 | | | `alert_telegram` | bool | `clm.alert_telegram` |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
+| **Tùy chỉnh menu** | `menu` | `hidden_groups` | list (nav group keys) | `va.menu_hidden_groups` — ẩn nhóm sidebar toàn hệ thống; đồng bộ module hub qua `WorkspaceNavModuleMap` (xem [WORKSPACE_CONFIG.md](WORKSPACE_CONFIG.md) § Menu sidebar) |
 | **Tài khoản & Vai trò** | `accounts` | — | (runtime) | gán `system_accounts.role` (PUT `/settings/accounts/{id}/role`) |
 
 `general.app_*` còn được chia sẻ ra Inertia qua prop `app` (`HandleInertiaRequests`) → `AppLayout` dùng cho ô thương hiệu (rail), tiêu đề, chân thanh bên.
+
+Menu theo từng phòng ban **không** lưu ở `/settings` — cấu hình `enabled_nav_groups` trên shell workspace PB (`/workspace-config/w/{code}`).
 
 ---
 

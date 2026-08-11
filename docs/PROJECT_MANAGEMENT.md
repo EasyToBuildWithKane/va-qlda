@@ -17,7 +17,7 @@
 | Kế hoạch Agile | Sprint, epic, backlog, kéo-thả trạng thái, nhập Excel công việc (bulk) |
 | Chi phí nhân công | Worklog trên task + `rate_snapshot` theo `project_member` |
 | Cộng tác | Comment đa hình trên task, watcher, activity feed, email tổng hợp (tuỳ cấu hình) |
-| Tài liệu | Upload phân loại (BA, UI/UX, khách hàng, showcase cổng Công nghệ) |
+| Tài liệu | Upload phân loại (BA, UI/UX, Dev, khách hàng, showcase cổng Công nghệ) |
 
 **Ngoài prefix `/projects` (module riêng nhưng gắn `project_id`):**
 
@@ -215,7 +215,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS, fit-width, bảng/ảnh không tràn, phân trang/cuộn; Excel bảng phân trang dòng — không Office Online); list `table-fixed`; cột đính kèm task hẹp |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file, gồm **Tài liệu Dev**); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; **preview `.md` (Markdown) / `.html` (iframe sandbox)**; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS, fit-width, bảng/ảnh không tràn, phân trang/cuộn; Excel bảng phân trang dòng — không Office Online); list `table-fixed` (Tên · Dung lượng · Định dạng · Thao tác — ẩn Ngày tạo / Người tạo); cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -255,7 +255,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | DELETE | `projects.tasks.destroy` | Soft delete |
 | GET | `projects.tasks.show` | Redirect show + `?task=` |
 
-**Panel:** `TaskDetailPanel` — drawer rộng mặc định ~800px (kéo 520–1120); tab **Chi tiết** có khối **Thông tin chung** 2 cột (`TaskDetailGeneralInfo`); mô tả rich (TipTap), subtask, worklog, attachment, comment thread.
+**Panel:** `TaskDetailPanel` — drawer rộng mặc định ~800px (kéo 520–1120); tab **Chi tiết** có khối **Thông tin chung** 2 cột (`TaskDetailGeneralInfo`); mô tả rich (TipTap), subtask, worklog, comment thread. Tab **Tài liệu** = đính kèm riêng của task (`TaskDetailAttachments` → `POST`/`DELETE` `tasks/{task}/attachments`) — không hiển thị tài liệu dự án (BRD/SRS… thuộc tab Tài liệu workspace).
 
 **Hoàn thành:** `TaskCompleteModal` + `useTaskCompleteModal` — khóa chỉnh sửa khi done (trừ reopen theo rule).
 
@@ -305,7 +305,7 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 | DELETE | `projects.attachments.destroy` | |
 | GET | `projects.attachments.file` | Stream file — **URL qua route**, `PublicMediaUrl`; null nếu mất file |
 
-**Category** (`ProjectAttachmentCategory`): customer, uiux, ba, customer_data, images, showcase (ảnh cổng `/congnghe`).
+**Category** (`ProjectAttachmentCategory`): customer, uiux, ba, **dev** (Tài liệu Dev), customer_data, images, showcase (ảnh cổng `/congnghe`).
 
 **Link ngoài** (`external_url`, không upload file): Google Docs/Sheets (`GoogleWorkspaceUrl`) hoặc PDF — URL `https` kết thúc `.pdf` hoặc file trên Google Drive (`ProjectAttachmentExternalUrl`). Preview: iframe Google preview / PDF / Drive preview.
 
@@ -315,7 +315,7 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text; Word `.docx` render trong iframe (`docx-preview`, giữ layout flex trang, CSS bảng/ảnh/căn lề, fit-width, Từng trang|Cuộn liên tục, zoom Vừa khung|100%|75%); Excel sticky header + zebra + «Dòng a–b / tổng» (100 dòng/trang). Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
+**UI tab Tài liệu:** một hàng gọn (danh mục + `Thêm` ▾ + `Tải lên`); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc» (file đính kèm từ task). Preview full-screen: đổi tên inline trên tiêu đề + nút Đổi tên; sửa nội dung text; **`.md`** render Markdown (`markdown-it`, không cho HTML thô trong MD); **`.html`/`.htm`** xem trong iframe `sandbox` (không chạy script); Word `.docx` render trong iframe (`docx-preview`, giữ layout flex trang, CSS bảng/ảnh/căn lề, fit-width, Từng trang|Cuộn liên tục, zoom Vừa khung|100%|75%); Excel sticky header + zebra + «Dòng a–b / tổng» (100 dòng/trang). Chi tiết drawer. Modal tạo thư mục/file/link `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

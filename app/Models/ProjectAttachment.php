@@ -193,7 +193,7 @@ class ProjectAttachment extends Model
         return ProjectAttachmentNewFile::isTextEditableName($this->original_name, $this->mime_type);
     }
 
-    /** @return 'image'|'pdf'|'docx'|'xlsx'|'text'|'doc-legacy'|'google_doc'|'google_sheet'|'none' */
+    /** @return 'image'|'pdf'|'docx'|'xlsx'|'text'|'markdown'|'html'|'doc-legacy'|'google_doc'|'google_sheet'|'none' */
     public function previewKind(): string
     {
         if ($this->isFolder()) {
@@ -218,6 +218,15 @@ class ProjectAttachment extends Model
         if ($this->isSpreadsheet()) {
             return 'xlsx';
         }
+
+        $ext = strtolower((string) pathinfo($this->original_name, PATHINFO_EXTENSION));
+        if ($ext === 'md') {
+            return 'markdown';
+        }
+        if (in_array($ext, ['html', 'htm'], true)) {
+            return 'html';
+        }
+
         if ($this->isTextEditable()) {
             return 'text';
         }
@@ -230,7 +239,9 @@ class ProjectAttachment extends Model
 
     public function canPreviewInline(): bool
     {
-        return in_array($this->previewKind(), ['image', 'pdf', 'docx', 'xlsx', 'text', 'google_doc', 'google_sheet'], true);
+        return in_array($this->previewKind(), [
+            'image', 'pdf', 'docx', 'xlsx', 'text', 'markdown', 'html', 'google_doc', 'google_sheet',
+        ], true);
     }
 
     /**

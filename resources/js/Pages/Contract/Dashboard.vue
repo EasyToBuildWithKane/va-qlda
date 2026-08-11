@@ -3,7 +3,6 @@ import { computed, ref, watch } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
 import PageHeader from '@/Components/Ui/PageHeader.vue';
-import AppIcon from '@/Components/AppIcon.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import ContractDashboardSummaryBar from '@/modules/contract/components/ContractDashboardSummaryBar.vue';
 import CategoryDonut from '@/modules/contract/components/CategoryDonut.vue';
@@ -11,6 +10,7 @@ import ExpiryMonthChart from '@/modules/contract/components/ExpiryMonthChart.vue
 import TopVendorsChart from '@/modules/contract/components/TopVendorsChart.vue';
 import StatusDonut from '@/modules/contract/components/StatusDonut.vue';
 import { formatMoneyShort, expiryLabel } from '@/modules/contract/composables/useContractFormat.js';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay.js';
 
 const props = defineProps({
     metrics: { type: Object, required: true },
@@ -56,22 +56,11 @@ const EXPIRY_TONE = (days) => {
         icon="budget"
         icon-color="brand"
       >
-        <div class="flex items-center gap-2">
-          <DatagridSegmentedControl
-            v-model="period"
-            :items="PERIOD_ITEMS"
-            aria-label="Kỳ chi phí duy trì"
-          />
-          <Link
-            href="/contracts"
-            class="btn-ghost"
-          >
-            <AppIcon
-              name="documents"
-              :size="15"
-            /> Danh mục
-          </Link>
-        </div>
+        <DatagridSegmentedControl
+          v-model="period"
+          :items="PERIOD_ITEMS"
+          aria-label="Kỳ chi phí duy trì"
+        />
       </PageHeader>
     </template>
 
@@ -160,10 +149,10 @@ const EXPIRY_TONE = (days) => {
                   <span class="text-xs text-slate-400">{{ c.code }}</span>
                 </td>
                 <td class="px-3 py-3 text-slate-600">
-                  {{ c.vendor ?? '—' }}
+                  {{ displayOrEmpty(c.vendor, EMPTY_LABELS.notUpdated) }}
                 </td>
                 <td class="px-3 py-3 tabular-nums text-slate-600">
-                  {{ c.expiry_date ?? '—' }}
+                  {{ displayOrEmpty(c.expiry_date, EMPTY_LABELS.notUpdated) }}
                 </td>
                 <td
                   class="px-3 py-3 font-medium"

@@ -7,6 +7,7 @@ import PageHeader from '@/Components/Ui/PageHeader.vue';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import WorkspaceConfigItemGrid from '@/modules/workspace-config/components/WorkspaceConfigItemGrid.vue';
+import WorkspaceNavMenuPanel from '@/modules/workspace-config/components/WorkspaceNavMenuPanel.vue';
 
 const MODULES_PAGE_THRESHOLD = 5;
 
@@ -16,6 +17,10 @@ const props = defineProps({
     checklist: {
         type: Object,
         default: () => ({ items: [], done: 0, total: 0 }),
+    },
+    navMenu: {
+        type: Object,
+        default: () => ({ groups: [], enabled: null }),
     },
     viewer: {
         type: Object,
@@ -281,6 +286,15 @@ function saveNotes() {
             </li>
           </ul>
         </section>
+
+        <WorkspaceNavMenuPanel
+          v-if="viewer.can_manage"
+          :department-code="workspace.department_code"
+          :groups="navMenu.groups ?? []"
+          :enabled="navMenu.enabled ?? null"
+          :can-manage="viewer.can_manage"
+          :profile-ready="!!workspace.profile_id"
+        />
 
         <section
           v-if="viewer.can_manage"

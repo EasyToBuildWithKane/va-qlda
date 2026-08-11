@@ -19,6 +19,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property int|null $local_department_id
  * @property WorkspaceProfileStatus|string $status
  * @property string|null $notes
+ * @property list<string>|null $enabled_nav_groups null = mọi nhóm toggleable (sau lớp ẩn toàn cục)
  * @property int|null $created_by
  */
 class WorkspaceProfile extends Model
@@ -33,11 +34,13 @@ class WorkspaceProfile extends Model
         'local_department_id',
         'status',
         'notes',
+        'enabled_nav_groups',
         'created_by',
     ];
 
     protected $casts = [
         'status' => WorkspaceProfileStatus::class,
+        'enabled_nav_groups' => 'array',
     ];
 
     public function localDepartment(): BelongsTo

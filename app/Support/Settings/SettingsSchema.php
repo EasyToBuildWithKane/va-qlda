@@ -49,7 +49,7 @@ final class SettingsSchema
             ['key' => 'clm', 'label' => 'Hợp đồng (CLM)', 'icon' => 'budget', 'description' => 'Ngưỡng cảnh báo gia hạn hợp đồng'],
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
             ['key' => 'accounts', 'label' => 'Tài khoản & Vai trò', 'icon' => 'account', 'description' => 'Gán vai trò cho tài khoản hệ thống'],
-            ['key' => 'menu', 'label' => 'Tùy chỉnh menu', 'icon' => 'columns', 'description' => 'Ẩn/hiện nhóm menu trên thanh điều hướng (áp dụng toàn hệ thống)'],
+            ['key' => 'menu', 'label' => 'Tùy chỉnh menu', 'icon' => 'columns', 'description' => 'Ẩn/hiện nhóm menu toàn hệ thống; đồng bộ module hub workspace. Menu theo PB cấu hình tại shell workspace'],
         ];
     }
 

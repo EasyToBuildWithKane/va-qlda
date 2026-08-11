@@ -64,11 +64,22 @@ Bảng `workspace_profiles` (`va_prd_workspace_profiles`):
 | `local_department_id` | FK nullable → `departments` |
 | `status` | `draft` \| `active` \| `archived` |
 | `notes` | nullable (max 2000) |
+| `enabled_nav_groups` | JSON nullable — allow-list key nhóm sidebar (`Navigation` toggleable). `null` = không giới hạn PB (chỉ còn lớp ẩn toàn cục `/settings/menu`) |
 | `created_by` | SystemAccount |
 | SoftDeletes | |
 
 Tiêu chí đánh giá vẫn ở `evaluation_criteria` (`scope` + `department_code`) — không FK bắt buộc tới profile.  
 Trọng số BC ngày: `daily_report_scoring_configs` (keyed `department_code`) — giữ 4 weight + `kaizen_bonus_max`; không đổi số chiều điểm.
+
+### Menu sidebar — 2 lớp
+
+| Lớp | Nguồn | Ai áp dụng |
+|-----|--------|------------|
+| Toàn hệ thống | `menu.hidden_groups` → `config('va.menu_hidden_groups')` (`/settings/menu`) | Mọi role |
+| Theo phòng ban | `workspace_profiles.enabled_nav_groups` (shell PB) | User thường có PB + profile; **`super_admin` bypass** |
+| Không PB / chưa profile | — | Chỉ lớp toàn cục |
+
+**Đồng bộ hub module:** `WorkspaceNavModuleMap` — ẩn nhóm `daily` ⇒ ẩn `daily_report_scoring`; ẩn `performance` ⇒ ẩn `evaluation` / `evaluation_templates` / `evaluation_forms`. Áp dụng trong `WorkspaceConfigCatalog::forUser()`.
 
 ---
 
@@ -113,8 +124,10 @@ Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 | `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ phẳng (nền slate, không border/gradient), vạch accent + số metric; trường qua **Cột**; bấm thẻ = xem nhanh |
 | `WorkspaceProfileDrawer.vue` | Xem nhanh + notes + archive/restore / kích hoạt |
 | `useWorkspaceHubExport.js` | Excel Tong quan / Phong ban / Ma tran |
-| `Pages/WorkspaceConfig/Workspace/Show.vue` | Header gọn (mã PB + Kích hoạt/Tiêu chí; không badge Đang dùng/Lưu trữ) · strip KPI · checklist · notes · archive/restore ở hub drawer · phân trang module khi > 5 |
+| `Pages/WorkspaceConfig/Workspace/Show.vue` | Header gọn (mã PB + Kích hoạt/Tiêu chí) · strip KPI · checklist · **Menu sidebar PB** (`WorkspaceNavMenuPanel`) · notes · phân trang module khi > 5 |
+| `WorkspaceNavMenuPanel.vue` | Toggle `enabled_nav_groups` (hub.manage); «Hiện tất cả» = lưu `null` |
 | `WorkspaceConfigItemGrid.vue` | Danh sách module phẳng (mô tả đầy đủ; trạng thái planned/dev/maintenance dạng chữ, không badge viền) |
+| `WorkspaceNavModuleMap.php` | Map nav group → catalog module (đồng bộ ẩn toàn cục / PB) |
 
 ### Trạng thái trên thẻ
 

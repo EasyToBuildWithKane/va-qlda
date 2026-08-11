@@ -45,7 +45,7 @@ class SystemSettingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
-                ->has('groups', 7) // general, auth, telegram, email, clm, permissions, accounts
+                ->has('groups', 8) // general, auth, telegram, email, clm, permissions, accounts, menu
                 ->has('emailTemplates', 5)
                 ->where('can.manage', true)
             );

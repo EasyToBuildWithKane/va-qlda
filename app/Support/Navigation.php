@@ -3,7 +3,9 @@
 namespace App\Support;
 
 use App\Models\SystemAccount;
+use App\Models\WorkspaceConfig\WorkspaceProfile;
 use App\Support\Enums\SystemRole;
+use App\Support\WorkspaceConfig\WorkspaceScopeResolver;
 
 /**
  * Builds the sidebar menu as a two-tier hierarchy.
@@ -131,6 +133,19 @@ class Navigation
             ];
         }
 
+        // Per-department sidebar allow-list (workspace_profiles.enabled_nav_groups).
+        // Super-admin bypasses; missing profile / null list = no extra restriction.
+        if (! $isSuper) {
+            $enabled = self::departmentEnabledNavGroups($account);
+            if ($enabled !== null) {
+                $groups = array_values(array_filter(
+                    $groups,
+                    static fn (array $g): bool => \in_array($g['key'], self::PROTECTED_GROUP_KEYS, true)
+                        || \in_array($g['key'], $enabled, true),
+                ));
+            }
+        }
+
         // Bucket groups into their functional super-section. usort is stable in
         // PHP 8, so the definition order is preserved within each section.
         $order = array_keys(self::SECTIONS);
@@ -142,6 +157,34 @@ class Navigation
         usort($groups, static fn (array $a, array $b): int => $rank($a['sectionKey']) <=> $rank($b['sectionKey']));
 
         return $groups;
+    }
+
+    /**
+     * Department allow-list for sidebar groups, or null when no PB restriction applies.
+     *
+     * @return list<string>|null
+     */
+    private static function departmentEnabledNavGroups(SystemAccount $account): ?array
+    {
+        $code = app(WorkspaceScopeResolver::class)->ownDepartmentCode($account);
+        if ($code === null || $code === '') {
+            return null;
+        }
+
+        $profile = WorkspaceProfile::query()
+            ->where('department_code', $code)
+            ->first();
+
+        if ($profile === null) {
+            return null;
+        }
+
+        $enabled = $profile->enabled_nav_groups;
+        if ($enabled === null) {
+            return null;
+        }
+
+        return array_values(array_map('strval', (array) $enabled));
     }
 
     /**

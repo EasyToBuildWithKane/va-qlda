@@ -32,7 +32,7 @@ const kind = computed(() => {
     if (['XLS', 'XLSX', 'CSV', 'SHT'].includes(b)) return 'sheet';
     if (['DOC', 'DOCX'].includes(b)) return 'doc';
     if (props.isLink || b === 'LINK') return 'link';
-    if (props.previewSnippet || b === 'TXT') return 'text';
+    if (props.previewSnippet || ['TXT', 'MD', 'HTML', 'HTM'].includes(b)) return 'text';
     return 'file';
 });
 

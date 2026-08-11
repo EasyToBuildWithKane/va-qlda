@@ -3,6 +3,8 @@
 namespace App\Support\WorkspaceConfig;
 
 use App\Models\SystemAccount;
+use App\Models\WorkspaceConfig\WorkspaceProfile;
+use App\Support\Enums\SystemRole;
 
 /**
  * Registry of workspace-config domain modules (shown on department workspace show).
@@ -119,33 +121,84 @@ class WorkspaceConfigCatalog
     }
 
     /**
-     * Modules the account may open (permission + reserved keys via allows()).
+     * Modules the account may open (permission + reserved keys via allows()),
+     * then filtered by global menu.hidden_groups and (for non–super-admin)
+     * the department workspace enabled_nav_groups allow-list.
      *
+     * @param  string|null  $departmentCode  Scope for per-PB menu; null = own PB for non-super
      * @return array<int, array<string, mixed>>
      */
-    public static function forUser(SystemAccount $account): array
+    public static function forUser(SystemAccount $account, ?string $departmentCode = null): array
     {
+        $enabledNav = self::enabledNavGroupsForAccount($account, $departmentCode);
+
         return array_values(array_filter(
             self::definition(),
-            static function (array $item) use ($account): bool {
-                $permission = $item['permission'];
-                if ($account->allows($permission)) {
-                    return true;
+            static function (array $item) use ($account, $enabledNav): bool {
+                if (! self::accountMayAccessModule($account, $item)) {
+                    return false;
                 }
 
-                // View reserved domains: hub.view is enough to open read-only module list.
-                if (in_array($permission, ['workspace.evaluation.view', 'workspace.daily_report_scoring.view'], true)
-                    && ($account->allows('workspace.hub.view')
-                        || $account->allows('workspace.evaluation.manage')
-                        || $account->allows('workspace.daily_report_scoring.manage'))) {
-                    return true;
-                }
-
-                $manage = str_replace('.view', '.manage', $permission);
-
-                return $manage !== $permission && $account->allows($manage);
+                return WorkspaceNavModuleMap::isModuleVisible(
+                    (string) ($item['key'] ?? ''),
+                    $enabledNav,
+                );
             },
         ));
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     */
+    private static function accountMayAccessModule(SystemAccount $account, array $item): bool
+    {
+        $permission = $item['permission'];
+        if ($account->allows($permission)) {
+            return true;
+        }
+
+        // View reserved domains: hub.view is enough to open read-only module list.
+        if (in_array($permission, ['workspace.evaluation.view', 'workspace.daily_report_scoring.view'], true)
+            && ($account->allows('workspace.hub.view')
+                || $account->allows('workspace.evaluation.manage')
+                || $account->allows('workspace.daily_report_scoring.manage'))) {
+            return true;
+        }
+
+        $manage = str_replace('.view', '.manage', $permission);
+
+        return $manage !== $permission && $account->allows($manage);
+    }
+
+    /**
+     * Department allow-list for mapped nav groups, or null (no PB restriction).
+     * Super-admin always gets null (bypass). Global hide is applied separately in the map.
+     *
+     * @return list<string>|null
+     */
+    private static function enabledNavGroupsForAccount(SystemAccount $account, ?string $departmentCode): ?array
+    {
+        if ($account->role === SystemRole::SuperAdmin) {
+            return null;
+        }
+
+        $code = trim((string) ($departmentCode ?? ''));
+        if ($code === '') {
+            $code = trim((string) (app(WorkspaceScopeResolver::class)->ownDepartmentCode($account) ?? ''));
+        }
+        if ($code === '') {
+            return null;
+        }
+
+        $profile = WorkspaceProfile::query()
+            ->where('department_code', $code)
+            ->first();
+
+        if ($profile === null || $profile->enabled_nav_groups === null) {
+            return null;
+        }
+
+        return array_values(array_map('strval', (array) $profile->enabled_nav_groups));
     }
 
     /**
@@ -180,6 +233,9 @@ class WorkspaceConfigCatalog
         $formCount = (int) ($context['form_count'] ?? 0);
         $hasScoringConfig = (bool) ($context['has_scoring_config'] ?? false);
         $profileStatus = (string) ($context['profile_status'] ?? 'missing');
+        $departmentCode = isset($context['department_code'])
+            ? trim((string) $context['department_code'])
+            : '';
         $items = [];
 
         $items[] = [
@@ -193,7 +249,7 @@ class WorkspaceConfigCatalog
                 : ($profileStatus === 'draft' ? 'Workspace ở trạng thái nháp' : 'Chưa kích hoạt'),
         ];
 
-        foreach (self::forUser($account) as $mod) {
+        foreach (self::forUser($account, $departmentCode !== '' ? $departmentCode : null) as $mod) {
             $key = (string) ($mod['key'] ?? '');
             $planned = ($mod['status'] ?? '') === 'planned';
             foreach ($mod['onboard_steps'] ?? [] as $step) {

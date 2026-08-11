@@ -149,13 +149,14 @@ section.docx > footer {
 /**
  * Browsers only natively preview images and PDF.
  * DOCX → docx-preview in isolated iframe; XLSX/XLS → paginated HTML table.
- * Text → plain UTF-8 body for view/edit.
+ * Markdown / HTML → rendered preview (+ plain edit); other text → UTF-8 body.
  */
 export function detectPreviewKind(file) {
     if (!file) return 'none';
     if (file.preview_kind === 'google_doc' || file.is_google_doc) return 'google_doc';
     if (file.preview_kind === 'google_sheet' || file.is_google_sheet) return 'google_sheet';
-    if (file.preview_kind === 'text' || file.can_edit_content) return 'text';
+    if (file.preview_kind === 'markdown') return 'markdown';
+    if (file.preview_kind === 'html') return 'html';
 
     const name = (file.original_name || '').toLowerCase();
     const mime = (file.mime_type || '').toLowerCase();
@@ -172,10 +173,15 @@ export function detectPreviewKind(file) {
         || mime.includes('spreadsheet')
     ) return 'xlsx';
     if (name.endsWith('.doc')) return 'doc-legacy';
+    if (ext === 'md' || mime === 'text/markdown' || mime === 'text/x-markdown') return 'markdown';
+    if (ext === 'html' || ext === 'htm' || mime === 'text/html') return 'html';
+    if (file.preview_kind === 'text' || file.can_edit_content) return 'text';
     if (TEXT_EXTS.includes(ext) || mime.startsWith('text/') || mime === 'application/json') return 'text';
 
     return 'none';
 }
+
+export const TEXT_PREVIEW_KINDS = ['text', 'markdown', 'html'];
 
 function escapeHtml(value) {
     return String(value ?? '')
@@ -594,8 +600,8 @@ export function useDocumentPreview(selectedFileRef) {
     const nextXlsxPage = () => goToXlsxPage(xlsxPage.value + 1);
     const prevXlsxPage = () => goToXlsxPage(xlsxPage.value - 1);
 
-    const loadText = async (file) => {
-        kind.value = 'text';
+    const loadText = async (file, previewKind = 'text') => {
+        kind.value = TEXT_PREVIEW_KINDS.includes(previewKind) ? previewKind : 'text';
         if (file.size > MAX_TEXT_BYTES) {
             error.value = 'File quá lớn để xem/sửa trên trình duyệt (>1MB).';
             return;
@@ -699,8 +705,8 @@ export function useDocumentPreview(selectedFileRef) {
             return;
         }
         kind.value = detectPreviewKind(file);
-        if (kind.value === 'text') {
-            loadText(file);
+        if (TEXT_PREVIEW_KINDS.includes(kind.value)) {
+            loadText(file, kind.value);
         } else if (['docx', 'xlsx', 'doc-legacy'].includes(kind.value)) {
             loadOffice(file);
         }

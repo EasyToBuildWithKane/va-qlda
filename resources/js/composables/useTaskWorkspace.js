@@ -26,7 +26,6 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
     const project = computed(() => unref(ctx.project) ?? null);
     const sprints = computed(() => unref(ctx.sprints) ?? []);
     const blockers = computed(() => unref(ctx.blockers) ?? []);
-    const attachments = computed(() => unref(ctx.attachments) ?? []);
     const allTasks = computed(() => unref(ctx.allTasks) ?? []);
     const epics = computed(() => unref(ctx.epics) ?? []);
     const currentEmployeeId = computed(() => unref(ctx.currentEmployeeId) ?? null);
@@ -127,22 +126,6 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
         const t = task.value;
         if (!t?.dependents?.length) return [];
         return (t.dependents || []).map(resolveRelatedTask).filter((r) => r?.id != null);
-    });
-
-    const projectDocs = computed(() => {
-        const groups = [
-            { key: 'ba', label: 'BRD / SRS / FRS', hint: 'Tài liệu BA', categories: ['ba'] },
-            { key: 'uiux', label: 'UI / UX Design', hint: 'Wireframe & mockup', categories: ['uiux'] },
-            { key: 'customer', label: 'Tài liệu khách hàng', hint: 'Brief & xác nhận', categories: ['customer'] },
-            { key: 'customer_data', label: 'Data & import', hint: 'Excel / CSV', categories: ['customer_data'] },
-            { key: 'images', label: 'Hình ảnh & media', hint: 'Screenshot', categories: ['images'] },
-        ];
-        return groups
-            .map((g) => ({
-                ...g,
-                files: attachments.value.filter((a) => a?.id != null && g.categories.includes(a.category)),
-            }))
-            .filter((g) => g.files.length > 0);
     });
 
     const ACTIVITY_UI = {
@@ -248,7 +231,6 @@ export function useTaskWorkspace(taskSource, ctx = {}) {
         taskBlockers,
         relatedBlockedBy,
         relatedBlocking,
-        projectDocs,
         activityTimeline,
         kpiCards,
         projectName: computed(() => project.value?.name ?? ''),

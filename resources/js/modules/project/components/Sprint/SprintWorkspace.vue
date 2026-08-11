@@ -23,7 +23,6 @@ const props = defineProps({
     tasks: { type: Array, default: () => [] },
     blockers: { type: Array, default: () => [] },
     epics: { type: Array, default: () => [] },
-    attachments: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
     enums: { type: Object, default: () => ({}) },
     canManage: { type: Boolean, default: false },
@@ -487,7 +486,6 @@ onBeforeUnmount(() => {
       :priority-options="enums.taskPriority || []"
       :phase-options="enums.taskPhase || []"
       :blockers="blockers"
-      :attachments="attachments"
       :all-tasks="tasks"
       :epics="epics"
       :can-edit="canContribute"

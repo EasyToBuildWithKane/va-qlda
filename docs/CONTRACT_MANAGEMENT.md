@@ -100,7 +100,8 @@ Frontend dùng `can` từ Resource + `usePage().props.auth.user.role`.
 ## 7. Frontend
 
 - **Pages** (`resources/js/Pages/Contract/`): `Dashboard`, `Index` (Explorer), `Show`, `Vendors`, `VendorShow` (lịch sử đánh giá tách **gốc** / **theo hợp đồng** trong `VendorReviewHistoryPanel`).
-- **Module** (`resources/js/modules/contract/`): `components/` (KPI `*SummaryBar` bọc `shared/ui/KpiSummaryStrip`, charts `StatusDonut`/`CostTrendChart`), `composables/` (`useContractExplorer.js` dựng cây client-side, import/export, `useContractFormat.js`), `config/`.
+- **Module** (`resources/js/modules/contract/`): `components/` (KPI `*SummaryBar` bọc `shared/ui/KpiSummaryStrip`, charts `StatusDonut`/`CostTrendChart`), `composables/` (`useContractExplorer.js` dựng cây client-side, import/export, `useContractFormat.js` — dashboard KPI tiền dùng `formatMoneyCompact` dạng `4,2 triệu vnđ`), `config/`.
+- **Dashboard header:** chỉ chọn kỳ (Tháng/Quý/Năm); Explorer vẫn vào qua nav **Danh mục hợp đồng**.
 - **Lưu ý unwrap:** trang nhận một `new ContractResource(...)` phải `props.contract?.data ?? props.contract` (Inertia bọc single JsonResource dưới key `data`).
 
 ---

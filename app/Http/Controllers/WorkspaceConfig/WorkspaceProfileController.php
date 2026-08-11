@@ -13,6 +13,7 @@ use App\Models\WorkspaceConfig\WorkspaceProfile;
 use App\Support\Enums\EvaluationCriterionScope;
 use App\Support\Enums\WorkspaceProfileStatus;
 use App\Support\Evaluation\HrmDepartmentDirectory;
+use App\Support\Navigation;
 use App\Support\WorkspaceConfig\WorkspaceConfigCatalog;
 use App\Support\WorkspaceConfig\WorkspaceProfileProvisioner;
 use App\Support\WorkspaceConfig\WorkspaceScopeResolver;
@@ -92,7 +93,7 @@ class WorkspaceProfileController extends Controller
             };
 
             return $item;
-        }, WorkspaceConfigCatalog::forUser($user));
+        }, WorkspaceConfigCatalog::forUser($user, $dept['code']));
 
         $liveModules = array_values(array_filter(
             $modules,
@@ -132,6 +133,11 @@ class WorkspaceProfileController extends Controller
             static fn (array $s): bool => ($s['planned'] ?? false) === false,
         ));
 
+        $navCatalog = array_values(array_filter(
+            Navigation::groupCatalog(),
+            static fn (array $g): bool => ! ($g['protected'] ?? false),
+        ));
+
         return Inertia::render('WorkspaceConfig/Workspace/Show', [
             'workspace' => [
                 'department_code' => $dept['code'],
@@ -143,6 +149,7 @@ class WorkspaceProfileController extends Controller
                 'status' => $profileStatus,
                 'status_label' => $profileLabel,
                 'notes' => $profile?->notes,
+                'enabled_nav_groups' => $profile?->enabled_nav_groups,
                 'criteria_count' => $criteriaCount,
                 'criteria_general' => $generalCriteria,
                 'has_criteria' => $criteriaCount > 0,
@@ -166,6 +173,10 @@ class WorkspaceProfileController extends Controller
                 'total' => $checklistTotal,
             ],
             'modules' => $modules,
+            'navMenu' => [
+                'groups' => $navCatalog,
+                'enabled' => $profile?->enabled_nav_groups,
+            ],
             'viewer' => [
                 'can_manage' => $this->scope->canManageAll($user),
                 'own_department_code' => $this->scope->ownDepartmentCode($user),
@@ -243,6 +254,9 @@ class WorkspaceProfileController extends Controller
         if (array_key_exists('status', $data)) {
             $profile->status = WorkspaceProfileStatus::from($data['status']);
         }
+        if (array_key_exists('enabled_nav_groups', $data)) {
+            $profile->enabled_nav_groups = $data['enabled_nav_groups'];
+        }
         $profile->save();
 
         $msg = 'Đã cập nhật workspace phòng ban.';
@@ -253,6 +267,10 @@ class WorkspaceProfileController extends Controller
                 WorkspaceProfileStatus::Draft->value => 'Đã chuyển workspace sang trạng thái nháp.',
                 default => $msg,
             };
+        } elseif (array_key_exists('enabled_nav_groups', $data)) {
+            $msg = $data['enabled_nav_groups'] === null
+                ? 'Đã mở toàn bộ nhóm menu sidebar cho phòng ban.'
+                : 'Đã cập nhật menu sidebar phòng ban.';
         } elseif (array_key_exists('notes', $data)) {
             $msg = 'Đã lưu ghi chú workspace.';
         }

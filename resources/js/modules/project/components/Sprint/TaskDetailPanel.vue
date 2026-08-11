@@ -38,7 +38,6 @@ const props = defineProps({
     priorityOptions: { type: Array, default: () => [] },
     phaseOptions: { type: Array, default: () => [] },
     blockers: { type: Array, default: () => [] },
-    attachments: { type: Array, default: () => [] },
     allTasks: { type: Array, default: () => [] },
     epics: { type: Array, default: () => [] },
     canEdit: { type: Boolean, default: false },
@@ -129,7 +128,6 @@ const ws = useTaskWorkspace(activeTask, {
     project: toRef(() => props.project),
     sprints: toRef(() => props.sprints),
     blockers: toRef(() => props.blockers),
-    attachments: toRef(() => props.attachments),
     allTasks: toRef(() => props.allTasks),
     epics: toRef(() => props.epics),
     currentEmployeeId,
@@ -318,12 +316,6 @@ const PANEL_TABS = [
 ];
 
 const panelTabList = normalizeKeyed(PANEL_TABS);
-const projectDocList = computed(() =>
-    normalizeKeyed(unref(ws.projectDocs)).map((g) => ({
-        ...g,
-        files: normalizeEntities(g.files),
-    })),
-);
 
 const employeeList = computed(() => normalizeEntities(props.employees));
 const filteredAssignees = computed(() => {
@@ -763,14 +755,6 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                 </p>
               </TaskDetailRichEditor>
 
-              <TaskDetailAttachments
-                :task-id="activeTask.id"
-                :project-id="projectId"
-                :attachments="attachmentList"
-                :can-edit="canEdit"
-                @uploaded="emit('updated')"
-              />
-
               <!-- Related -->
               <section
                 v-if="relatedBlockedByList.length || relatedBlockingList.length"
@@ -888,64 +872,21 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
               />
             </div>
 
-            <!-- LINKS / DOCS -->
+            <!-- TASK ATTACHMENTS -->
             <div
               v-show="tab === 'links'"
               class="space-y-4"
             >
               <p class="text-sm text-slate-500">
-                Tài liệu dự án — truy cập nhanh từ workspace task.
+                Tài liệu đính kèm riêng của công việc này (không phải tài liệu dự án).
               </p>
-              <div
-                v-for="(g, gIdx) in projectDocList"
-                :key="g.key ?? `doc-${gIdx}`"
-                class="rounded-xl border border-slate-200/80 dark:border-slate-700"
-              >
-                <div class="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-                  <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
-                    {{ g.label }}
-                  </p>
-                </div>
-                <ul class="divide-y divide-slate-100 dark:divide-slate-800">
-                  <li
-                    v-for="f in g.files"
-                    :key="f.id"
-                  >
-                    <a
-                      :href="f.url"
-                      target="_blank"
-                      rel="noopener"
-                      class="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-800/50"
-                    >
-                      <AppIcon
-                        name="documents"
-                        :size="16"
-                        class="shrink-0 text-slate-400"
-                      />
-                      <span class="min-w-0 flex-1 truncate">{{ f.original_name }}</span>
-                      <AppIcon
-                        name="download"
-                        :size="14"
-                        class="shrink-0 text-slate-400"
-                      />
-                    </a>
-                  </li>
-                </ul>
-              </div>
-              <p
-                v-if="!projectDocList.length"
-                class="rounded-xl border border-dashed border-slate-200 py-10 text-center text-sm text-slate-400"
-              >
-                Chưa có tài liệu dự án. Thêm tại tab Tài liệu dự án.
-              </p>
-              <button
-                v-if="canEdit"
-                type="button"
-                class="btn-ghost w-full border border-slate-200 text-sm"
-                @click="emit('edit', activeTask)"
-              >
-                Đính kèm / quản lý qua form chỉnh sửa
-              </button>
+              <TaskDetailAttachments
+                :task-id="activeTask.id"
+                :project-id="projectId"
+                :attachments="attachmentList"
+                :can-edit="canEdit"
+                @uploaded="emit('updated')"
+              />
             </div>
           </div>
         </aside>

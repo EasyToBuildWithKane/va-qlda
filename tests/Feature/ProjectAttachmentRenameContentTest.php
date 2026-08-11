@@ -95,7 +95,7 @@ class ProjectAttachmentRenameContentTest extends TestCase
 
         $this->assertSame("# Bản ghi mới\n\nNội dung cập nhật.", Storage::disk('public')->get($path));
         $this->assertTrue($file->fresh()->isTextEditable());
-        $this->assertSame('text', $file->fresh()->previewKind());
+        $this->assertSame('markdown', $file->fresh()->previewKind());
     }
 
     public function test_text_file_exposes_preview_snippet_in_resource(): void
