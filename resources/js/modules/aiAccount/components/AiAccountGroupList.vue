@@ -68,14 +68,14 @@ function formatDate(value) {
   <div>
     <div
       v-if="loading"
-      class="px-5 py-14 text-center text-sm text-slate-500"
+      class="px-3 py-10 text-center text-sm text-slate-500 sm:px-4"
     >
       Đang tải danh sách…
     </div>
 
     <div
       v-else-if="groups.length === 0"
-      class="px-5 py-14 text-center text-sm text-slate-500"
+      class="px-3 py-10 text-center text-sm text-slate-500 sm:px-4"
     >
       Không có tài khoản phù hợp với bộ lọc hoặc từ khóa tìm kiếm.
     </div>
@@ -91,7 +91,7 @@ function formatDate(value) {
       >
         <button
           type="button"
-          class="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3 text-left transition-colors hover:bg-slate-50/90 sm:px-5"
+          class="flex w-full flex-wrap items-center gap-x-3 gap-y-2 px-3 py-2.5 text-left transition-colors hover:bg-slate-50/90 sm:px-4"
           :class="g.has_warning ? 'bg-amber-50/30' : ''"
           @click="emit('toggle', g.group)"
         >
@@ -129,52 +129,52 @@ function formatDate(value) {
             <table class="w-full min-w-[720px] text-left text-sm">
               <thead class="sticky top-0 z-[1] bg-slate-50/95 text-[11px] font-semibold uppercase tracking-wide text-slate-500 backdrop-blur-sm">
                 <tr>
-                  <th class="px-4 py-2.5 sm:px-5">
+                  <th class="px-3 py-2 sm:px-4">
                     Công cụ
                   </th>
                   <th
                     v-if="colVisible.email"
-                    class="px-4 py-2.5 sm:px-5"
+                    class="px-3 py-2 sm:px-4"
                   >
                     Email
                   </th>
                   <th
                     v-if="colVisible.purchase"
-                    class="hidden px-4 py-2.5 sm:table-cell sm:px-5"
+                    class="hidden px-3 py-2 sm:table-cell sm:px-4"
                   >
                     Ngày mua
                   </th>
                   <th
                     v-if="colVisible.expiry"
-                    class="px-4 py-2.5 sm:px-5"
+                    class="px-3 py-2 sm:px-4"
                   >
                     Hết hạn
                   </th>
                   <th
                     v-if="colVisible.proposal_sent"
-                    class="hidden px-4 py-2.5 lg:table-cell lg:px-5"
+                    class="hidden px-3 py-2 lg:table-cell lg:px-4"
                   >
                     Gửi PĐX
                   </th>
                   <th
                     v-if="colVisible.payment_sent"
-                    class="hidden px-4 py-2.5 lg:table-cell lg:px-5"
+                    class="hidden px-3 py-2 lg:table-cell lg:px-4"
                   >
                     Gửi ĐNTT
                   </th>
                   <th
                     v-if="colVisible.cost"
-                    class="px-4 py-2.5 sm:px-5"
+                    class="px-3 py-2 sm:px-4"
                   >
                     Chi phí
                   </th>
                   <th
                     v-if="colVisible.status"
-                    class="px-4 py-2.5 sm:px-5"
+                    class="px-3 py-2 sm:px-4"
                   >
                     Trạng thái
                   </th>
-                  <th class="px-4 py-2.5 text-right sm:px-5">
+                  <th class="px-3 py-2 text-right sm:px-4">
                     Thao tác
                   </th>
                 </tr>
@@ -186,7 +186,7 @@ function formatDate(value) {
                   class="transition-colors hover:bg-slate-50/70"
                   :class="rowClasses(row)"
                 >
-                  <td class="px-4 py-3 sm:px-5">
+                  <td class="px-3 py-2.5 sm:px-4">
                     <div class="font-medium text-slate-900">
                       {{ row.tool_name }}
                     </div>
@@ -199,19 +199,19 @@ function formatDate(value) {
                   </td>
                   <td
                     v-if="colVisible.email"
-                    class="px-4 py-3 sm:px-5"
+                    class="px-3 py-2.5 sm:px-4"
                   >
                     <span class="break-all text-slate-700">{{ row.email_registered }}</span>
                   </td>
                   <td
                     v-if="colVisible.purchase"
-                    class="hidden px-4 py-3 tabular-nums text-slate-600 sm:table-cell sm:px-5"
+                    class="hidden px-3 py-2.5 tabular-nums text-slate-600 sm:table-cell sm:px-4"
                   >
                     {{ formatDate(row.purchase_date) }}
                   </td>
                   <td
                     v-if="colVisible.expiry"
-                    class="px-4 py-3 sm:px-5"
+                    class="px-3 py-2.5 sm:px-4"
                   >
                     <div class="tabular-nums text-slate-700">
                       {{ expiryDisplay(row).date }}
@@ -226,19 +226,19 @@ function formatDate(value) {
                   </td>
                   <td
                     v-if="colVisible.proposal_sent"
-                    class="hidden px-4 py-3 tabular-nums text-slate-600 lg:table-cell lg:px-5"
+                    class="hidden px-3 py-2.5 tabular-nums text-slate-600 lg:table-cell lg:px-4"
                   >
                     {{ formatDate(row.proposal_sent_at) }}
                   </td>
                   <td
                     v-if="colVisible.payment_sent"
-                    class="hidden px-4 py-3 tabular-nums text-slate-600 lg:table-cell lg:px-5"
+                    class="hidden px-3 py-2.5 tabular-nums text-slate-600 lg:table-cell lg:px-4"
                   >
                     {{ formatDate(row.payment_request_sent_at) }}
                   </td>
                   <td
                     v-if="colVisible.cost"
-                    class="px-4 py-3 sm:px-5"
+                    class="px-3 py-2.5 sm:px-4"
                   >
                     <VndAmount
                       :amount="row.cost_amount"
@@ -253,7 +253,7 @@ function formatDate(value) {
                   </td>
                   <td
                     v-if="colVisible.status"
-                    class="px-4 py-3 sm:px-5"
+                    class="px-3 py-2.5 sm:px-4"
                   >
                     <select
                       v-if="row.can_update_status"
@@ -278,7 +278,7 @@ function formatDate(value) {
                       {{ row.status_label }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 text-right sm:px-5">
+                  <td class="px-3 py-2.5 text-right sm:px-4">
                     <AiAccountRowActions
                       :row="row"
                       @edit="emit('edit', $event)"

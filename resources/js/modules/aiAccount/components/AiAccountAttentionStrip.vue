@@ -22,7 +22,7 @@ const scheduleLabel = computed(() =>
 <template>
   <div
     v-if="needsAttention > 0"
-    class="mx-4 mb-0 flex flex-col gap-2 rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50/50 px-4 py-3 sm:mx-5 sm:flex-row sm:items-center sm:justify-between"
+    class="mx-3 my-2 flex flex-col gap-2 rounded-xl border border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50/50 px-3 py-2.5 sm:mx-4 sm:flex-row sm:items-center sm:justify-between"
     role="status"
   >
     <div class="min-w-0 text-sm text-amber-950">

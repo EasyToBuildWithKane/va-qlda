@@ -17,6 +17,8 @@ Một thực thể **Tài khoản AI** (`AiAccount`) — không còn workflow du
 
 Nav AI Workspace chỉ còn 2 mục trên.
 
+**Index `/ai-accounts`:** toolbar gọn — ô tìm + **Lọc** + **Thêm tài khoản** (`ml-auto`, không trên `PageHeader`; không nút Cột / Chi phí AI / Nhắc nhở / Thu nhóm; Chi phí AI vào qua nav). Nội dung dùng `AppLayout` flush + `p-3 sm:p-4`.
+
 ---
 
 ## Trường chính trên tài khoản
