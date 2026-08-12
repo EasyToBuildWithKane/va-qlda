@@ -760,6 +760,7 @@ Project Domain:
 
 Issue Tracking Domain:
     blockers, blocker_attachments, blocker_activities,
+    test_suites, test_cases, test_case_runs,
     bugs,
     feedbacks
 
