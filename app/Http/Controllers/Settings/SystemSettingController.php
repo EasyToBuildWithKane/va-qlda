@@ -10,6 +10,7 @@ use App\Mail\EmailTemplateTestMail;
 use App\Models\EmailTemplate;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
+use App\Services\OnboardingService;
 use App\Support\Auth\PermissionCatalog;
 use App\Support\Enums\SystemRole;
 use App\Support\Mail\EmailTemplateDefaults;
@@ -178,6 +179,18 @@ class SystemSettingController extends Controller
         }
 
         return back()->with('success', 'Đã gửi email thử tới '.$validated['email'].'.');
+    }
+
+    /** Super-admin action: reset the full-screen Welcome onboarding so every account sees it again. */
+    public function resetOnboardingWelcome(Request $request, OnboardingService $onboarding): RedirectResponse
+    {
+        $this->authorize('manage', SystemSetting::class);
+
+        $affected = $onboarding->resetWelcomeForAll();
+
+        SecurityAuditLogger::onboarding($request->user(), 'welcome_reset', null, ['affected' => $affected]);
+
+        return back()->with('success', "Đã đặt lại — {$affected} tài khoản sẽ thấy màn hình chào mừng ở lần đăng nhập tới.");
     }
 
     public function update(UpdateSettingsRequest $request, string $group): RedirectResponse

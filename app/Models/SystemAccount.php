@@ -18,6 +18,7 @@ use Laravel\Sanctum\HasApiTokens;
  * @property SystemRole $role
  * @property int|null $employee_id
  * @property bool $is_active
+ * @property \Illuminate\Support\Carbon|null $onboarding_seen_at
  */
 class SystemAccount extends Authenticatable
 {
@@ -45,6 +46,7 @@ class SystemAccount extends Authenticatable
         'password' => 'hashed',
         'is_active' => 'boolean',
         'last_login_at' => 'datetime',
+        'onboarding_seen_at' => 'datetime',
         'role' => SystemRole::class,
     ];
 

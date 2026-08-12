@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int|null $manager_id
  * @property int $sort_order
  * @property bool $is_active
+ * @property-read \Illuminate\Database\Eloquent\Relations\Pivot|null $pivot Set when loaded via Employee::departments() (department_member).
  */
 class Department extends Model
 {

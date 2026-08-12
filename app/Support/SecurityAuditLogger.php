@@ -154,6 +154,12 @@ class SecurityAuditLogger
     }
 
     /** @param array<string,mixed> $meta */
+    public static function onboarding(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
+    {
+        self::log($actor, "onboarding.{$event}", 'onboarding', $subjectId, $meta);
+    }
+
+    /** @param array<string,mixed> $meta */
     public static function congngheProposal(SystemAccount $actor, string $event, ?int $subjectId, array $meta = []): void
     {
         self::log($actor, "congnghe_proposal.{$event}", 'congnghe_software_proposal', $subjectId, $meta);

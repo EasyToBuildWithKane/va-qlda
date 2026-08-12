@@ -28,6 +28,9 @@ Route::prefix('onboarding')->name('onboarding.')->group(function () {
     Route::post('/complete', [OnboardingController::class, 'complete'])->name('complete');
     Route::post('/skip', [OnboardingController::class, 'skip'])->name('skip');
     Route::post('/reset', [OnboardingController::class, 'reset'])->name('reset');
+    // Full-screen Welcome screen (first login) — separate one-time concept
+    // from the step-by-step tours above.
+    Route::post('/welcome/seen', [OnboardingController::class, 'seenWelcome'])->name('welcome.seen');
 });
 
 // Notifications — `/` is the full Inertia inbox page; `/list` is the JSON

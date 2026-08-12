@@ -97,9 +97,18 @@ class HandleInertiaRequests extends Middleware
             'notifications' => fn () => $account ? [
                 'unread_count' => app(NotificationService::class)->unreadCount($account),
             ] : ['unread_count' => 0],
-            'onboarding' => fn () => $account
-                ? app(\App\Services\OnboardingService::class)->payload($account)
-                : null,
+            'onboarding' => function () use ($account) {
+                if (! $account) {
+                    return null;
+                }
+
+                $onboarding = app(\App\Services\OnboardingService::class);
+
+                return array_merge(
+                    $onboarding->payload($account),
+                    ['welcome' => $onboarding->welcomePayload($account)],
+                );
+            },
             'quickBlocker' => fn () => $account ? [
                 'canReport' => Gate::forUser($account)->allows('create', Blocker::class),
                 'projects' => Options::projects()->values()->all(),

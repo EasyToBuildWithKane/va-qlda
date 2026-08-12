@@ -27,7 +27,7 @@ use Illuminate\Validation\Rule;
 final class SettingsSchema
 {
     /** Tabs/groups, in display order. */
-    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions', 'accounts', 'menu'];
+    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions', 'accounts', 'menu', 'onboarding'];
 
     public const MATRIX_KEY = 'permissions.role_grants';
 
@@ -50,6 +50,7 @@ final class SettingsSchema
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
             ['key' => 'accounts', 'label' => 'Tài khoản & Vai trò', 'icon' => 'account', 'description' => 'Gán vai trò cho tài khoản hệ thống'],
             ['key' => 'menu', 'label' => 'Tùy chỉnh menu', 'icon' => 'columns', 'description' => 'Ẩn/hiện nhóm menu toàn hệ thống; đồng bộ module hub workspace. Menu theo PB cấu hình tại shell workspace'],
+            ['key' => 'onboarding', 'label' => 'Chào mừng nhân viên', 'icon' => 'sparkles', 'description' => 'Màn hình chào mừng hiển thị lần đầu khi vào hệ thống'],
         ];
     }
 
@@ -163,6 +164,11 @@ final class SettingsSchema
             ['group' => 'menu', 'name' => 'hidden_groups', 'type' => 'list', 'label' => 'Nhóm menu đang ẩn',
                 'help' => 'Các nhóm menu bị ẩn khỏi thanh điều hướng cho toàn hệ thống.',
                 'config' => 'va.menu_hidden_groups', 'default' => [], 'rules' => ['array'], 'itemRules' => ['string', 'max:64']],
+
+            // ── onboarding (Chào mừng nhân viên) ────────────────────
+            ['group' => 'onboarding', 'name' => 'welcome_enabled', 'type' => 'bool', 'label' => 'Bật màn hình chào mừng',
+                'help' => 'Hiển thị màn hình chào mừng toàn màn hình cho tài khoản đăng nhập lần đầu (phòng ban, vai trò, đồng nghiệp).',
+                'config' => 'va.onboarding_welcome_enabled', 'default' => true, 'rules' => ['boolean']],
         ];
     }
 

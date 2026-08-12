@@ -16,6 +16,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
     Route::get('/email-templates', [SystemSettingController::class, 'emailTemplates'])->name('email-templates.index');
     Route::put('/accounts/{account}/role', [SystemAccountRoleController::class, 'update'])
         ->name('accounts.role');
+    Route::post('/onboarding/reset', [SystemSettingController::class, 'resetOnboardingWelcome'])
+        ->name('onboarding.reset');
     Route::get('/{group}', [SystemSettingController::class, 'index'])
         ->whereIn('group', SettingsSchema::GROUPS)
         ->name('show');

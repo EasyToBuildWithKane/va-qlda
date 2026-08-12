@@ -8,6 +8,7 @@ import PermissionsTab from './partials/PermissionsTab.vue';
 import AccountsTab from './partials/AccountsTab.vue';
 import EmailTemplateTab from './partials/EmailTemplateTab.vue';
 import MenuTab from './partials/MenuTab.vue';
+import OnboardingTab from './partials/OnboardingTab.vue';
 
 const props = defineProps({
     groups: { type: Array, default: () => [] },
@@ -108,6 +109,14 @@ const activeMeta = computed(() => groupMeta(active.value));
           v-show="active === 'menu'"
           :menu="menu"
           :save-hotkeys-enabled="active === 'menu'"
+          :can-manage="can.manage"
+        />
+        <OnboardingTab
+          v-show="active === 'onboarding'"
+          :save-hotkeys-enabled="active === 'onboarding'"
+          :title="groupMeta('onboarding').label"
+          :description="groupMeta('onboarding').description"
+          :fields="settings.onboarding ?? []"
           :can-manage="can.manage"
         />
       </section>

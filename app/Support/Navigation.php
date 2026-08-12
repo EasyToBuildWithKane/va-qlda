@@ -594,6 +594,13 @@ class Navigation
                         'status' => 'live',
                         'roles' => ['admin'],
                     ],
+                    [
+                        'label' => 'Chào mừng nhân viên',
+                        'icon' => 'sparkles',
+                        'href' => '/settings/onboarding',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
                 ],
             ],
             [

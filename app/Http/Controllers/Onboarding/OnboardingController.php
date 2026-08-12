@@ -61,6 +61,14 @@ class OnboardingController extends Controller
         return $this->ok($request);
     }
 
+    /** Full-screen Welcome screen closed/acknowledged — mark seen (idempotent). */
+    public function seenWelcome(Request $request): Response
+    {
+        $this->service->markWelcomeSeen($request->user());
+
+        return $this->ok($request);
+    }
+
     /** 204 for ajax callers; graceful redirect fallback otherwise. */
     private function ok(Request $request, ?string $flash = null): Response
     {

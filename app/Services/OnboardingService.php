@@ -2,12 +2,14 @@
 
 namespace App\Services;
 
+use App\Models\Department;
 use App\Models\Employee;
 use App\Models\OnboardingProgress;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\SystemAccount;
 use App\Models\Task;
+use App\Support\PublicMediaUrl;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -134,5 +136,80 @@ class OnboardingService
             ->where('system_account_id', $account->id)
             ->where('tour_key', $tourKey)
             ->delete();
+    }
+
+    /**
+     * Payload for the full-screen Welcome onboarding screen (separate concept
+     * from the step-by-step TOURS above — a single one-time greeting, not a
+     * spotlight tour). Merged into the shared `onboarding` Inertia prop under
+     * the `welcome` key.
+     *
+     * Early-returns (no department/coworker query) whenever the feature is
+     * disabled or the account already saw it, since this payload is built on
+     * every authenticated request — never let it become a hot-path N+1.
+     *
+     * @return array<string, mixed>
+     */
+    public function welcomePayload(SystemAccount $account): array
+    {
+        $enabled = (bool) config('va.onboarding_welcome_enabled', true);
+        $seen = $account->onboarding_seen_at !== null;
+
+        if (! $enabled || $seen) {
+            return ['enabled' => $enabled, 'seen' => $seen];
+        }
+
+        $account->loadMissing('employee.departments');
+        $department = $account->employee?->departments
+            ->sortByDesc(fn (Department $d) => (bool) $d->pivot?->getAttribute('is_active'))
+            ->first();
+
+        $coworkers = [];
+        $coworkerTotal = 0;
+
+        if ($department !== null) {
+            $members = $department->members()
+                ->where('employees.id', '!=', $account->employee_id)
+                ->get();
+
+            $coworkerTotal = $members->count();
+            $coworkers = $members->take(9)->map(fn (Employee $e) => [
+                'id' => $e->id,
+                'name' => $e->full_name,
+                'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
+            ])->all();
+        }
+
+        return [
+            'enabled' => true,
+            'seen' => false,
+            'employee_name' => $account->employee?->full_name ?? $account->display_name,
+            'role' => $account->role->value,
+            'role_label' => $account->role->label(),
+            'department' => $department ? [
+                'name' => $department->name,
+                'color' => $department->color,
+            ] : null,
+            'coworkers' => $coworkers,
+            'coworker_total' => $coworkerTotal,
+        ];
+    }
+
+    /** Idempotent: only writes once, first time the welcome screen closes. */
+    public function markWelcomeSeen(SystemAccount $account): void
+    {
+        if ($account->onboarding_seen_at !== null) {
+            return;
+        }
+
+        $account->forceFill(['onboarding_seen_at' => now()])->save();
+    }
+
+    /** Super-admin action: let everyone see the welcome screen again. */
+    public function resetWelcomeForAll(): int
+    {
+        return SystemAccount::query()
+            ->whereNotNull('onboarding_seen_at')
+            ->update(['onboarding_seen_at' => null]);
     }
 }
