@@ -243,6 +243,8 @@ const currentDate = computed(() =>
     <AppDialog />
     <ToastContainer />
     <NotificationCenterDrawer />
-    <WelcomeScreen v-if="renderSidebarHere" />
+    <!-- Always mount when AppLayout is used — AppChrome wraps pages so
+         renderSidebarHere is false in production; gating here hid Welcome. -->
+    <WelcomeScreen />
   </div>
 </template>

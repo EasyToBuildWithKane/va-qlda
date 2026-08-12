@@ -18,6 +18,8 @@ Route::prefix('settings')->name('settings.')->group(function () {
         ->name('accounts.role');
     Route::post('/onboarding/reset', [SystemSettingController::class, 'resetOnboardingWelcome'])
         ->name('onboarding.reset');
+    Route::post('/onboarding/reset-self', [SystemSettingController::class, 'resetOnboardingWelcomeSelf'])
+        ->name('onboarding.reset-self');
     Route::get('/{group}', [SystemSettingController::class, 'index'])
         ->whereIn('group', SettingsSchema::GROUPS)
         ->name('show');

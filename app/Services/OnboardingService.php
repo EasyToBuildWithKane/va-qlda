@@ -150,12 +150,18 @@ class OnboardingService
      *
      * @return array<string, mixed>
      */
-    public function welcomePayload(SystemAccount $account): array
+    /**
+     * @param  bool  $force  When true, always build the full greeting payload
+     *                       (used by /settings/onboarding preview) even if the
+     *                       feature is off or the account already saw it.
+     * @return array<string, mixed>
+     */
+    public function welcomePayload(SystemAccount $account, bool $force = false): array
     {
         $enabled = (bool) config('va.onboarding_welcome_enabled', true);
         $seen = $account->onboarding_seen_at !== null;
 
-        if (! $enabled || $seen) {
+        if (! $force && (! $enabled || $seen)) {
             return ['enabled' => $enabled, 'seen' => $seen];
         }
 
@@ -181,8 +187,8 @@ class OnboardingService
         }
 
         return [
-            'enabled' => true,
-            'seen' => false,
+            'enabled' => $enabled,
+            'seen' => $seen,
             'employee_name' => $account->employee?->full_name ?? $account->display_name,
             'role' => $account->role->value,
             'role_label' => $account->role->label(),
@@ -211,5 +217,15 @@ class OnboardingService
         return SystemAccount::query()
             ->whereNotNull('onboarding_seen_at')
             ->update(['onboarding_seen_at' => null]);
+    }
+
+    /** Clear the welcome "seen" flag for a single account. */
+    public function resetWelcomeFor(SystemAccount $account): void
+    {
+        if ($account->onboarding_seen_at === null) {
+            return;
+        }
+
+        $account->forceFill(['onboarding_seen_at' => null])->save();
     }
 }

@@ -45,7 +45,7 @@ class SystemSettingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
-                ->has('groups', 8) // general, auth, telegram, email, clm, permissions, accounts, menu
+                ->has('groups', 9) // general, auth, telegram, email, clm, permissions, accounts, menu, onboarding
                 ->has('emailTemplates', 5)
                 ->where('can.manage', true)
             );
@@ -432,5 +432,47 @@ class SystemSettingTest extends TestCase
             ->assertSuccessful();
 
         $this->assertTrue((bool) $this->repo()->get('telegram.enabled'));
+    }
+
+    // ─── Onboarding welcome ─────────────────────────────────────────────────
+
+    public function test_onboarding_settings_include_welcome_preview(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->get('/settings/onboarding')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('Settings/Index')
+                ->where('activeGroup', 'onboarding')
+                ->has('welcomePreview.employee_name')
+                ->has('settings.onboarding', 1)
+            );
+    }
+
+    public function test_super_admin_can_reset_welcome_for_self(): void
+    {
+        $admin = $this->superAdmin();
+        $admin->forceFill(['onboarding_seen_at' => now()])->save();
+
+        $this->actingAs($admin, 'system')
+            ->post('/settings/onboarding/reset-self')
+            ->assertRedirect();
+
+        $this->assertNull($admin->fresh()->onboarding_seen_at);
+    }
+
+    public function test_super_admin_can_reset_welcome_for_all(): void
+    {
+        $admin = $this->superAdmin();
+        $member = SystemAccount::factory()->role(SystemRole::Member)->create();
+        $member->forceFill(['onboarding_seen_at' => now()])->save();
+        $admin->forceFill(['onboarding_seen_at' => now()])->save();
+
+        $this->actingAs($admin, 'system')
+            ->post('/settings/onboarding/reset')
+            ->assertRedirect();
+
+        $this->assertNull($admin->fresh()->onboarding_seen_at);
+        $this->assertNull($member->fresh()->onboarding_seen_at);
     }
 }

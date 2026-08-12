@@ -20,6 +20,7 @@ const props = defineProps({
     permissions: { type: Object, default: () => ({}) },
     accounts: { type: Object, default: () => ({ accounts: [], roles: [] }) },
     menu: { type: Object, default: () => ({ groups: [], hidden: [] }) },
+    welcomePreview: { type: Object, default: null },
     can: { type: Object, default: () => ({}) },
 });
 
@@ -48,7 +49,24 @@ const activeMeta = computed(() => groupMeta(active.value));
     </template>
 
     <div class="flex w-full max-w-none flex-col gap-5">
-      <section class="card min-w-0 p-5 md:p-6">
+      <section
+        v-if="active === 'onboarding'"
+        class="min-w-0"
+      >
+        <OnboardingTab
+          :save-hotkeys-enabled="true"
+          :title="groupMeta('onboarding').label"
+          :description="groupMeta('onboarding').description"
+          :fields="settings.onboarding ?? []"
+          :welcome-preview="welcomePreview"
+          :can-manage="can.manage"
+        />
+      </section>
+
+      <section
+        v-else
+        class="card min-w-0 p-5 md:p-6"
+      >
         <FieldsTab
           v-show="active === 'general'"
           group="general"
@@ -109,14 +127,6 @@ const activeMeta = computed(() => groupMeta(active.value));
           v-show="active === 'menu'"
           :menu="menu"
           :save-hotkeys-enabled="active === 'menu'"
-          :can-manage="can.manage"
-        />
-        <OnboardingTab
-          v-show="active === 'onboarding'"
-          :save-hotkeys-enabled="active === 'onboarding'"
-          :title="groupMeta('onboarding').label"
-          :description="groupMeta('onboarding').description"
-          :fields="settings.onboarding ?? []"
           :can-manage="can.manage"
         />
       </section>

@@ -6,21 +6,35 @@ import { usePage } from '@inertiajs/vue3';
  * concept from the step-by-step TOURS in useOnboarding.js. Reads the
  * `onboarding.welcome` shared Inertia prop (see OnboardingService::welcomePayload).
  *
- * `visible` is a local ref (not a direct mirror of the prop) so the closing
- * <Transition> can play out fully before the component actually unmounts,
- * instead of snapping away the instant the server round-trip resolves.
+ * Shared module state so /settings/onboarding can open a preview that the
+ * single <WelcomeScreen /> in AppLayout actually shows.
  */
+const previewOverride = ref(null);
+const visible = ref(false);
+let previewCloseTimer = null;
+
 export function useOnboardingWelcome() {
     const page = usePage();
 
-    const welcome = computed(() => page.props.onboarding?.welcome || null);
-    const shouldShow = computed(() => Boolean(welcome.value?.enabled && !welcome.value?.seen));
+    const liveWelcome = computed(() => page.props.onboarding?.welcome || null);
+    const welcome = computed(() => previewOverride.value || liveWelcome.value);
+    const isPreview = computed(() => previewOverride.value !== null);
 
-    const visible = ref(false);
+    const shouldShowLive = computed(() =>
+        Boolean(liveWelcome.value?.enabled && !liveWelcome.value?.seen),
+    );
 
-    watch(shouldShow, (show) => {
-        if (show) visible.value = true;
-    }, { immediate: true });
+    watch(
+        [shouldShowLive, previewOverride],
+        ([showLive, preview]) => {
+            if (preview || showLive) {
+                visible.value = true;
+            } else if (!preview) {
+                visible.value = false;
+            }
+        },
+        { immediate: true },
+    );
 
     /** Close locally right away (smooth UX) then persist fire-and-forget. */
     function markSeen() {
@@ -28,9 +42,31 @@ export function useOnboardingWelcome() {
         window.axios.post(route('onboarding.welcome.seen')).catch(() => {});
     }
 
+    /** Admin preview — does not call the seen endpoint. */
+    function openPreview(data) {
+        if (!data) return;
+        if (previewCloseTimer) {
+            window.clearTimeout(previewCloseTimer);
+            previewCloseTimer = null;
+        }
+        previewOverride.value = { ...data, enabled: true, seen: false };
+        visible.value = true;
+    }
+
+    function closePreview() {
+        visible.value = false;
+        previewCloseTimer = window.setTimeout(() => {
+            previewOverride.value = null;
+            previewCloseTimer = null;
+        }, 220);
+    }
+
     return {
         welcome,
         visible,
+        isPreview,
         markSeen,
+        openPreview,
+        closePreview,
     };
 }

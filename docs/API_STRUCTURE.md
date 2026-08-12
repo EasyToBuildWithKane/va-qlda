@@ -299,7 +299,10 @@ Chi tiết: [`docs/SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md).
 | Method | URI | Controller | Mô Tả |
 |---|---|---|---|
 | GET | `/settings` | SystemSettingController@index | Nhóm cấu hình |
-| PUT | `/settings/{group}` | SystemSettingController@update | `general`, `auth`, `telegram`, `email`, `permissions` |
+| GET | `/settings/{group}` | SystemSettingController@index | Tab theo group (`general`…`onboarding`) |
+| PUT | `/settings/{group}` | SystemSettingController@update | `general`, `auth`, `telegram`, `email`, `clm`, `permissions`, `menu`, `onboarding`, … |
+| POST | `/settings/onboarding/reset` | SystemSettingController@resetOnboardingWelcome | Đặt lại welcome cho mọi tài khoản |
+| POST | `/settings/onboarding/reset-self` | SystemSettingController@resetOnboardingWelcomeSelf | Đặt lại welcome cho tài khoản hiện tại |
 | GET/PUT/POST | `/settings/email-templates/*` | SystemSettingController | Mẫu email |
 
 ### 2.x Cấu hình workspace (super-admin)

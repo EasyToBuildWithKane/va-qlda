@@ -142,4 +142,31 @@ class OnboardingTest extends TestCase
             ->post('/onboarding/skip', ['tour_key' => 'system_overview'])
             ->assertRedirect('/dashboard');
     }
+
+    // ─── Welcome screen ─────────────────────────────────────────────────────
+
+    public function test_welcome_seen_marks_account(): void
+    {
+        $account = $this->member();
+        $this->assertNull($account->onboarding_seen_at);
+
+        $this->actingAs($account, 'system')
+            ->postJson('/onboarding/welcome/seen')
+            ->assertNoContent();
+
+        $this->assertNotNull($account->fresh()->onboarding_seen_at);
+    }
+
+    public function test_welcome_seen_is_idempotent(): void
+    {
+        $account = $this->member();
+        $account->forceFill(['onboarding_seen_at' => now()->subDay()])->save();
+        $first = $account->fresh()->onboarding_seen_at;
+
+        $this->actingAs($account, 'system')
+            ->postJson('/onboarding/welcome/seen')
+            ->assertNoContent();
+
+        $this->assertTrue($first->equalTo($account->fresh()->onboarding_seen_at));
+    }
 }

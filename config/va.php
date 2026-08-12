@@ -121,4 +121,18 @@ return [
     */
     'dashboard_personnel_department_pattern' => env('DASHBOARD_PERSONNEL_DEPT_PATTERN', 'Công nghệ'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Welcome onboarding (full-screen first-login greeting)
+    |--------------------------------------------------------------------------
+    |
+    | Admin-editable via /settings/onboarding → welcome_enabled. When false,
+    | OnboardingService::welcomePayload early-returns without querying coworkers.
+    |
+    */
+    'onboarding_welcome_enabled' => filter_var(
+        env('ONBOARDING_WELCOME_ENABLED', true),
+        FILTER_VALIDATE_BOOLEAN
+    ),
+
 ];

@@ -1,7 +1,7 @@
 # SYSTEM CONFIG — Cấu hình hệ thống
 
 > Module quản trị (**super-admin-only**) cho phép chỉnh cấu hình runtime mà không cần sửa `.env` / deploy lại.
-> Đường dẫn: **`/settings/{group}`** · Nav (chỉ Super Admin): **Cấu hình chung** (gồm Chung · Menu · Đăng nhập · Hợp đồng CLM), **Thông báo hệ thống**, **Phân quyền** (tách khỏi một nhóm «Cấu hình hệ thống»).
+> Đường dẫn: **`/settings/{group}`** · Nav (chỉ Super Admin): **Cấu hình chung** (gồm Chung · Menu · Đăng nhập · Hợp đồng CLM · Chào mừng nhân viên), **Thông báo hệ thống**, **Phân quyền** (tách khỏi một nhóm «Cấu hình hệ thống»).
 >
 > ⚠️ Từ bản nâng cấp RBAC: chỉ vai trò **`super_admin`** truy cập `/settings` (gồm tab Phân quyền & Tài khoản). `admin` **không** còn vào được. Chi tiết ma trận phân quyền & vai trò xem **[PERMISSIONS.md](PERMISSIONS.md)**.
 
@@ -86,6 +86,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `alert_telegram` | bool | `clm.alert_telegram` |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
 | **Tùy chỉnh menu** | `menu` | `hidden_groups` | list (nav group keys) | `va.menu_hidden_groups` — ẩn nhóm sidebar toàn hệ thống; đồng bộ module hub qua `WorkspaceNavModuleMap` (xem [WORKSPACE_CONFIG.md](WORKSPACE_CONFIG.md) § Menu sidebar) |
+| **Chào mừng nhân viên** | `onboarding` | `welcome_enabled` | bool | `va.onboarding_welcome_enabled` — màn hình chào mừng lần đầu; UI: `OnboardingTab` + `WelcomePanel`; reset: `POST /settings/onboarding/reset` · `reset-self` |
 | **Tài khoản & Vai trò** | `accounts` | — | (runtime) | gán `system_accounts.role` (PUT `/settings/accounts/{id}/role`) |
 
 `general.app_*` còn được chia sẻ ra Inertia qua prop `app` (`HandleInertiaRequests`) → `AppLayout` dùng cho ô thương hiệu (rail), tiêu đề, chân thanh bên.

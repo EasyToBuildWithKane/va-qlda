@@ -58,6 +58,9 @@ class SystemSettingController extends Controller
             'menu' => $activeGroup === 'menu'
                 ? $this->menuPayload()
                 : ['groups' => [], 'hidden' => []],
+            'welcomePreview' => $activeGroup === 'onboarding'
+                ? app(OnboardingService::class)->welcomePayload($request->user(), force: true)
+                : null,
             'can' => ['manage' => $request->user()->can('manage', SystemSetting::class)],
         ]);
     }
@@ -191,6 +194,18 @@ class SystemSettingController extends Controller
         SecurityAuditLogger::onboarding($request->user(), 'welcome_reset', null, ['affected' => $affected]);
 
         return back()->with('success', "Đã đặt lại — {$affected} tài khoản sẽ thấy màn hình chào mừng ở lần đăng nhập tới.");
+    }
+
+    /** Super-admin: clear only the current account's welcome "seen" flag. */
+    public function resetOnboardingWelcomeSelf(Request $request, OnboardingService $onboarding): RedirectResponse
+    {
+        $this->authorize('manage', SystemSetting::class);
+
+        $onboarding->resetWelcomeFor($request->user());
+
+        SecurityAuditLogger::onboarding($request->user(), 'welcome_reset_self', $request->user()->id);
+
+        return back()->with('success', 'Đã đặt lại màn hình chào mừng cho tài khoản của bạn.');
     }
 
     public function update(UpdateSettingsRequest $request, string $group): RedirectResponse

@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
     user: { type: Object, default: () => ({}) },
@@ -9,6 +10,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['open-notifications']);
+const dialog = useDialog();
 
 const menuOpen = ref(false);
 const menuRef = ref(null);
@@ -28,7 +30,19 @@ const friendlyRole = computed(() => props.roleLabel || 'Người dùng');
 
 const closeMenu = () => { menuOpen.value = false; };
 const toggleMenu = () => { menuOpen.value = !menuOpen.value; };
-const logout = () => { closeMenu(); router.post('/logout'); };
+
+async function logout() {
+    closeMenu();
+    const ok = await dialog.confirm({
+        title: 'Đăng xuất?',
+        message: 'Bạn sẽ thoát khỏi VAschools Workspace trên thiết bị này.',
+        confirmText: 'Đăng xuất',
+        cancelText: 'Ở lại',
+        tone: 'danger',
+    });
+    if (!ok) return;
+    router.post('/logout');
+}
 
 const onPointerDown = (e) => { if (menuRef.value && !menuRef.value.contains(e.target)) closeMenu(); };
 const onEscape = (e) => { if (e.key === 'Escape') closeMenu(); };

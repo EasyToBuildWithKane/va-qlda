@@ -66,7 +66,7 @@ resources/js/
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
 │   ├── profile/                  ← Hồ sơ (/profile): HR identity + skill matrix **read-only** (mirror VA-HRM); không form identity/avatar/skill local
-│   ├── onboarding/               ← useOnboarding / useSmartContext (hint UI đã gỡ khỏi AppLayout)
+│   ├── onboarding/               ← WelcomeScreen + WelcomePanel; useOnboardingWelcome (preview); hint UI đã gỡ
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   ├── aiAccount/                ← Tài khoản AI: FormModal 4 tab (Thông tin·Chứng từ·Chi phí&hạn·Phân quyền) + AccessGrantsPanel + Index; CostReport + AiCostReportSummaryBar (KPI strip)
