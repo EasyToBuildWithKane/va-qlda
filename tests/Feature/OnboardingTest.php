@@ -169,4 +169,42 @@ class OnboardingTest extends TestCase
 
         $this->assertTrue($first->equalTo($account->fresh()->onboarding_seen_at));
     }
+
+    public function test_welcome_payload_uses_hrm_meta_department_without_pivot(): void
+    {
+        $employee = \App\Models\Employee::factory()->create([
+            'meta' => [
+                'department_name' => 'Phòng Công nghệ',
+                'department_code' => 'CNTT',
+            ],
+        ]);
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create([
+            'employee_id' => $employee->id,
+        ]);
+
+        $payload = app(\App\Services\OnboardingService::class)->welcomePayload($account, force: true);
+
+        $this->assertSame('Phòng Công nghệ', $payload['department']['name'] ?? null);
+        $this->assertNotEmpty($payload['department']['color'] ?? null);
+    }
+
+    public function test_welcome_payload_lists_meta_department_peers(): void
+    {
+        $employee = \App\Models\Employee::factory()->create([
+            'full_name' => 'User A',
+            'meta' => ['department_code' => 'CNTT', 'department_name' => 'Phòng Công nghệ'],
+        ]);
+        \App\Models\Employee::factory()->create([
+            'full_name' => 'User B',
+            'meta' => ['department_code' => 'CNTT', 'department_name' => 'Phòng Công nghệ'],
+        ]);
+        $account = SystemAccount::factory()->role(SystemRole::Member)->create([
+            'employee_id' => $employee->id,
+        ]);
+
+        $payload = app(\App\Services\OnboardingService::class)->welcomePayload($account, force: true);
+
+        $this->assertGreaterThanOrEqual(1, $payload['coworker_total']);
+        $this->assertSame('User B', $payload['coworkers'][0]['name'] ?? null);
+    }
 }

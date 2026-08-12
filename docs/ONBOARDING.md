@@ -25,8 +25,10 @@ trên — đây là 1 màn hình chào mừng hiện đúng 1 lần, không ph�
 **Dữ liệu:** cột `system_accounts.onboarding_seen_at` (nullable timestamp,
 migration `2026_08_12_130000_add_onboarding_seen_at_to_system_accounts_table`).
 
-**Nội dung màn hình:** tên nhân viên, phòng ban (badge màu), vai trò, tối đa 9
-đồng nghiệp cùng phòng, mascot `vas-mascot-wave.png` (`animate-cn-float`).
+**Nội dung màn hình:** tên nhân viên, phòng ban (ưu tiên pivot
+`department_member`, fallback `employees.meta` từ HRM — cùng nguồn hồ sơ),
+vai trò, tối đa 9 đồng nghiệp (pivot members hoặc peers cùng `meta.department_*`),
+mascot `vas-mascot-wave.png` (`animate-cn-float`).
 
 **Hiệu năng:** `welcomePayload()` **early-return** khi tắt hoặc đã xem (trừ
 `force: true` cho preview settings).

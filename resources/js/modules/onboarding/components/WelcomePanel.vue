@@ -129,14 +129,19 @@ const employeeName = computed(() => props.welcome?.employee_name || 'bạn');
         :class="compact ? 'text-xs' : 'text-[13px]'"
       >
         Bạn đang thuộc <span class="font-semibold text-slate-700">{{ welcome.department.name }}</span>.
-        Đây là những đồng nghiệp cùng phòng ban với bạn:
+        <template v-if="welcome.coworkers?.length">
+          Đây là những đồng nghiệp cùng phòng ban với bạn:
+        </template>
+        <template v-else>
+          Chào mừng bạn đến với đội ngũ.
+        </template>
       </p>
       <p
         v-else
         class="mt-3 leading-relaxed text-slate-500"
         :class="compact ? 'text-xs' : 'text-[13px]'"
       >
-        Bạn chưa được gán vào phòng ban nào — liên hệ quản trị viên nếu đây là nhầm lẫn.
+        Hồ sơ HRM chưa có phòng ban — bạn vẫn có thể bắt đầu làm việc bình thường.
       </p>
 
       <div

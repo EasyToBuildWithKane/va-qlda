@@ -148,9 +148,10 @@ class OnboardingService
      * disabled or the account already saw it, since this payload is built on
      * every authenticated request — never let it become a hot-path N+1.
      *
-     * @return array<string, mixed>
-     */
-    /**
+     * Department resolution prefers Workspace pivot (`department_member`), then
+     * falls back to HRM mirror on `employees.meta` (same source as hồ sơ) —
+     * HRM sync does not write the pivot, so meta is the production path.
+     *
      * @param  bool  $force  When true, always build the full greeting payload
      *                       (used by /settings/onboarding preview) even if the
      *                       feature is off or the account already saw it.
@@ -166,38 +167,136 @@ class OnboardingService
         }
 
         $account->loadMissing('employee.departments');
-        $department = $account->employee?->departments
-            ->sortByDesc(fn (Department $d) => (bool) $d->pivot?->getAttribute('is_active'))
-            ->first();
+        $employee = $account->employee;
+        [$departmentPayload, $localDepartment] = $this->resolveWelcomeDepartment($employee);
 
         $coworkers = [];
         $coworkerTotal = 0;
 
-        if ($department !== null) {
-            $members = $department->members()
-                ->where('employees.id', '!=', $account->employee_id)
-                ->get();
-
-            $coworkerTotal = $members->count();
-            $coworkers = $members->take(9)->map(fn (Employee $e) => [
-                'id' => $e->id,
-                'name' => $e->full_name,
-                'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
-            ])->all();
+        if ($employee !== null) {
+            [$coworkers, $coworkerTotal] = $this->resolveWelcomeCoworkers($employee, $localDepartment);
         }
 
         return [
             'enabled' => $enabled,
             'seen' => $seen,
-            'employee_name' => $account->employee?->full_name ?? $account->display_name,
+            'employee_name' => $employee?->full_name ?? $account->display_name,
             'role' => $account->role->value,
             'role_label' => $account->role->label(),
-            'department' => $department ? [
-                'name' => $department->name,
-                'color' => $department->color,
-            ] : null,
+            'department' => $departmentPayload,
             'coworkers' => $coworkers,
             'coworker_total' => $coworkerTotal,
+        ];
+    }
+
+    /**
+     * @return array{0: array{name: string, color: string|null}|null, 1: Department|null}
+     */
+    private function resolveWelcomeDepartment(?Employee $employee): array
+    {
+        if ($employee === null) {
+            return [null, null];
+        }
+
+        $fromPivot = $employee->departments
+            ->sortByDesc(fn (Department $d) => (bool) $d->pivot?->getAttribute('is_active'))
+            ->first();
+
+        if ($fromPivot !== null) {
+            return [[
+                'name' => $fromPivot->name,
+                'color' => $fromPivot->color,
+            ], $fromPivot];
+        }
+
+        $meta = is_array($employee->meta) ? $employee->meta : [];
+        $metaName = trim((string) ($meta['department_name'] ?? $meta['department'] ?? ''));
+        $metaCode = trim((string) ($meta['department_code'] ?? ''));
+
+        if ($metaName === '' && $metaCode === '') {
+            return [null, null];
+        }
+
+        $local = $this->findLocalDepartment($metaCode, $metaName);
+
+        return [[
+            'name' => $metaName !== '' ? $metaName : ($local?->name ?? $metaCode),
+            'color' => $local?->color ?? '#9A0036',
+        ], $local];
+    }
+
+    private function findLocalDepartment(string $code, string $name): ?Department
+    {
+        if ($code !== '') {
+            $byCode = Department::query()->where('code', $code)->first();
+            if ($byCode !== null) {
+                return $byCode;
+            }
+        }
+
+        if ($name !== '') {
+            return Department::query()
+                ->where(function ($q) use ($name) {
+                    $q->where('name', $name)->orWhere('code', $name);
+                })
+                ->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{0: list<array{id: int, name: string, avatar: string|null}>, 1: int}
+     */
+    private function resolveWelcomeCoworkers(Employee $employee, ?Department $localDepartment): array
+    {
+        if ($localDepartment !== null) {
+            $members = $localDepartment->members()
+                ->where('employees.id', '!=', $employee->id)
+                ->get();
+
+            if ($members->isNotEmpty()) {
+                return [
+                    $members->take(9)->map(fn (Employee $e) => [
+                        'id' => $e->id,
+                        'name' => $e->full_name,
+                        'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
+                    ])->all(),
+                    $members->count(),
+                ];
+            }
+        }
+
+        $meta = is_array($employee->meta) ? $employee->meta : [];
+        $metaName = trim((string) ($meta['department_name'] ?? $meta['department'] ?? ''));
+        $metaCode = trim((string) ($meta['department_code'] ?? ''));
+
+        if ($metaName === '' && $metaCode === '') {
+            return [[], 0];
+        }
+
+        $peers = Employee::query()
+            ->where('id', '!=', $employee->id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($metaCode, $metaName) {
+                if ($metaCode !== '') {
+                    $q->orWhere('meta->department_code', $metaCode);
+                }
+                if ($metaName !== '') {
+                    $q->orWhere('meta->department_name', $metaName);
+                }
+            })
+            ->orderBy('full_name')
+            ->limit(40)
+            ->get();
+
+        return [
+            $peers->take(9)->map(fn (Employee $e) => [
+                'id' => $e->id,
+                'name' => $e->full_name,
+                'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
+            ])->all(),
+            $peers->count(),
         ];
     }
 
