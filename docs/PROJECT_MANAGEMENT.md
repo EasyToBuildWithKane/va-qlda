@@ -371,7 +371,8 @@ Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can
 |---|---|---|---|
 | Danh mục dự án | `useProjectListExport` | Nút Xuất Index | Client-only |
 | Sprint / task | `useSprintData.js`, `useSprintExport.js`, `useSprintReconcile.js` | `SprintDataModal.vue` (3 tab) | **Import:** `POST projects.tasks.import` (bulk ✅) |
-| Test case tab dự án | `useTestCaseImport.js`, `useTestCaseExport.js`, `useTestCaseReconcile.js` | `TestCaseDataModal.vue` (3 tab) | `POST /test-cases/import` (bulk ✅) |
+| Vướng mắc tab dự án | `useBlockerImport.js`, `useBlockerExport.js`, `useBlockerReconcile.js` | `BlockerDataModal.vue` (3 tab) | `POST /blockers/import` (bulk ✅) |
+| QA / Test case tab dự án | `useTestCaseImport.js`, `useTestCaseExport.js`, `useTestCaseReconcile.js` | `TestCaseDataModal.vue` (3 tab) | `POST /test-cases/import` (bulk ✅) |
 | Phản hồi tab dự án | `useFeedbackExport.js` | Nút **Dữ liệu** · `ProjectFeedbackPanel` | Client-only (xuất theo lọc) |
 
 Marker sprint Excel: `VA_SPRINT_IMPORT_V1` — chi tiết cột trong composable.
