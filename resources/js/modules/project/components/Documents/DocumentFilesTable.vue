@@ -11,6 +11,8 @@ defineProps({
     canEdit: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
     compact: { type: Boolean, default: false },
+    canDrag: { type: Boolean, default: false },
+    dropTargetId: { type: [Number, String, null], default: null },
 });
 
 const emit = defineEmits([
@@ -21,6 +23,11 @@ const emit = defineEmits([
     'rename-item',
     'preview-file',
     'delete-item',
+    'drag-start-item',
+    'drag-end-item',
+    'drop-on-folder',
+    'drag-over-folder',
+    'drag-leave-folder',
 ]);
 
 const isChecked = (id, selectedIds) => selectedIds.map(String).includes(String(id));
@@ -133,7 +140,14 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           v-for="folder in folders"
           :key="`folder-${folder.id}`"
           class="group cursor-pointer bg-white transition hover:bg-amber-50/50 dark:bg-slate-900 dark:hover:bg-amber-950/15"
+          :class="dropTargetId === folder.id && !folder.is_category ? 'bg-brand/[0.08] ring-2 ring-inset ring-brand/30' : ''"
+          :draggable="canDrag && !folder.is_category"
           @click="emit('select-folder', folder)"
+          @dragstart="canDrag && !folder.is_category && emit('drag-start-item', { item: folder, event: $event })"
+          @dragend="emit('drag-end-item')"
+          @dragover.prevent="!folder.is_category && emit('drag-over-folder', { folderId: folder.id, event: $event })"
+          @dragleave="!folder.is_category && emit('drag-leave-folder', { folderId: folder.id, event: $event })"
+          @drop.prevent="!folder.is_category && emit('drop-on-folder', { folderId: folder.id, event: $event })"
         >
           <td
             class="px-2 py-2 align-top"
@@ -212,7 +226,10 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           :key="`file-${file.id}`"
           class="group cursor-pointer bg-white transition hover:bg-slate-50 dark:bg-slate-900 dark:hover:bg-slate-800/60"
           :class="selectedId === file.id ? 'bg-brand/[0.04] dark:bg-brand/10' : ''"
+          :draggable="canDrag"
           @click="emit('select-file', file)"
+          @dragstart="canDrag && emit('drag-start-item', { item: file, event: $event })"
+          @dragend="emit('drag-end-item')"
         >
           <td
             class="px-2 py-2 align-top"

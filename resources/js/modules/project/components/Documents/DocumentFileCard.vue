@@ -16,9 +16,10 @@ const props = defineProps({
     canEdit: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
     showActions: { type: Boolean, default: true },
+    canDrag: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['click', 'preview', 'download', 'details', 'delete', 'rename']);
+const emit = defineEmits(['click', 'preview', 'download', 'details', 'delete', 'rename', 'drag-start', 'drag-end']);
 
 const rootRef = ref(null);
 const pdfInView = ref(false);
@@ -96,9 +97,15 @@ const onAction = (event, type) => {
   <div
     ref="rootRef"
     class="doc-file-card group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left transition duration-150 dark:bg-slate-900"
-    :class="active
-      ? 'border-brand/40 ring-2 ring-brand/20 dark:border-brand/50'
-      : 'border-slate-200/90 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:hover:border-slate-600'"
+    :class="[
+      active
+        ? 'border-brand/40 ring-2 ring-brand/20 dark:border-brand/50'
+        : 'border-slate-200/90 hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:hover:border-slate-600',
+      canDrag ? 'cursor-grab active:cursor-grabbing' : '',
+    ]"
+    :draggable="canDrag"
+    @dragstart="canDrag && emit('drag-start', $event)"
+    @dragend="emit('drag-end')"
   >
     <button
       type="button"

@@ -167,4 +167,108 @@ class ProjectAttachmentFolderTest extends TestCase
             'file_type' => 'md',
         ])->assertSessionHasErrors('file_type');
     }
+
+    public function test_contributor_can_move_file_into_folder(): void
+    {
+        Storage::fake('public');
+
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $folder = ProjectAttachment::query()->create([
+            'project_id' => $project->id,
+            'category' => ProjectAttachmentCategory::Customer,
+            'is_folder' => true,
+            'original_name' => 'Hợp đồng',
+            'path' => '',
+            'size' => 0,
+        ]);
+
+        $file = UploadedFile::fake()->create('spec.pdf', 100, 'application/pdf');
+        $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'files' => [$file],
+        ])->assertRedirect();
+
+        $attachment = ProjectAttachment::query()
+            ->where('project_id', $project->id)
+            ->where('original_name', 'spec.pdf')
+            ->firstOrFail();
+
+        $this->actingAs($account, 'system')->put("/projects/{$project->id}/attachments/{$attachment->id}", [
+            'parent_id' => $folder->id,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('project_attachments', [
+            'id' => $attachment->id,
+            'parent_id' => $folder->id,
+        ]);
+    }
+
+    public function test_cannot_move_folder_into_its_descendant(): void
+    {
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $parent = ProjectAttachment::query()->create([
+            'project_id' => $project->id,
+            'category' => ProjectAttachmentCategory::Customer,
+            'is_folder' => true,
+            'original_name' => 'Cha',
+            'path' => '',
+            'size' => 0,
+        ]);
+
+        $child = ProjectAttachment::query()->create([
+            'project_id' => $project->id,
+            'category' => ProjectAttachmentCategory::Customer,
+            'parent_id' => $parent->id,
+            'is_folder' => true,
+            'original_name' => 'Con',
+            'path' => '',
+            'size' => 0,
+        ]);
+
+        $this->actingAs($account, 'system')->put("/projects/{$project->id}/attachments/{$parent->id}", [
+            'parent_id' => $child->id,
+        ])->assertSessionHasErrors('parent_id');
+    }
+
+    public function test_can_move_item_to_category_root(): void
+    {
+        Storage::fake('public');
+
+        $account = SystemAccount::factory()->role(SystemRole::Admin)->create();
+        $project = Project::factory()->create();
+
+        $folder = ProjectAttachment::query()->create([
+            'project_id' => $project->id,
+            'category' => ProjectAttachmentCategory::Customer,
+            'is_folder' => true,
+            'original_name' => 'Hộp',
+            'path' => '',
+            'size' => 0,
+        ]);
+
+        $file = UploadedFile::fake()->create('note.txt', 10, 'text/plain');
+        $this->actingAs($account, 'system')->post("/projects/{$project->id}/attachments", [
+            'category' => ProjectAttachmentCategory::Customer->value,
+            'parent_id' => $folder->id,
+            'files' => [$file],
+        ])->assertRedirect();
+
+        $attachment = ProjectAttachment::query()
+            ->where('project_id', $project->id)
+            ->where('original_name', 'note.txt')
+            ->firstOrFail();
+
+        $this->actingAs($account, 'system')->put("/projects/{$project->id}/attachments/{$attachment->id}", [
+            'parent_id' => null,
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('project_attachments', [
+            'id' => $attachment->id,
+            'parent_id' => null,
+        ]);
+    }
 }

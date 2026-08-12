@@ -1,7 +1,7 @@
 <script setup>
 import AppIcon from '@/Components/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
     nodes: { type: Array, default: () => [] },
     depth: { type: Number, default: 0 },
     selectedId: { type: [Number, String, null], default: null },
@@ -11,9 +11,23 @@ defineProps({
     formatSize: { type: Function, required: true },
     canUpload: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
+    canDrag: { type: Boolean, default: false },
+    dropTargetId: { type: [Number, String, null], default: null },
 });
 
-const emit = defineEmits(['select-file', 'select-folder', 'toggle-folder', 'create-subfolder', 'create-file', 'delete-item']);
+const emit = defineEmits([
+    'select-file',
+    'select-folder',
+    'toggle-folder',
+    'create-subfolder',
+    'create-file',
+    'delete-item',
+    'drag-start-item',
+    'drag-end-item',
+    'drop-on-folder',
+    'drag-over-folder',
+    'drag-leave-folder',
+]);
 
 const isExpanded = (id, expandedIds) => expandedIds[id] !== false;
 
@@ -49,6 +63,26 @@ const folderMetaLabel = (node) => {
     if (files > 0) parts.push(`${files} tài liệu`);
     return parts.length ? parts.join(' · ') : 'Trống';
 };
+
+const onItemDragStart = (node, event) => {
+    if (!props.canDrag || node.is_category) return;
+    emit('drag-start-item', { item: node, event });
+};
+
+const onFolderDragOver = (node, event) => {
+    if (!node.is_folder) return;
+    emit('drag-over-folder', { folderId: node.id, event });
+};
+
+const onFolderDragLeave = (node, event) => {
+    if (!node.is_folder) return;
+    emit('drag-leave-folder', { folderId: node.id, event });
+};
+
+const onFolderDrop = (node, event) => {
+    if (!node.is_folder) return;
+    emit('drop-on-folder', { folderId: node.id, event });
+};
 </script>
 
 <template>
@@ -78,7 +112,14 @@ const folderMetaLabel = (node) => {
           depthAccentClass(depth),
           node.is_folder && activeFolderId === node.id ? 'doc-tree-row--active-folder' : '',
           !node.is_folder && selectedId === node.id ? 'doc-tree-row--active-file' : '',
+          node.is_folder && dropTargetId === node.id ? 'doc-tree-row--drop-target' : '',
         ]"
+        :draggable="canDrag && !node.is_category"
+        @dragstart="onItemDragStart(node, $event)"
+        @dragend="emit('drag-end-item')"
+        @dragover.prevent="onFolderDragOver(node, $event)"
+        @dragleave="onFolderDragLeave(node, $event)"
+        @drop.prevent="onFolderDrop(node, $event)"
       >
         <button
           v-if="node.is_folder"
@@ -203,19 +244,30 @@ const folderMetaLabel = (node) => {
           :format-size="formatSize"
           :can-upload="canUpload"
           :can-delete="canDelete"
+          :can-drag="canDrag"
+          :drop-target-id="dropTargetId"
           @select-file="emit('select-file', $event)"
           @select-folder="emit('select-folder', $event)"
           @toggle-folder="emit('toggle-folder', $event)"
           @create-subfolder="emit('create-subfolder', $event)"
           @create-file="emit('create-file', $event)"
           @delete-item="emit('delete-item', $event)"
+          @drag-start-item="emit('drag-start-item', $event)"
+          @drag-end-item="emit('drag-end-item')"
+          @drop-on-folder="emit('drop-on-folder', $event)"
+          @drag-over-folder="emit('drag-over-folder', $event)"
+          @drag-leave-folder="emit('drag-leave-folder', $event)"
         />
         <div
           v-else-if="canUpload"
           class="doc-tree-empty-nested ml-10 mr-2 mb-2 mt-1 rounded-lg border border-dashed border-slate-200/90 bg-slate-50/80 px-3 py-2.5 text-center dark:border-slate-700 dark:bg-slate-800/40"
+          :class="dropTargetId === node.id ? 'border-brand bg-brand/5' : ''"
+          @dragover.prevent="onFolderDragOver(node, $event)"
+          @dragleave="onFolderDragLeave(node, $event)"
+          @drop.prevent="onFolderDrop(node, $event)"
         >
           <p class="text-[11px] text-slate-500 sm:text-xs">
-            Thư mục trống
+            Thư mục trống · thả file vào đây
           </p>
           <div class="mt-1.5 flex flex-wrap items-center justify-center gap-2">
             <button
@@ -336,6 +388,11 @@ export default {
     box-shadow: 0 0 0 1px rgb(154 0 54 / 0.18);
 }
 
+.doc-tree-row--drop-target {
+    background: rgb(154 0 54 / 0.12) !important;
+    box-shadow: 0 0 0 2px rgb(154 0 54 / 0.35);
+}
+
 .doc-tree-row:hover {
     background: rgb(248 250 252 / 0.95);
 }
@@ -347,5 +404,13 @@ export default {
 .doc-tree-row--active-folder:hover,
 .doc-tree-row--active-file:hover {
     background: rgb(154 0 54 / 0.1);
+}
+
+.doc-tree-row[draggable="true"] {
+    cursor: grab;
+}
+
+.doc-tree-row[draggable="true"]:active {
+    cursor: grabbing;
 }
 </style>

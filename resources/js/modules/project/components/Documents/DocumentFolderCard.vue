@@ -10,17 +10,38 @@ defineProps({
     active: { type: Boolean, default: false },
     canRename: { type: Boolean, default: false },
     canDelete: { type: Boolean, default: false },
+    canDrag: { type: Boolean, default: false },
+    dropActive: { type: Boolean, default: false },
 });
 
-const emit = defineEmits(['click', 'rename', 'delete']);
+const emit = defineEmits([
+    'click',
+    'rename',
+    'delete',
+    'drag-start',
+    'drag-end',
+    'drag-over',
+    'drag-leave',
+    'drop',
+]);
 </script>
 
 <template>
   <div
     class="doc-folder-card group relative flex w-full min-w-0 flex-col overflow-hidden rounded-xl border bg-white text-left transition duration-150 dark:bg-slate-900"
-    :class="active
-      ? 'border-brand/35 shadow-sm ring-2 ring-brand/15'
-      : 'border-slate-200/90 hover:border-amber-300/80 hover:shadow-md dark:border-slate-700 dark:hover:border-amber-700/50'"
+    :class="[
+      active
+        ? 'border-brand/35 shadow-sm ring-2 ring-brand/15'
+        : 'border-slate-200/90 hover:border-amber-300/80 hover:shadow-md dark:border-slate-700 dark:hover:border-amber-700/50',
+      dropActive ? 'border-brand ring-2 ring-brand/25 bg-brand/[0.04]' : '',
+      canDrag ? 'cursor-grab active:cursor-grabbing' : '',
+    ]"
+    :draggable="canDrag"
+    @dragstart="canDrag && emit('drag-start', $event)"
+    @dragend="emit('drag-end')"
+    @dragover.prevent="emit('drag-over', $event)"
+    @dragleave="emit('drag-leave', $event)"
+    @drop.prevent="emit('drop', $event)"
   >
     <button
       type="button"

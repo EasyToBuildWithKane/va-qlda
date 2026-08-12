@@ -78,6 +78,27 @@ class ProjectAttachmentActivityLogger
         );
     }
 
+    public static function moved(
+        ProjectAttachment $attachment,
+        ?int $fromParentId,
+        ?int $toParentId,
+        ?SystemAccount $account,
+    ): void {
+        $label = $attachment->isFolder() ? 'thư mục' : 'tài liệu';
+        self::log(
+            $attachment,
+            'moved',
+            "Chuyển {$label}: {$attachment->original_name}",
+            [
+                'file' => $attachment->original_name,
+                'from_parent_id' => $fromParentId,
+                'to_parent_id' => $toParentId,
+                'is_folder' => $attachment->isFolder(),
+            ],
+            $account?->employee_id,
+        );
+    }
+
     public static function fileRenamed(ProjectAttachment $attachment, string $oldName, ?SystemAccount $account): void
     {
         self::log(

@@ -170,7 +170,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `RiskIssueDataTable` (tab Test case), `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
 | WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
-| Documents/ | `ProjectDocumentsPanel`, `DocumentFolderCard`, `DocumentFileCard` (thumbnail ảnh/PDF trang 1/snippet txt + đổi tên), `DocumentFilesTable`, `DocumentPreviewPane` (xem + sửa text, đổi tên inline; Word `.docx` qua `docx-preview` trong iframe cách ly Tailwind — `className: docx`, fit-width, bảng/ảnh `max-width`, chế độ Từng trang/Cuộn liên tục + zoom Vừa khung/100%/75%; Excel bảng sticky/zebra + phân trang 100 dòng — `useDocumentPreview`) — Drive; đính kèm task hẹp |
+| Documents/ | `ProjectDocumentsPanel`, `ProjectDocumentTree` (cây preview + DnD), `DocumentFolderCard`, `DocumentFileCard` (thumbnail ảnh/PDF trang 1/snippet txt + đổi tên), `DocumentFilesTable`, `DocumentPreviewPane` (xem + sửa text, đổi tên inline; Word `.docx` qua `docx-preview` trong iframe cách ly Tailwind — `className: docx`, fit-width, bảng/ảnh `max-width`, chế độ Từng trang/Cuộn liên tục + zoom Vừa khung/100%/75%; Excel bảng sticky/zebra + phân trang 100 dòng — `useDocumentPreview`) — Drive; kéo thả OS upload / chuyển `parent_id`; đính kèm task hẹp |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Credential module — `modules/credential/`

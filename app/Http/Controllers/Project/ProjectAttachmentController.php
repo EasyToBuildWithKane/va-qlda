@@ -203,6 +203,29 @@ class ProjectAttachmentController extends Controller
             }
         }
 
+        if (array_key_exists('parent_id', $data)) {
+            $newParentId = $data['parent_id'] !== null ? (int) $data['parent_id'] : null;
+            $oldParentId = $attachment->parent_id !== null ? (int) $attachment->parent_id : null;
+
+            if ($newParentId !== $oldParentId) {
+                $attachment->update([
+                    'parent_id' => $newParentId,
+                    'updated_by_id' => $account->employee_id,
+                ]);
+                ProjectAttachmentActivityLogger::moved(
+                    $attachment->fresh(),
+                    $oldParentId,
+                    $newParentId,
+                    $account,
+                );
+
+                return back()->with(
+                    'success',
+                    $attachment->isFolder() ? 'Đã chuyển thư mục.' : 'Đã chuyển tài liệu.',
+                );
+            }
+        }
+
         if (array_key_exists('external_url', $data) && $attachment->fresh()->isExternalLink()) {
             $parsed = ProjectAttachmentExternalUrl::parse((string) $data['external_url']);
             if ($parsed === null) {
