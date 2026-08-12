@@ -15,8 +15,9 @@ const DOCX_RENDER_OPTIONS = {
     ignoreHeight: false,
     ignoreFonts: false,
     breakPages: true,
-    ignoreLastRenderedPageBreak: false,
-    experimental: true,
+    // true = mặc định thư viện; false dễ cắt header/floating thành «mảnh» trắng trên nền xám
+    ignoreLastRenderedPageBreak: true,
+    experimental: false,
     useBase64URL: true,
     renderHeaders: true,
     renderFooters: true,
@@ -29,7 +30,9 @@ const DOCX_RENDER_OPTIONS = {
 
 /**
  * CSS bổ sung trong iframe (không Tailwind).
- * Giữ display:flex của section.docx — không ép block (vỡ header/footer + bảng).
+ * Giữ display:flex + overflow:hidden của section.docx như thư viện.
+ * Sau khi wrap slot/scale, selector `.docx-wrapper>section.docx` không còn khớp
+ * → phải gắn background trắng trực tiếp lên section.
  */
 const DOCX_IFRAME_BASE_STYLES = `
 html, body {
@@ -62,19 +65,19 @@ body {
   width: 100%;
   box-sizing: border-box;
 }
+/* Slot = đúng kích thước sau scale; clip layout chưa scale của .docx-page-scale */
 .docx-page-slot {
-  display: flex;
-  justify-content: center;
-  width: 100%;
+  display: block;
   box-sizing: border-box;
-  margin: 0 0 16px;
-  overflow: visible;
+  margin: 0 auto 16px;
+  overflow: hidden;
+  flex-shrink: 0;
 }
 .docx-page-slot.docx-page-hidden {
   display: none !important;
 }
 .docx-page-scale {
-  transform-origin: top center;
+  transform-origin: top left;
   will-change: transform;
 }
 section.docx {
@@ -82,12 +85,11 @@ section.docx {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12), 0 8px 24px rgba(15, 23, 42, 0.08);
   margin: 0 !important;
   box-sizing: border-box !important;
-  /* Giữ flex của thư viện — header/footer/article xếp đúng */
   display: flex !important;
   flex-flow: column nowrap !important;
   position: relative !important;
-  /* visible để bảng/ảnh dài không bị cắt cứng trong trang */
-  overflow: visible !important;
+  /* Khớp thư viện — clip header/drawing theo khung trang (tránh mảnh trắng nổi) */
+  overflow: hidden !important;
 }
 section.docx > article {
   margin-bottom: auto;
@@ -101,44 +103,38 @@ section.docx > header,
 section.docx > footer {
   z-index: 1;
   max-width: 100%;
+  position: relative;
 }
-/* Bảng: giữ border-collapse, cho phép chữ xuống dòng, không tràn cứng */
-.docx table {
+/* Bảng trong thân trang: không phá letterhead */
+section.docx > article table {
   border-collapse: collapse;
   max-width: 100%;
   table-layout: auto;
 }
-.docx table td,
-.docx table th {
+section.docx > article table td,
+section.docx > article table th {
   vertical-align: top;
   overflow-wrap: anywhere;
   word-break: break-word;
   hyphens: auto;
 }
-.docx table p {
+section.docx > article table p {
   margin: 0;
   min-height: 1em;
 }
-/* Hình ảnh / drawing: co theo bề rộng trang, giữ tỉ lệ */
-.docx img {
+/* Chỉ co ảnh trong article — không đụng logo/header/footer */
+section.docx > article img {
   max-width: 100% !important;
   height: auto !important;
   object-fit: contain;
 }
-.docx img[style*="width"] {
-  max-width: 100% !important;
-}
-.docx div[style*="display: inline-block"] {
-  max-width: 100%;
-}
-.docx svg {
+section.docx > article svg {
   max-width: 100%;
   height: auto;
 }
 .docx p {
   margin: 0pt;
   min-height: 1em;
-  max-width: 100%;
 }
 .docx span {
   white-space: pre-wrap;
@@ -310,12 +306,13 @@ export function useDocumentPreview(selectedFileRef) {
             const section = scaleEl?.querySelector('section.docx') || slot.querySelector('section.docx');
             if (!scaleEl || !section) return;
 
-            const pageWidth = section.offsetWidth
-                || parseCssLengthPx(section.style.width)
+            // Ưu tiên kích thước trang khai báo (width/minHeight) — ổn định hơn offset sau reflow ảnh
+            const pageWidth = parseCssLengthPx(section.style.width)
+                || section.offsetWidth
                 || section.scrollWidth
                 || 794;
-            const pageHeight = section.offsetHeight
-                || parseCssLengthPx(section.style.minHeight)
+            const pageHeight = parseCssLengthPx(section.style.minHeight)
+                || section.offsetHeight
                 || section.scrollHeight
                 || 1123;
 
@@ -331,10 +328,15 @@ export function useDocumentPreview(selectedFileRef) {
             if (!Number.isFinite(scale) || scale <= 0) scale = 1;
             scale = Math.max(0.35, Math.min(1.25, scale));
 
-            scaleEl.style.transform = `scale(${scale})`;
+            // top-left + slot đúng size sau scale — tránh clip ngang khi flex-center trang full-width trong khung hẹp
             scaleEl.style.width = `${pageWidth}px`;
+            scaleEl.style.height = `${pageHeight}px`;
+            scaleEl.style.transformOrigin = 'top left';
+            scaleEl.style.transform = `scale(${scale})`;
+
+            slot.style.width = `${Math.ceil(pageWidth * scale)}px`;
             slot.style.height = `${Math.ceil(pageHeight * scale)}px`;
-            slot.style.width = '100%';
+            slot.style.overflow = 'hidden';
         });
     };
 
@@ -495,6 +497,18 @@ export function useDocumentPreview(selectedFileRef) {
         }
 
         docxPageSlots = wrapDocxPages(doc, sections);
+        // Củng cố nền trang sau wrap (selector thư viện `.docx-wrapper>section` không còn khớp)
+        docxPageSlots.forEach((slot) => {
+            const section = slot.querySelector('section.docx');
+            if (!section) return;
+            section.style.backgroundColor = '#ffffff';
+            if (!section.style.minHeight) {
+                section.style.minHeight = '1123px';
+            }
+            if (!section.style.width) {
+                section.style.width = '794px';
+            }
+        });
         currentPage.value = 1;
         applyDocxPageVisibility();
         attachDocxResizeObserver();

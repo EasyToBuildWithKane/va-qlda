@@ -60,8 +60,11 @@ final class PermissionCatalog
                 'view' => 'Xem', 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
                 'manage' => 'Quản lý (sprint, task, thành viên)', 'contribute' => 'Đóng góp công việc',
             ]],
-            'blocker' => ['label' => 'Trường hợp kiểm thử', 'icon' => 'blockers', 'group' => 'Công việc', 'abilities' => [
+            'blocker' => ['label' => 'Vướng mắc', 'icon' => 'blockers', 'group' => 'Công việc', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'comment' => 'Bình luận',
+            ]],
+            'testcase' => ['label' => 'QA / Test case', 'icon' => 'blockers', 'group' => 'Công việc', 'abilities' => [
+                'view' => 'Xem', 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'execute' => 'Thực thi kiểm thử',
             ]],
             'daily_report' => ['label' => 'Báo cáo ngày', 'icon' => 'daily', 'group' => 'Công việc', 'abilities' => [
                 'view' => 'Xem', 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'review' => 'Duyệt / Chấm điểm',
@@ -231,6 +234,7 @@ final class PermissionCatalog
             'lead' => [
                 'project.view', 'project.create', 'project.update', 'project.manage', 'project.contribute',
                 'blocker.create', 'blocker.update', 'blocker.delete', 'blocker.comment',
+                'testcase.view', 'testcase.create', 'testcase.update', 'testcase.delete', 'testcase.execute',
                 'daily_report.view', 'daily_report.create', 'daily_report.review',
                 'feedback.create', 'feedback.update',
                 'weekly_report.view', 'weekly_report.generate', 'weekly_report.update', 'weekly_report.export',
@@ -250,6 +254,7 @@ final class PermissionCatalog
             'member' => [
                 'daily_report.create',
                 'blocker.create', 'blocker.comment',
+                'testcase.view', 'testcase.create', 'testcase.execute',
                 'credential.create',
                 'kb.create',
                 'feedback.create',

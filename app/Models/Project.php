@@ -145,6 +145,16 @@ class Project extends Model
         return $this->hasMany(Feedback::class);
     }
 
+    public function testSuites(): HasMany
+    {
+        return $this->hasMany(TestSuite::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function testCases(): HasMany
+    {
+        return $this->hasMany(TestCase::class)->orderBy('id');
+    }
+
     public function activities(): HasMany
     {
         return $this->hasMany(ProjectActivity::class)->latest();

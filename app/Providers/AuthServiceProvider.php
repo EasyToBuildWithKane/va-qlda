@@ -22,6 +22,7 @@ use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\SystemSetting;
 use App\Models\Task;
+use App\Models\TestCase;
 use App\Models\Vendor;
 use App\Models\WeeklyReport;
 use App\Policies\AiAccountPolicy;
@@ -42,6 +43,7 @@ use App\Policies\KbArticlePolicy;
 use App\Policies\ProjectPolicy;
 use App\Policies\SystemSettingPolicy;
 use App\Policies\TaskPolicy;
+use App\Policies\TestCasePolicy;
 use App\Policies\VendorPolicy;
 use App\Policies\WeeklyReportPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -78,6 +80,7 @@ class AuthServiceProvider extends ServiceProvider
         Credential::class => CredentialPolicy::class,
         Contract::class => ContractPolicy::class,
         Vendor::class => VendorPolicy::class,
+        TestCase::class => TestCasePolicy::class,
     ];
 
     /**

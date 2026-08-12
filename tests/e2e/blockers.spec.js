@@ -1,11 +1,11 @@
-import { test, expect } from './helpers/auth.js';
+﻿import { test, expect } from './helpers/auth.js';
 
-test.describe('Blockers (Test case)', () => {
+test.describe('Blockers (vướng mắc)', () => {
     test('member can view blocker list', async ({ page }) => {
         await page.goto('/blockers');
 
         await expect(page).toHaveURL(/\/blockers/);
-        await expect(page.getByRole('heading', { name: /trường hợp kiểm thử/i })).toBeVisible();
+        await expect(page.getByRole('heading', { name: /Vướng mắc/i })).toBeVisible();
     });
 
     test.describe('as viewer', () => {
@@ -20,14 +20,14 @@ test.describe('Blockers (Test case)', () => {
         test('does not see create button', async ({ page }) => {
             await page.goto('/blockers');
 
-            await expect(page.getByRole('button', { name: 'Ghi nhận test case' })).toHaveCount(0);
+            await expect(page.getByRole('button', { name: 'Ghi nhận vướng mắc' })).toHaveCount(0);
         });
     });
 
     test('member can open create blocker form', async ({ page }) => {
         await page.goto('/blockers');
 
-        await page.getByRole('button', { name: 'Ghi nhận test case' }).click();
+        await page.getByRole('button', { name: 'Ghi nhận vướng mắc' }).click();
         await expect(page.getByRole('dialog').or(page.locator('form'))).toBeVisible();
     });
 

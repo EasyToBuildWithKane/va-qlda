@@ -4,6 +4,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import BlockerAttachmentsBlock from '@/modules/project/components/BlockerAttachmentsBlock.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
 import { datetime } from '@/composables/useFormat';
+import { displayOrEmpty } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     row: { type: Object, required: true },
@@ -48,7 +49,7 @@ const timeline = computed(() => {
         items.push({
             id: 'raised',
             event: 'created',
-            description: 'Phát hiện test case',
+            description: 'Ghi nhận vướng mắc',
             employee: props.row.raised_by,
             created_at: props.row.raised_at,
         });
@@ -69,7 +70,7 @@ const timeline = computed(() => {
             Mô tả chi tiết
           </p>
           <p class="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
-            {{ row.description || '—' }}
+            {{ displayOrEmpty(row.description, 'Chưa có mô tả.') }}
           </p>
         </div>
 
@@ -78,7 +79,7 @@ const timeline = computed(() => {
             Nguyên nhân
           </p>
           <p class="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
-            {{ row.root_cause || '—' }}
+            {{ displayOrEmpty(row.root_cause, 'Chưa xác định nguyên nhân.') }}
           </p>
         </div>
 
@@ -87,7 +88,7 @@ const timeline = computed(() => {
             Hướng xử lý
           </p>
           <p class="mt-1 whitespace-pre-wrap text-sm text-slate-600 dark:text-slate-300">
-            {{ row.resolution || '—' }}
+            {{ displayOrEmpty(row.resolution, 'Chưa có hướng xử lý.') }}
           </p>
         </div>
 

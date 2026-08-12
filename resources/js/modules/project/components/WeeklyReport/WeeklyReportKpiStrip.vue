@@ -55,11 +55,11 @@ const cards = computed(() => {
         },
         {
             key: 'issues',
-            label: 'Test case mở',
+            label: 'Vướng mắc mở',
             value: n(k.open_issues),
             tone: n(k.open_issues) ? 'amber' : 'slate',
             icon: 'alert',
-            sub: n(k.open_issues) ? 'Đang theo dõi' : 'Không test case mở',
+            sub: n(k.open_issues) ? 'Đang theo dõi' : 'Không vướng mắc mở',
             interactive: false,
         },
         {

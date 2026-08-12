@@ -32,6 +32,9 @@ const props = defineProps({
     defaultStatus: { type: String, default: 'todo' },
     /** Gán sprint khi mở modal tạo từ cột sprint (không dùng object task giả). */
     initialSprintId: { type: Number, default: null },
+    /** Ngày mặc định khi tạo từ lịch (YYYY-MM-DD). */
+    initialStartDate: { type: String, default: null },
+    initialDueDate: { type: String, default: null },
 });
 
 const emit = defineEmits(['close', 'saved']);
@@ -219,6 +222,8 @@ watch(() => props.show, async (open) => {
             form.reset();
             form.status = props.defaultStatus;
             if (props.initialSprintId) form.sprint_id = props.initialSprintId;
+            if (props.initialStartDate) form.start_date = props.initialStartDate;
+            if (props.initialDueDate) form.due_date = props.initialDueDate;
             await restoreModalDraft(formDraft, {
                 isActive: () => props.show,
                 openEpoch: epoch,

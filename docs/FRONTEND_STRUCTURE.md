@@ -16,7 +16,7 @@
 | Tailwind CSS | 3.4.19 | Utility-first CSS |
 | Vite | 5.0 | Build tool + manual code splitting |
 | TipTap | 3.24.0 | Rich text editor |
-| FullCalendar | 6.1.x | Lịch dự án (day/week/list) |
+| FullCalendar | 6.1.x | Lịch dự án (tháng / tuần·ngày timeGrid / danh sách) |
 | Chart.js / vue-chartjs | 4.x / 5.x | Biểu đồ (dashboard, CLM, hiệu suất) |
 | frappe-gantt | 1.2.x | Gantt timeline dự án |
 | Playwright | 1.49 | E2E tests (`tests/e2e/`) |
@@ -38,7 +38,7 @@
 
 - Alias `@` → `resources/js/`
 - `manualChunks`: vendor-vue, vendor-tiptap, vendor-chart, vendor-excel (`xlsx-js-style`), vendor-datepicker, vendor-calendar (FullCalendar), vendor-docx, vendor-utils; `reportCompressedSize: false`, `chunkSizeWarningLimit: 600` (gantt/ogl tách theo dynamic import khi được dùng)
-- Project Show: `ProjectCalendar` lazy qua `defineAsyncComponent` (chỉ tải khi mở tab Lịch)
+- Project Show: `ProjectCalendar` lazy qua `defineAsyncComponent` (chỉ tải khi mở tab Lịch) — `useProjectCalendar` (filter/KPI/unscheduled), hover card, cột «Chưa lịch», persist view `localStorage`
 
 ### app.blade.php
 
@@ -118,8 +118,9 @@ AppChrome.vue (persistent shell)
 | Dashboard | **`Hub.vue`** (`/dashboard` — welcome, `HubDashboardSummaryBar`, trend, compliance, module grid) · **`Work.vue`** (`/work`) · `Index.vue` — **`TaskProgressStatsSection`**, **`DailyReportCompliancePanel`**, `ProjectProgressCard`, biểu đồ xu hướng & trạng thái dự án |
 | MyWork | **`Index.vue`** (`/my-work`) — bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn; `partials/MyWorkTaskCard` (lưới 3 cột, meta trong card 2×3); `partials/MyWorkTaskDetailModal` (`max-w-5xl` + `Modal fitViewport`, layout 5–5: header badge riêng, meta chip không trùng badge/nguồn, nhân sự); team: `MemberWorkModal`, `TeamWorkDepartmentLanes`; composable `useMyWork` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
-| Project | `Index`, `Create`, `Edit`, `Show` — chi tiết UX/tab → `docs/PROJECT_MANAGEMENT.md` |
+| Project | `Index`, `Create`, `Edit`, `Show` — chi tiết UX/tab → `docs/PROJECT_MANAGEMENT.md`. `Show`: 9 tab (overview, documents, timeline, board, sprints, blockers, qa, feedback, weekly). Props bổ sung: `testCases` (`TestCaseResource[]`), `testSuites` (`TestSuiteResource[]`), `testCaseSummary`. Tab `blockers` dùng `ProjectBlockerPanel` (KPI strip nhúng); tab `qa` dùng `ProjectTestCasePanel` stub (`modules/testcase/components/`) |
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
+| TestCase (QA) | `Pages/TestCase/Index.vue` (planned) — datagrid toolbar, KPI strip `{total, ready, pass, fail, not_run}`, lọc theo project/suite/priority/status/last_result; Inertia props `testCases`, `summary`, `options`, `can.create`; thực thi qua `POST /test-cases/{id}/execute` |
 | Profile | `Pages/Profile/Show.vue` — hồ sơ cá nhân; org directory UI đã gỡ (HRM) |
 | Performance | `Pages/Performance/Dashboard.vue` · **`Audit.vue`** (danh sách audit nhân sự, segmented Tuần/Tháng/Quý, cột **Kỳ** = nhóm dòng collapse theo kỳ con — pattern `Blocker/Index`, `emptyDisplay.js`, `PerformanceAuditSummaryBar` mode list) · **`AuditShow.vue`** (timeline + `PerformanceFilterBar`, back về index) |
 | Evaluation config | `Pages/WorkspaceConfig/Evaluation/{Index,Show}.vue` + `modules/evaluation/` — CRUD modal; phòng ban autocomplete (trống = chung); mã `TCVA###`; thang điểm JSON (nhãn + trọng số, 2–10 mức); Index cột mức điểm động (header Mức 1…N); KPI strip + Lọc/Cột/Xuất; nhóm PB + tab loại; Show timeline audit + avatar |
@@ -167,10 +168,10 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Core | `ProjectCard` (shell clip-path + viền nét đứt kiểu `kpi-card`, nền trắng phẳng — không gradient), `ProjectDataGrid` (kéo ngang cuộn bảng), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: lane trắng + inset border; wrap thẻ; «Nhóm theo» Loại/Phòng ban chỉ `super_admin` |
 | Sprint/ | `SprintWorkspace`, `SprintTaskRows` (bảng task list không hiển thị cột SLA), `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailGeneralInfo` (Thông tin chung 2 cột trong panel), `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
-| Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `RiskIssueDataTable` (tab Test case), `ProjectFeedbackPanel`, `RiskImportModal`, `ActivityFeed`, … |
+| Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `ProjectBlockerPanel` (tab Vướng mắc — KPI strip nhúng + import/export/reconcile modal), `ProjectFeedbackPanel`, `BlockerDataModal` (3 tab: Nhập/Xuất/Đối soát), `BlockerInlineDetail`, `ActivityFeed`, … |
 | WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
-| Documents/ | `ProjectDocumentsPanel`, `DocumentFolderCard`, `DocumentFileCard` (thumbnail ảnh/PDF trang 1/snippet txt + đổi tên), `DocumentFilesTable`, `DocumentPreviewPane` (xem + sửa text, đổi tên inline; Word `.docx` qua `docx-preview` trong iframe cách ly Tailwind — `className: docx`, fit-width, bảng/ảnh `max-width`, chế độ Từng trang/Cuộn liên tục + zoom Vừa khung/100%/75%; Excel bảng sticky/zebra + phân trang 100 dòng — `useDocumentPreview`) — Drive; kéo thả OS upload / chuyển `parent_id`; đính kèm task hẹp |
+| Documents/ | `ProjectDocumentsPanel`, `DocumentContextMenu`, `DocumentFolderCard` (lavender), `DocumentFileCard`, `DocumentFilesTable`, `DocumentPreviewPane` + `useDocumentPreview` — Drive; kéo thả; chuột phải; bulk; tìm trong thư mục; đính kèm task hẹp |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Credential module — `modules/credential/`
@@ -243,7 +244,7 @@ Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePi
 | Sprint | `useSprintData`, `useSprintWorkspace`, `useSprintTaskTable`, `useSprintFilters`, `useSprintReconcile`, `useSprintExport` |
 | Task | `useTaskWorkspace`, `useTaskBulkCreate`, `useTaskHierarchy`, `useTaskPhaseGroups`, `useTaskTimeliness` |
 | Project | `useProjectDashboard`, `useProjectTimeline`, `useProjectExport`, `useProjectListExport`, `useProjectCreateDraft` |
-| Risk | `useRiskImport`, `useRiskExport`, `useRiskTable` |
+| Vướng mắc (Blocker) | `useBlockerImport` (tên chuẩn: `downloadBlockerImportTemplate`, `parseBlockerImportFile`), `useBlockerExport` (`exportRiskBlockers`), `useBlockerTable` (`useBlockerTable`, `BLOCKER_SEVERITY_DOT`, …), `useBlockerReconcile` (pure fn đối soát) |
 | Feedback (tab dự án) | `useFeedbackExport` — xuất Excel/CSV theo lọc client (`ProjectFeedbackPanel`) |
 | Daily report | `modules/daily-report/composables/useDailyReportHistoryExport` — **async**: `axios.get` `daily-reports.export-data` (toàn bộ kết quả lọc) → dựng workbook 7 sheet `xlsx-js-style` |
 | Other | `useNotifications`, `useDocumentPreview`, `useDialog`, `useFormat`, `useConfirmClose`, `useVirtualScroll`, `useNormalizeList` |
@@ -269,7 +270,7 @@ Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePi
 |---|---|
 | Project columns | `modules/project/config/columns.js` |
 | Sprint table columns | `modules/project/components/Sprint/sprintTableColumns.js` |
-| Risk table columns | `modules/project/components/Dashboard/riskTableColumns.js` |
+| Blocker table columns | `modules/project/components/Dashboard/blockerTableColumns.js` (`BLOCKER_TABLE_COLUMNS`, `loadBlockerTableColumns`) |
 | Daily report config | `modules/daily-report/config/reportConfig.js` |
 | Notification meta | `composables/notificationMeta.js` |
 | App constants | `constants/index.js` |
@@ -306,7 +307,7 @@ usePage().props.auth.user.role;
 **Nguồn chuẩn + sơ đồ:** [`docs/IMPORT_EXPORT_RECONCILE.md`](IMPORT_EXPORT_RECONCILE.md).
 
 Một nút **Dữ liệu** → `*DataModal.vue` (3 tab: import · export · reconcile).  
-Pattern: `RiskImportModal`, `SprintDataModal` + composables `useRiskImport`, `useSprintData`.  
+Pattern: `BlockerDataModal` (3 tab Nhập/Xuất/Đối soát), `SprintDataModal` + composables `useBlockerImport`, `useSprintData`.  
 Knowledge Base: chỉ **xuất** qua `useKbExport.js` + `GET knowledge-base.export-data` (không modal 3 tab).
 
 ### Datagrid toolbar (bảng)

@@ -8,8 +8,6 @@ defineProps({
     selectedIds: { type: Array, default: () => [] },
     formatSize: { type: Function, required: true },
     fileExt: { type: Function, required: true },
-    canEdit: { type: Boolean, default: false },
-    canDelete: { type: Boolean, default: false },
     compact: { type: Boolean, default: false },
     canDrag: { type: Boolean, default: false },
     dropTargetId: { type: [Number, String, null], default: null },
@@ -20,9 +18,6 @@ const emit = defineEmits([
     'select-file',
     'toggle-row',
     'toggle-all',
-    'rename-item',
-    'preview-file',
-    'delete-item',
     'contextmenu-item',
     'drag-start-item',
     'drag-end-item',
@@ -69,14 +64,7 @@ const formatLabel = (item, fileExt) => {
     return (fileExt(item.original_name) || 'file').toLowerCase();
 };
 
-const showActions = (canEdit, canDelete) => canEdit || canDelete;
-
-const colCount = (compact, canEdit, canDelete) => {
-    let n = 3; // checkbox + name + size
-    if (!compact) n += 1; // format
-    if (showActions(canEdit, canDelete)) n += 1;
-    return n;
-};
+const colCount = (compact) => (compact ? 3 : 4);
 
 const isEmpty = (folders, files) => !folders.length && !files.length;
 </script>
@@ -91,10 +79,6 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
         <col
           v-if="!compact"
           class="w-[4.75rem]"
-        >
-        <col
-          v-if="showActions(canEdit, canDelete)"
-          class="w-[7.5rem]"
         >
       </colgroup>
       <thead>
@@ -120,18 +104,12 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           >
             Định dạng
           </th>
-          <th
-            v-if="showActions(canEdit, canDelete)"
-            class="px-1 py-2 text-right font-semibold"
-          >
-            Thao tác
-          </th>
         </tr>
       </thead>
       <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
         <tr v-if="isEmpty(folders, files)">
           <td
-            :colspan="colCount(compact, canEdit, canDelete)"
+            :colspan="colCount(compact)"
             class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400"
           >
             Chưa có tài liệu trong thư mục này
@@ -140,7 +118,7 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
         <tr
           v-for="folder in folders"
           :key="`folder-${folder.id}`"
-          class="group cursor-pointer bg-white transition hover:bg-amber-50/50 dark:bg-slate-900 dark:hover:bg-amber-950/15"
+          class="group cursor-pointer bg-white transition hover:bg-violet-50/50 dark:bg-slate-900 dark:hover:bg-violet-950/15"
           :class="dropTargetId === folder.id && !folder.is_category ? 'bg-brand/[0.08] ring-2 ring-inset ring-brand/30' : ''"
           :draggable="canDrag && !folder.is_category"
           @click="emit('select-folder', folder)"
@@ -165,11 +143,11 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           </td>
           <td class="min-w-0 px-1.5 py-2 align-top">
             <div class="flex min-w-0 items-start gap-2">
-              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-amber-50 ring-1 ring-amber-200/70 dark:bg-amber-950/40 dark:ring-amber-800/50">
+              <span class="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-md bg-violet-50 ring-1 ring-violet-200/70 dark:bg-violet-950/40 dark:ring-violet-800/50">
                 <AppIcon
                   :name="folder.icon || 'folder'"
                   :size="15"
-                  class="text-amber-600 dark:text-amber-400"
+                  class="text-violet-600 dark:text-violet-400"
                 />
               </span>
               <span
@@ -189,13 +167,6 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           >
             {{ formatLabel(folder, fileExt) }}
           </td>
-          <td
-            v-if="showActions(canEdit, canDelete)"
-            class="px-1 py-2 align-top"
-            @click.stop
-          >
-            <span class="sr-only">Chuột phải để mở thao tác</span>
-          </td>
         </tr>
 
         <tr
@@ -205,6 +176,7 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           :class="selectedId === file.id ? 'bg-brand/[0.04] dark:bg-brand/10' : ''"
           :draggable="canDrag"
           @click="emit('select-file', file)"
+          @contextmenu.prevent="emit('contextmenu-item', { item: file, event: $event })"
           @dragstart="canDrag && emit('drag-start-item', { item: file, event: $event })"
           @dragend="emit('drag-end-item')"
         >
@@ -242,49 +214,6 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
             class="px-1.5 py-2 align-top lowercase text-slate-500"
           >
             {{ formatLabel(file, fileExt) }}
-          </td>
-          <td
-            v-if="showActions(canEdit, canDelete)"
-            class="px-1 py-2 align-top"
-            @click.stop
-          >
-            <div class="flex items-center justify-end gap-0.5 opacity-70 transition group-hover:opacity-100">
-              <button
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-sky-50 hover:text-sky-700 dark:hover:bg-sky-950/40"
-                title="Xem trước"
-                @click="emit('preview-file', file)"
-              >
-                <AppIcon
-                  name="eye"
-                  :size="13"
-                />
-              </button>
-              <button
-                v-if="canEdit"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
-                title="Đổi tên"
-                @click="emit('rename-item', file)"
-              >
-                <AppIcon
-                  name="edit"
-                  :size="13"
-                />
-              </button>
-              <button
-                v-if="canDelete"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
-                title="Xoá"
-                @click="emit('delete-item', file)"
-              >
-                <AppIcon
-                  name="delete"
-                  :size="13"
-                />
-              </button>
-            </div>
           </td>
         </tr>
       </tbody>

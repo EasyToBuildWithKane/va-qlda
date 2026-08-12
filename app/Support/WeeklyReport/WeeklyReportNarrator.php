@@ -115,7 +115,7 @@ class WeeklyReportNarrator
 
         $topBlockers = $context->blockers->take(2);
         if ($topBlockers->isNotEmpty()) {
-            $signals[] = 'test case: '.$topBlockers->pluck('title')->implode(', ');
+            $signals[] = 'vướng mắc: '.$topBlockers->pluck('title')->implode(', ');
         }
 
         $changeRequests = $this->feedbackCount($feedback, 'change_request');
@@ -248,7 +248,7 @@ class WeeklyReportNarrator
             $inProgress = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::InProgress)->count();
             $inReview = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::InReview)->count();
             $lines[] = "Tiến độ Sprint: {$kpi['sprint_progress']}% ({$kpi['completed_tasks']}/{$kpi['total_tasks']})"
-                ." — đang làm {$inProgress}, review {$inReview}, bị chặn {$kpi['blocked']}, test case mở {$kpi['open_issues']}.";
+                ." — đang làm {$inProgress}, review {$inReview}, bị chặn {$kpi['blocked']}, vướng mắc mở {$kpi['open_issues']}.";
         }
 
         if ((int) $risk['summary']['high'] > 0) {
@@ -295,7 +295,7 @@ class WeeklyReportNarrator
             $owner = $blocker->owner?->full_name;
             $taskBit = $blocker->task?->title ? " (gắn «{$blocker->task->title}»)" : '';
             $ownerBit = $owner ? " — {$owner}" : ' — chưa gán phụ trách';
-            $lines[] = "Tháo test case: {$blocker->title}{$taskBit}{$ownerBit}.";
+            $lines[] = "Xử lý vướng mắc: {$blocker->title}{$taskBit}{$ownerBit}.";
         }
 
         $changeRequestFeedbacks = $context->feedbacks
@@ -479,7 +479,7 @@ class WeeklyReportNarrator
             $owner ? "phụ trách {$owner}" : 'chưa gán phụ trách',
         ]));
 
-        return 'Test case: '.$blocker->title.' ('.implode(' · ', $bits).').';
+        return 'Vướng mắc: '.$blocker->title.' ('.implode(' · ', $bits).')'.'.';
     }
 
     private function truncate(string $text, int $max): string

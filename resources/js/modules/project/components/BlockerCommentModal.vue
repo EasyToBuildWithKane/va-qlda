@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue';
 import Modal from '@/Components/Ui/Modal.vue';
 import CommentThread from '@/shared/ui/CommentThread.vue';
@@ -12,7 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['close']);
 
 const modalTitle = computed(() => {
-    if (!props.blocker?.code) return 'Trao đổi test case';
+    if (!props.blocker?.code) return 'Trao đổi vướng mắc';
     return `Trao đổi · ${props.blocker.code}`;
 });
 

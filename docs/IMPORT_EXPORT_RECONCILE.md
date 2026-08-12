@@ -31,7 +31,8 @@ flowchart TB
 
 | Domain | Composable | Modal | Backend import |
 |--------|------------|-------|----------------|
-| Test case (Blocker) | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
+| Vướng mắc (Blocker) | `useBlockerImport.js`, `useBlockerExport.js`, `useBlockerReconcile.js` | `BlockerDataModal.vue` | `BlockerController@import` + `ImportBlockerRequest` |
+| QA / Test case | `useTestCaseImport.js`, `useTestCaseExport.js`, `useTestCaseReconcile.js` | `TestCaseDataModal.vue` | `TestCaseController@import` + `ImportTestCaseRequest` |
 | Nhà cung cấp (CLM) | `useVendorData.js` (`useVendorExport.js` re-export xuất nhanh) | `VendorDataModal.vue` | `VendorController@import` + `ImportVendorRequest` |
 | Sprint / Task | `useSprintData.js` (`useSprintExport.js` re-export) | `SprintDataModal.vue` | `TaskController@import` + `ImportTaskRequest` (bulk, max 200) |
 | Đối soát sprint | `useSprintReconcile.js` | tab trong `SprintDataModal` | Client-side only |

@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, inject, watch, ref, nextTick } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
@@ -242,10 +242,10 @@ const projectBannerLabel = computed(() => {
 
 const modalTitle = computed(() => {
     if (!props.blocker) {
-        return createMode.value === 'bulk' ? 'Ghi nhận nhiều test case' : 'Ghi nhận test case';
+        return createMode.value === 'bulk' ? 'Ghi nhận nhiều vướng mắc' : 'Ghi nhận vướng mắc';
     }
-    if (props.focusResolution) return 'Hướng xử lý test case';
-    return 'Cập nhật test case';
+    if (props.focusResolution) return 'Hướng xử lý vướng mắc';
+    return 'Cập nhật vướng mắc';
 });
 
 const modalMaxWidth = computed(() => {
@@ -283,7 +283,7 @@ const statusLocked = computed(() => {
 
 const submitLabel = computed(() => {
     if (isResolutionFlow.value) return 'Lưu hướng xử lý';
-    if (!isEdit.value) return 'Ghi nhận test case';
+    if (!isEdit.value) return 'Ghi nhận vướng mắc';
     return 'Lưu thay đổi';
 });
 
@@ -327,7 +327,7 @@ const uploadPendingAttachments = (blockerId, successMessage) => {
         return;
     }
     uploadFilesToBlocker(blockerId, files, {
-        onPartialError: () => toast.warning('Đã lưu test case nhưng một số ảnh/file chưa tải được.'),
+        onPartialError: () => toast.warning('Đã lưu vướng mắc nhưng một số ảnh/file chưa tải được.'),
         onFinish: () => {
             clearPendingCreateFiles();
             if (successMessage) toast.success(successMessage);
@@ -391,7 +391,7 @@ const submit = () => {
         onSuccess: (page) => {
             const id = page.props.flash?.created_blocker_id;
             if (id && pendingCreateFiles.value.length) {
-                uploadPendingAttachments(id, 'Đã ghi nhận test case và ảnh minh chứng');
+                uploadPendingAttachments(id, 'Đã ghi nhận vướng mắc và ảnh minh chứng');
             } else {
                 clearPendingCreateFiles();
                 finishSave();

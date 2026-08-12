@@ -11,6 +11,8 @@ class ProjectShowDataLoader
         $project->load([
             'manager',
             'department',
+            'testSuites',
+            'testCases' => fn ($q) => $q->with(['suite', 'owner', 'lastRunBy'])->orderBy('suite_id')->orderBy('id'),
             'members' => fn ($q) => $q->wherePivot('is_active', true)->orderByDesc('project_member.joined_at'),
             'sprints' => fn ($q) => $q->withCount('tasks'),
             'epics',
@@ -32,6 +34,7 @@ class ProjectShowDataLoader
                 'comments' => fn ($c) => $c->whereNull('parent_id')->with(['author', 'replies.author'])->latest(),
             ])->orderBy('order_column'),
             'blockers' => fn ($q) => $q->with([
+                'task:id,title,status',
                 'raisedBy',
                 'owner',
                 'recheckedBy',

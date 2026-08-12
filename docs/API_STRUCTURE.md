@@ -203,18 +203,43 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | PUT | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@update | auth | Đổi tên (`title`), sửa nội dung text (`content`), notes, link, thay file, chuyển thư mục (`parent_id`); Resource có `preview_snippet` cho file text |
 | DELETE | `/projects/{project}/attachments/{attachment}` | ProjectAttachmentController@destroy | auth | Xóa tài liệu |
 
-### 2.11 Blockers
+### 2.11 Blockers (Vướng mắc)
 
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
-| GET | `/blockers` | BlockerController@index | auth | Danh sách test case |
-| POST | `/blockers` | BlockerController@store | auth | Tạo test case |
+| GET | `/blockers` | BlockerController@index | auth | Danh sách vướng mắc |
+| POST | `/blockers` | BlockerController@store | auth | Tạo vướng mắc |
 | POST | `/blockers/import` | BlockerController@import | auth | Nhập hàng loạt |
 | POST | `/blockers/bulk` | BlockerController@bulk | auth | Thao tác hàng loạt |
-| PUT | `/blockers/{blocker}` | BlockerController@update | auth | Sửa test case |
-| DELETE | `/blockers/{blocker}` | BlockerController@destroy | auth | Xóa test case |
-| POST | `/blockers/{blocker}/attachments` | BlockerController@storeAttachment | auth | Upload file |
-| DELETE | `/blockers/{blocker}/attachments/{attachment}` | BlockerController@destroyAttachment | auth | Xóa file |
+| PUT | `/blockers/{blocker}` | BlockerController@update | auth | Sửa vướng mắc |
+| DELETE | `/blockers/{blocker}` | BlockerController@destroy | auth | Xóa vướng mắc |
+| POST | `/blockers/{blocker}/recheck` | BlockerController@recheck | auth | Kiểm tra lại |
+| GET | `/blockers/evidence-link-preview` | BlockerController@evidenceLinkPreview | auth | Preview URL dẫn chứng |
+| GET | `/blockers/{blocker}/attachments/{attachment}/file` | BlockerAttachmentController@file | auth | Tải file |
+| POST | `/blockers/{blocker}/attachments` | BlockerAttachmentController@store | auth | Upload file |
+| DELETE | `/blockers/{blocker}/attachments/{attachment}` | BlockerAttachmentController@destroy | auth | Xóa file |
+
+### 2.11b Test Cases (QA)
+
+Route prefix: `/test-cases` · Route name prefix: `test-cases.` · Controller: `App\Http\Controllers\TestCase\TestCaseController`
+
+| Method | URI | Route name | Mô Tả |
+|---|---|---|---|
+| GET | `/test-cases` | `test-cases.index` | Danh sách test case (Inertia `TestCase/Index`) |
+| POST | `/test-cases` | `test-cases.store` | Tạo test case |
+| POST | `/test-cases/import` | `test-cases.import` | Nhập hàng loạt (max 200 rows) |
+| PUT | `/test-cases/{testCase}` | `test-cases.update` | Sửa test case |
+| DELETE | `/test-cases/{testCase}` | `test-cases.destroy` | Xóa test case |
+| POST | `/test-cases/{testCase}/execute` | `test-cases.execute` | Thực thi kiểm thử (ghi TestCaseRun + cập nhật last_*) |
+| POST | `/test-cases/suites` | `test-cases.suites.store` | Tạo bộ test (TestSuite) |
+| PUT | `/test-cases/suites/{suite}` | `test-cases.suites.update` | Sửa bộ test |
+| DELETE | `/test-cases/suites/{suite}` | `test-cases.suites.destroy` | Xóa bộ test |
+
+**Query `GET /test-cases`:** `project_id`, `suite_id`, `status`, `priority`, `last_result` (`pass|fail|blocked|skipped|not_run`), `owner_id`, `q`, `per_page`.
+
+**Inertia props:** `testCases` (paginated `TestCaseResource`), `summary` `{total, ready, pass, fail, not_run}`, `options` `{projects, employees, status, priority, runResult}`, `can.create`.
+
+**Execute payload:** `result` (required, enum `TestCaseRunResult`), `actual_result`, `note`, `create_blocker` (bool), `blocker_title` (required nếu `create_blocker=true && result=fail`). Khi `result=fail && create_blocker=true`: tạo `Blocker` liên kết và set `blocker_id` trên TestCase.
 
 ### 2.12 Feedback
 

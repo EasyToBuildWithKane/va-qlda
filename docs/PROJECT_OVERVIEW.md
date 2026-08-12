@@ -12,7 +12,8 @@ VA Workspace là nền tảng quản lý công việc và đánh giá hiệu su�
 |---|---|
 | Theo dõi tiến độ dự án phân tán | Quản lý dự án tập trung với Sprint, Task, Gantt |
 | Không có kênh báo cáo ngày chuẩn hóa | Module Daily Report với chấm điểm và xếp loại |
-| Khó quản lý test case (Blocker) | Module Blocker với tracking mức độ nghiêm trọng |
+| Khó quản lý vướng mắc / rủi ro dự án | Module Blocker (UI: Vướng mắc) với severity + recheck |
+| Thiếu bộ kiểm thử QA theo dự án | Module TestCase / TestSuite (UI: QA / Test case) |
 | Thiếu luồng phản hồi từ nhân viên | Module Feedback & Bug Report |
 | Không đo được chi phí nhân công thực tế | Worklog gắn rate theo từng dự án |
 | Quản lý nhân sự theo phòng ban | Module Department + Employee linking |
@@ -37,7 +38,8 @@ VA Workspace
 │   ├── Documents   Tài liệu dự án đính kèm
 │   └── Members     Quản lý thành viên & role trong dự án
 ├── [DAILY REPORT]  Báo cáo ngày (tạo → nộp → chấm điểm → xếp loại)
-├── [BLOCKER]       Quản lý test case / Blocker (RSK-001)
+├── [BLOCKER]       Vướng mắc / Blocker (RSK-001) — `/blockers`
+├── [TEST CASE]     QA / Test case (TC-001) — `/test-cases` → docs/TEST_CASE_QA.md
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)

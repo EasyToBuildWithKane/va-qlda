@@ -21,7 +21,7 @@ return [
     // Duyệt (chấm điểm) và trả báo cáo (reject) trên /daily-reports/review
     'daily_report_review' => env('TELEGRAM_DAILY_REPORT_REVIEW', true),
 
-    // Test case chuyển sang Đã giải quyết / Đã đóng trên /blockers — nhóm chat riêng
+    // vướng mắc chuyển sang Đã giải quyết / Đã đóng trên /blockers — nhóm chat riêng
     'blocker_resolved' => env('TELEGRAM_BLOCKER_RESOLVED', true),
 
     'blocker_chat_id' => env('TELEGRAM_BLOCKER_CHAT_ID'),

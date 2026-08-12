@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { ref, computed, onMounted, watch, toRef, defineAsyncComponent } from 'vue';
 import { Head, router, usePage } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -14,7 +14,8 @@ import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
 import DeadlineBanner from '@/modules/project/components/Dashboard/DeadlineBanner.vue';
-import RiskIssueDataTable from '@/modules/project/components/Dashboard/RiskIssueDataTable.vue';
+import ProjectBlockerPanel from '@/modules/project/components/Dashboard/ProjectBlockerPanel.vue';
+import ProjectTestCasePanel from '@/modules/testcase/components/ProjectTestCasePanel.vue';
 import ProjectFeedbackPanel from '@/modules/project/components/Dashboard/ProjectFeedbackPanel.vue';
 import ActivityFeed from '@/modules/project/components/Dashboard/ActivityFeed.vue';
 import ProjectOverviewCard from '@/modules/project/components/Dashboard/ProjectOverviewCard.vue';
@@ -46,6 +47,9 @@ const props = defineProps({
     activityFeed: { type: Array, default: () => [] },
     weeklyReports: { type: Object, default: () => ({ sprint: null, weeks: [], current_week: 1 }) },
     weeklyReport: { type: Object, default: null },
+    testCases: { type: Array, default: () => [] },
+    testSuites: { type: Array, default: () => [] },
+    testCaseSummary: { type: Object, default: () => ({}) },
 });
 
 const toast = useToast();
@@ -72,7 +76,8 @@ const tabs = [
     { key: 'timeline', label: 'Lịch dự án', icon: 'calendar' },
     { key: 'board', label: 'Kanban', icon: 'board' },
     { key: 'sprints', label: 'Sprint', icon: 'sprint' },
-    { key: 'blockers', label: 'Test case', icon: 'blockers' },
+    { key: 'blockers', label: 'Vướng mắc', icon: 'blockers' },
+    { key: 'qa', label: 'QA / Test case', icon: 'check-circle' },
     { key: 'feedback', label: 'Phản hồi', icon: 'feedback' },
     { key: 'weekly', label: 'Báo cáo tuần', icon: 'weekly' },
 ];
@@ -90,6 +95,7 @@ const editingTask = ref(null);
 const detailTask = ref(null);
 const taskPanelTab = ref('overview');
 const taskDefaultStatus = ref('todo');
+const taskDefaultDates = ref({ start: null, due: null });
 const sprintModal = ref(false);
 const editingSprint = ref(null);
 const pid = props.project.id;
@@ -108,7 +114,19 @@ const closeTaskDetail = () => {
     taskPanelTab.value = 'overview';
     syncTaskInUrl();
 };
-const openTaskModal = (t = null, status = 'todo') => { editingTask.value = t; taskDefaultStatus.value = status; taskModal.value = true; };
+const openTaskModal = (t = null, status = 'todo', dates = null) => {
+    editingTask.value = t;
+    taskDefaultStatus.value = status;
+    taskDefaultDates.value = {
+        start: dates?.start ?? null,
+        due: dates?.end ?? dates?.due ?? null,
+    };
+    taskModal.value = true;
+};
+const closeTaskModal = () => {
+    taskModal.value = false;
+    taskDefaultDates.value = { start: null, due: null };
+};
 const syncTaskInUrl = () => {
     const u = new URL(window.location.href);
     if (detailTask.value?.id) {
@@ -272,11 +290,11 @@ const onBoardMoveWithLog = (payload) => {
     onBoardMove(payload);
 };
 
-const onRiskSaved = ({ type, title, count }) => {
+const onBlockerSaved = ({ type, title, count }) => {
     if (type === 'created') {
-        pushActivity('issue_opened', `Mở test case mới: ${title}`);
+        pushActivity('issue_opened', `Ghi nhận vướng mắc mới: ${title}`);
     } else if (type === 'imported') {
-        pushActivity('issue_imported', `Nhập ${count ?? 0} test case từ file Excel`);
+        pushActivity('issue_imported', `Nhập ${count ?? 0} vướng mắc từ file Excel`);
     }
 };
 
@@ -316,7 +334,7 @@ const onSprintSaved = () => {
         aria-label="Tab dự án"
       >
         <div
-          class="mx-auto grid w-full max-w-[100vw] grid-cols-4 gap-0.5 p-1.5 md:grid-cols-8 md:gap-1 md:p-2"
+          class="mx-auto grid w-full max-w-[100vw] grid-cols-3 gap-0.5 p-1.5 sm:grid-cols-5 md:grid-cols-9 md:gap-1 md:p-2"
           role="tablist"
         >
           <button
@@ -394,7 +412,7 @@ const onSprintSaved = () => {
             :can-manage="canManage"
             :can-contribute="canContribute"
             :revert-task-id="ganttRevertPreviewId"
-            @create-task="openTaskModal()"
+            @create-task="(payload) => openTaskModal(null, 'todo', payload)"
             @select-task="(id) => openTaskDetail(tasks.find((t) => t.id == id))"
             @date-change="onGanttDate"
           />
@@ -501,13 +519,13 @@ const onSprintSaved = () => {
           />
         </div>
 
-        <!-- ===== BLOCKERS ===== -->
+        <!-- ===== VƯỚNG MẮC ===== -->
         <div
           v-show="tab === 'blockers'"
           class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
         >
           <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
-            <RiskIssueDataTable
+            <ProjectBlockerPanel
               layout="page"
               :project-id="project.id"
               :project-code="project.code"
@@ -518,7 +536,32 @@ const onSprintSaved = () => {
               :status-options="enums.blockerStatus || []"
               :can-manage="canManage"
               :can-contribute="canContribute"
-              @saved="onRiskSaved"
+              @saved="onBlockerSaved"
+            />
+          </div>
+        </div>
+
+        <!-- ===== QA / TEST CASE ===== -->
+        <div
+          v-show="tab === 'qa'"
+          class="h-full w-full min-w-0 overflow-x-hidden overflow-y-auto dark:bg-slate-950"
+        >
+          <div class="w-full min-w-0 p-4 sm:p-5 lg:p-6">
+            <ProjectTestCasePanel
+              v-if="tab === 'qa'"
+              layout="page"
+              :project-id="project.id"
+              :project-code="project.code"
+              :project-name="project.name"
+              :test-cases="testCases"
+              :test-suites="testSuites"
+              :summary="testCaseSummary"
+              :employees="options.employees"
+              :status-options="enums.testCaseStatus || []"
+              :priority-options="enums.testCasePriority || []"
+              :run-result-options="enums.testCaseRunResult || []"
+              :can-manage="canManage"
+              :can-contribute="canContribute"
             />
           </div>
         </div>
@@ -599,7 +642,9 @@ const onSprintSaved = () => {
       :priority-options="enums.taskPriority || []"
       :phase-options="enums.taskPhase || []"
       :default-status="taskDefaultStatus"
-      @close="taskModal = false"
+      :initial-start-date="taskDefaultDates.start"
+      :initial-due-date="taskDefaultDates.due"
+      @close="closeTaskModal"
       @saved="onTaskSaved"
     />
     <SprintFormModal

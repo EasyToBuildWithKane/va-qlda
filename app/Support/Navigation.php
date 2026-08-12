@@ -351,9 +351,15 @@ class Navigation
                         'status' => 'live',
                     ],
                     [
-                        'label' => 'Test case',
+                        'label' => 'Vướng mắc',
                         'icon' => 'blockers',
                         'href' => '/blockers',
+                        'status' => 'live',
+                    ],
+                    [
+                        'label' => 'QA / Test case',
+                        'icon' => 'check-circle',
+                        'href' => '/test-cases',
                         'status' => 'live',
                     ],
                     [

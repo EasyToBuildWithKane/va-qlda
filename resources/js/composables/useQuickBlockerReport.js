@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue';
+﻿import { computed, ref } from 'vue';
 import { usePage } from '@inertiajs/vue3';
 
 const PROJECT_SHOW_PATH = /^\/projects\/(\d+)$/;
@@ -10,7 +10,7 @@ export const PROJECT_SHOW_TAB_LABELS = {
     timeline: 'Tiến độ / Gantt',
     board: 'Kanban',
     sprints: 'Sprint',
-    blockers: 'Test case',
+    blockers: 'vướng mắc',
     feedback: 'Phản hồi',
 };
 

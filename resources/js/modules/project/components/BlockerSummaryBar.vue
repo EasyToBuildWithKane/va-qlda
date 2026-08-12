@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
 
@@ -29,7 +29,7 @@ const cards = computed(() => {
             value: open,
             tone: 'amber',
             icon: 'blockers',
-            sub: 'Test case chưa đóng',
+            sub: 'vướng mắc chưa đóng',
             interactive: true,
             payload: { status: 'active', severity: '', recheck_pending: '' },
         },
@@ -74,8 +74,8 @@ function onSelect(card) {
 
 <template>
   <KpiSummaryStrip
-    aria-label="Thống kê trường hợp kiểm thử"
-    heading="Tổng quan trường hợp kiểm thử hệ thống"
+    aria-label="Thống kê Vướng mắc"
+    heading="Tổng quan Vướng mắc hệ thống"
     grid-class="grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
     :cards="cards"
     :active-key="activeKey"

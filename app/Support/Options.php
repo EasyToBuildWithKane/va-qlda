@@ -14,6 +14,9 @@ use App\Support\Enums\SprintStatus;
 use App\Support\Enums\TaskPhase;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use App\Support\Enums\TestCasePriority;
+use App\Support\Enums\TestCaseRunResult;
+use App\Support\Enums\TestCaseStatus;
 
 /**
  * Shared option payloads for Inertia forms/pickers.
@@ -78,6 +81,9 @@ class Options
             'feedbackCategory' => FeedbackCategory::options(),
             'feedbackStatus' => FeedbackStatus::options(),
             'projectAttachmentCategory' => ProjectAttachmentCategory::options(),
+            'testCaseStatus' => TestCaseStatus::options(),
+            'testCasePriority' => TestCasePriority::options(),
+            'testCaseRunResult' => TestCaseRunResult::options(),
         ];
     }
 }

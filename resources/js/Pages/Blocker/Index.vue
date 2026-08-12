@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { reactive, ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import AppLayout from '@/Layouts/AppLayout.vue';
@@ -78,7 +78,7 @@ const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 
 const BLOCKER_TABLE_COLUMNS = [
     { key: 'code', label: 'Mã' },
-    { key: 'title', label: 'Test case' },
+    { key: 'title', label: 'vướng mắc' },
     { key: 'task', label: 'Công việc', default: false },
     { key: 'severity', label: 'Mức độ' },
     { key: 'status', label: 'Trạng thái' },
@@ -412,7 +412,7 @@ function markResolved(b) {
 }
 
 const remove = async (b) => {
-    if (await dialog.confirm({ title: 'Xoá test case', message: `Xoá "${b.title}"?`, tone: 'danger', confirmText: 'Xoá' }))
+    if (await dialog.confirm({ title: 'Xoá vướng mắc', message: `Xoá "${b.title}"?`, tone: 'danger', confirmText: 'Xoá' }))
         router.delete(`/blockers/${b.id}`, { preserveScroll: true });
 };
 
@@ -465,12 +465,12 @@ function onBlockerQuickFilter(payload) {
 </script>
 
 <template>
-  <Head title="Trường hợp kiểm thử" />
+  <Head title="Vướng mắc" />
   <AppLayout>
     <template #header>
       <PageHeader
-        title="Trường hợp kiểm thử cần xử lý"
-        subtitle="Theo dõi và quản lý các test case trong dự án"
+        title="Vướng mắc cần xử lý"
+        subtitle="Theo dõi và quản lý các vướng mắc trong dự án"
         icon="blockers"
         icon-color="amber"
         :badge="summary.open ?? null"
@@ -485,7 +485,7 @@ function onBlockerQuickFilter(payload) {
             name="add"
             :size="15"
           />
-          Ghi nhận test case
+          Ghi nhận vướng mắc
         </button>
       </PageHeader>
     </template>
@@ -778,7 +778,7 @@ function onBlockerQuickFilter(payload) {
                 v-if="isColVisible('title')"
                 class="px-2 py-2 text-left align-middle"
               >
-                Test case
+                vướng mắc
               </th>
               <th
                 v-if="isColVisible('task')"
@@ -1192,7 +1192,7 @@ function onBlockerQuickFilter(payload) {
         v-else
         class="px-4 py-14 text-center text-sm text-slate-400"
       >
-        Không có test case phù hợp bộ lọc.
+        Không có vướng mắc phù hợp bộ lọc.
       </div>
 
       <DatagridPaginationFooter

@@ -52,7 +52,7 @@ class UpdateBlockerRequest extends FormRequest
             if ($blocker->status->isTerminal() && $newStatus !== $blocker->status->value) {
                 $validator->errors()->add(
                     'status',
-                    'Test case đã giải quyết hoặc đã đóng — không thể đổi sang trạng thái khác.',
+                    'vướng mắc đã giải quyết hoặc đã đóng — không thể đổi sang trạng thái khác.',
                 );
             }
         });

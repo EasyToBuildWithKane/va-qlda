@@ -67,7 +67,7 @@ flowchart LR
 | Support | Activity, notification fan-out, email queue | `ProjectActivityLogger`, `NotificationDispatcher`, `TaskEmailService` |
 | Frontend pages | 4 page Inertia | `resources/js/Pages/Project/` |
 | Frontend module | Sprint, Dashboard, Documents, … | `resources/js/modules/project/` |
-| Composables | Excel sprint, export danh mục, dashboard | `resources/js/composables/useProject*.js`, `useSprint*.js`, `useRisk*.js` |
+| Composables | Excel sprint, export danh mục, dashboard, vướng mắc, QA | `resources/js/composables/useProject*.js`, `useSprint*.js`, `useBlocker*.js`, `useTestCase*.js` |
 
 ### 2.2 Use Case (dự án)
 
@@ -215,11 +215,12 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file, gồm **Tài liệu Dev**); kéo thả upload/chuyển `parent_id` (list/grid); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; **preview `.md` (Markdown) / `.html` (iframe sandbox)**; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS, fit-width, bảng/ảnh không tràn, phân trang/cuộn; Excel bảng phân trang dòng — không Office Online); list `table-fixed` (Tên · Dung lượng · Định dạng · Thao tác — ẩn Ngày tạo / Người tạo); cột đính kèm task hẹp |
-| Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive browse; breadcrumb nav; lavender folder cards; chuột phải + bulk chọn; tìm trong thư mục; kéo thả upload/chuyển `parent_id`; preview Word/Excel client-side; cột đính kèm task hẹp |
+| Lịch dự án | `timeline` | `ProjectCalendar` + `useProjectCalendar` — Tháng / Tuần / Ngày (timeGrid) / Danh sách; tìm + lọc status/sprint/assignee; KPI chip lọc nhanh; hover card (avatar, tiến độ); cột **Chưa lên lịch**; bấm/kéo ô → tạo task (preset ngày); kéo event → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
-| Test case | `blockers` | `RiskIssueDataTable`, `RiskImportModal` |
+| Vướng mắc | `blockers` | `ProjectBlockerPanel`, `BlockerDataModal` |
+| QA / Test case | `qa` | `ProjectTestCasePanel`, `TestCaseDataModal` |
 | Phản hồi | `feedback` | `ProjectFeedbackPanel` |
 | Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` |
 
@@ -311,27 +312,41 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 
 **Tạo file trống:** chỉ `.txt` — `is_new_file`, `file_name`, `file_type=txt` — ghi file lên disk `public` qua `ProjectAttachmentNewFile`, activity `file_created`.
 
-**Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha. **Kéo thả:** file OS vào panel / thẻ thư mục → upload vào đích; kéo item nội bộ sang thư mục (list/grid) → `PUT parent_id`.
+**Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha. **Kéo thả:** file OS vào panel / thẻ thư mục → upload vào đích; kéo item nội bộ sang thư mục (list/grid) → `PUT parent_id`. **Chuột phải** thư mục/file/link → menu (không ZIP thư mục). **Bulk:** chọn nhiều → chuyển / xóa / tải file. **Tìm** client trong thư mục hiện tại.
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** toolbar gọn (`Tải lên` primary → `Thêm` ▾ thư mục/file/link); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`; **chuột phải** thư mục → menu: tải xuống / tạo thư mục / tải lên / đổi tên / chuyển tới / xoá), phải «Đính kèm công việc». Thư mục trống: nhãn ngắn, không hint CTA. Preview full-screen: đổi tên inline; sửa text; **`.md`** / **`.html`**; Word/Excel client-side. Chi tiết drawer. Modal tạo `max-w-sm`.
+**UI tab Tài liệu:** toolbar (`Tải lên` · `Thêm` ▾); breadcrumb là nav chính; thẻ folder lavender + file meta tách ngày/size; layout hai panel (trái tài liệu dự án, phải đính kèm task). Empty: nhãn ngắn + CTA Tải lên khi có quyền. Preview full-screen; chi tiết drawer.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 
 ---
 
-## 12. Test case & phản hồi (trong dự án)
+## 12. Vướng mắc, QA / Test case & phản hồi (trong dự án)
 
-### 12.1 Test case (Blocker)
+### 12.1 Vướng mắc
 
-Tab **Test case** dùng dữ liệu `blockers` đã load theo `project_id`. CRUD qua `BlockerController` (`/blockers`, …) — policy blocker + quyền dự án.
+Tab **Vướng mắc** — `blockers` đã load theo `project_id`. CRUD qua `BlockerController` (`/blockers`, …). Panel: `ProjectBlockerPanel.vue`. Tổng quan toàn hệ thống: `/blockers` (`Blocker/Index.vue`).
 
-**Toolbar tab Test case:** Lọc · Cột · **Dữ liệu** (dropdown: xuất Excel/CSV theo bộ lọc hiện tại; «Nhập từ Excel…» mở modal khi `canManage`) — không tách nút Nhập/Xuất riêng (`RiskIssueDataTable`, `layout="page"`). Nút **Thêm test case** (`canManage`) cùng hàng toolbar, căn phải (`ml-auto`), `h-10` — không đặt trên `PageHeader`.
+### 12.2 QA / Test case
 
-**Nhập Excel:** `RiskImportModal` + `useRiskImport.js` → `POST /blockers/import` (pattern production — xem `IMPORT_EXPORT_RECONCILE.md`).
+Tab **QA / Test case** — model `TestCase`, model `TestSuite`. Props từ controller: `testCases`, `testSuites`, `testCaseSummary` (keys: `total`, `ready`, `pass`, `fail`, `not_run`). Enum options từ `options.enums.testCaseStatus / testCasePriority / testCaseRunResult`.
 
-### 12.2 Phản hồi
+**Component chính:** `modules/testcase/components/ProjectTestCasePanel.vue` — thay thế stub LT-QA-01. Nhúng trong `Pages/Project/Show.vue` tab `qa`.
+
+**Tính năng:**
+- KPI strip `TestCaseSummaryBar.vue` (5 thẻ: tổng · sẵn sàng · đạt · không đạt · chưa chạy) — lọc nhanh.
+- Datagrid client-filter: tìm · trạng thái · ưu tiên · bộ test · kết quả · người phụ trách.
+- Expand dòng: xem preconditions, steps, expected_result.
+- Nút **Dữ liệu** → `TestCaseDataModal.vue` (3 tab: Nhập / Xuất / Đối soát).
+- `TestCaseFormModal.vue` — tạo/sửa (steps editor dạng list `{step, expected}`).
+- `TestCaseExecuteModal.vue` — ghi kết quả + tạo blocker khi fail.
+
+**Routes:** xem `docs/TEST_CASE_QA.md`.
+
+**Trang Index toàn hệ thống:** `/test-cases` → `Pages/TestCase/Index.vue` (server-side filter, phân trang).
+
+### 12.3 Phản hồi
 
 Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can.feedbackCreate`. Danh sách toàn hệ thống (lọc theo dự án): `/feedback?project_id={id}` qua menu Phản hồi.
 
@@ -356,7 +371,7 @@ Tab **Phản hồi** — `feedbacks` + `feedbackSummary`. Tạo mới cần `can
 |---|---|---|---|
 | Danh mục dự án | `useProjectListExport` | Nút Xuất Index | Client-only |
 | Sprint / task | `useSprintData.js`, `useSprintExport.js`, `useSprintReconcile.js` | `SprintDataModal.vue` (3 tab) | **Import:** `POST projects.tasks.import` (bulk ✅) |
-| Test case tab dự án | `useRiskImport.js`, `useRiskExport.js` | `RiskImportModal.vue` | `POST /blockers/import` |
+| Test case tab dự án | `useTestCaseImport.js`, `useTestCaseExport.js`, `useTestCaseReconcile.js` | `TestCaseDataModal.vue` (3 tab) | `POST /test-cases/import` (bulk ✅) |
 | Phản hồi tab dự án | `useFeedbackExport.js` | Nút **Dữ liệu** · `ProjectFeedbackPanel` | Client-only (xuất theo lọc) |
 
 Marker sprint Excel: `VA_SPRINT_IMPORT_V1` — chi tiết cột trong composable.

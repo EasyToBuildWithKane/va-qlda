@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
@@ -33,11 +33,11 @@ const cards = computed(() => {
         },
         {
             key: 'open_blockers',
-            label: 'Test case đang mở',
+            label: 'vướng mắc đang mở',
             value: openBlockers,
             tone: openBlockers > 0 ? 'amber' : 'emerald',
             icon: 'blockers',
-            sub: openBlockers > 0 ? 'Cần theo dõi xử lý' : 'Không có test case mở',
+            sub: openBlockers > 0 ? 'Cần theo dõi xử lý' : 'Không có vướng mắc mở',
             interactive: true,
             href: '/blockers',
         },

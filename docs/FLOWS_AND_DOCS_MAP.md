@@ -118,7 +118,7 @@ flowchart TB
   NAV[Navigation.php groups]
   NAV --> O[overview → /dashboard]
   NAV --> CN[congnghe → /congnghe, de-xuat, proposals, quan-tri]
-  NAV --> PJ[projects → /projects, /blockers]
+  NAV --> PJ[projects → /projects, /blockers, /test-cases]
   NAV --> DR[daily → /daily-reports/today, /daily-reports]
   NAV --> KN[knowledge → /knowledge-base, blog]
   NAV --> AI[ai → /ai-accounts/*]
@@ -217,14 +217,24 @@ stateDiagram-v2
 
 Use cases: `app/Application/DailyReport/`. Chi tiết: [`DAILY_REPORT.md`](./DAILY_REPORT.md).
 
-### 7.3 Test case / nhập Excel
+### 7.3 Vướng mắc / nhập Excel
 
 ```mermaid
 flowchart LR
-  T[Toolbar Dữ liệu] --> M[RiskImportModal 3 tab]
+  T[Toolbar Dữ liệu] --> M[BlockerDataModal 3 tab]
   M --> I[Nhập bulk POST /blockers/import]
   M --> E[Xuất styled xlsx]
-  M --> R[useSprintReconcile / useRiskReconcile]
+  M --> R[useBlockerReconcile]
+```
+
+### 7.3b QA Test case / nhập Excel
+
+```mermaid
+flowchart LR
+  T2[Toolbar Dữ liệu] --> M2[TestCaseDataModal 3 tab]
+  M2 --> I2[Nhập bulk POST /test-cases/import]
+  M2 --> E2[Xuất styled xlsx]
+  M2 --> R2[useTestCaseReconcile]
 ```
 
 Chi tiết: `IMPORT_EXPORT_RECONCILE.md`.

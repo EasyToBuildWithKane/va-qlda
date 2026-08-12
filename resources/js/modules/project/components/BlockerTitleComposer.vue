@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 defineProps({
     modelValue: { type: String, default: '' },
     error: { type: String, default: '' },
@@ -15,7 +15,7 @@ defineEmits(['update:modelValue']);
 
 const placeholders = {
     single: 'VD: API đăng nhập trả lỗi 500 khi tải cao…',
-    'bulk-compose': 'Mỗi dòng một test case — dán từ Excel được',
+    'bulk-compose': 'Mỗi dòng một vướng mắc — dán từ Excel được',
 };
 </script>
 
@@ -26,7 +26,7 @@ const placeholders = {
   >
     <label class="label flex items-center justify-between gap-2">
       <span>
-        Đề test case
+        Đề vướng mắc
         <span class="text-rose-600">*</span>
       </span>
       <span class="tabular-nums text-[11px] font-normal text-slate-400">
@@ -63,7 +63,7 @@ const placeholders = {
       </span>
       <div class="min-w-0 flex-1">
         <h3 class="text-sm font-semibold text-slate-900">
-          {{ variant === 'bulk-compose' ? 'Danh sách đề test case' : 'Đề test case' }}
+          {{ variant === 'bulk-compose' ? 'Danh sách đề vướng mắc' : 'Đề vướng mắc' }}
           <span class="text-rose-600">*</span>
         </h3>
       </div>

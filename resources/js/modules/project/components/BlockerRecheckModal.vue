@@ -1,4 +1,4 @@
-<script setup>
+﻿<script setup>
 import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import Modal from '@/Components/Ui/Modal.vue';
@@ -58,7 +58,7 @@ function submit() {
     <template v-if="blocker">
       <div class="rounded-lg border border-slate-200 bg-slate-50/90 px-3 py-2.5">
         <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          Test case
+          vướng mắc
         </p>
         <p class="mt-0.5 text-sm font-semibold text-slate-900">
           {{ blocker.title }}
@@ -90,7 +90,7 @@ function submit() {
             name="recheck-result"
           >
           <span>
-            <span class="block text-sm font-medium text-emerald-900">Đạt — đóng test case</span>
+            <span class="block text-sm font-medium text-emerald-900">Đạt — đóng vướng mắc</span>
             <span class="block text-xs text-emerald-800/80">Xử lý đúng yêu cầu, chuyển sang đã đóng.</span>
           </span>
         </label>

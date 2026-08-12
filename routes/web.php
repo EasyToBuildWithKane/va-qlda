@@ -27,7 +27,8 @@ Route::middleware(['auth'])->group(function () {
         'platform',        // performance, onboarding, notifications, audit
         'daily-reports',   // báo cáo ngày
         'projects',        // dự án, sprint, task, worklog, member
-        'blockers',        // test case (Blocker)
+        'blockers',        // vướng mắc (Blocker)
+        'test-cases',      // QA / test case
         'contracts',       // quản lý hợp đồng (CLM)
         'feedback',        // phản hồi
         'knowledge-base',  // tri thức

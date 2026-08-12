@@ -19,6 +19,8 @@ use App\Http\Resources\ProjectListResource;
 use App\Http\Resources\ProjectResource;
 use App\Http\Resources\SprintResource;
 use App\Http\Resources\TaskResource;
+use App\Http\Resources\TestCaseResource;
+use App\Http\Resources\TestSuiteResource;
 use App\Models\Feedback;
 use App\Models\Project;
 use App\Models\WeeklyReport;
@@ -29,6 +31,8 @@ use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\SprintStatus;
 use App\Support\Enums\TaskStatus;
+use App\Support\Enums\TestCaseRunResult;
+use App\Support\Enums\TestCaseStatus;
 use App\Support\NotificationDispatcher;
 use App\Support\Options;
 use App\Support\ProjectActivityFeedBuilder;
@@ -133,6 +137,15 @@ class ProjectController extends Controller
             'tasks' => TaskResource::collection($project->tasks)->resolve(),
             'blockers' => BlockerResource::collection($project->blockers)->resolve(),
             'feedbacks' => FeedbackResource::collection($project->feedbacks)->resolve(),
+            'testCases' => TestCaseResource::collection($project->testCases)->resolve(),
+            'testSuites' => TestSuiteResource::collection($project->testSuites)->resolve(),
+            'testCaseSummary' => [
+                'total' => $project->testCases->count(),
+                'ready' => $project->testCases->filter(fn ($tc) => $tc->status === TestCaseStatus::Ready)->count(),
+                'pass' => $project->testCases->filter(fn ($tc) => $tc->last_result === TestCaseRunResult::Pass->value)->count(),
+                'fail' => $project->testCases->filter(fn ($tc) => $tc->last_result === TestCaseRunResult::Fail->value)->count(),
+                'not_run' => $project->testCases->filter(fn ($tc) => $tc->isNotRun())->count(),
+            ],
             'feedbackSummary' => [
                 'open' => (clone $feedbackQuery)->open()->count(),
                 'resolved' => (clone $feedbackQuery)->where('status', FeedbackStatus::Resolved->value)->count(),

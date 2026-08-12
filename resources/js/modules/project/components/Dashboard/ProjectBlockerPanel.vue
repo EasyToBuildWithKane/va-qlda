@@ -4,35 +4,38 @@ import { router } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue';
-import RiskImportModal from '@/modules/project/components/Dashboard/RiskImportModal.vue';
-import RiskIssueDetailPanel from '@/modules/project/components/Dashboard/RiskIssueDetailPanel.vue';
+import BlockerRecheckModal from '@/modules/project/components/BlockerRecheckModal.vue';
+import BlockerDataModal from '@/modules/project/components/Dashboard/BlockerDataModal.vue';
+import BlockerInlineDetail from '@/modules/project/components/Dashboard/BlockerInlineDetail.vue';
+import BlockerSummaryBar from '@/modules/project/components/BlockerSummaryBar.vue';
 import {
-    RISK_TABLE_COLUMNS,
-    loadRiskTableColumns,
-    RISK_TABLE_COLS_KEY,
-} from '@/modules/project/components/Dashboard/riskTableColumns';
+    BLOCKER_TABLE_COLUMNS,
+    loadBlockerTableColumns,
+    BLOCKER_TABLE_COLS_KEY,
+} from '@/modules/project/components/Dashboard/blockerTableColumns';
 import { date } from '@/composables/useFormat';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import {
-    useRiskTable,
-    RISK_SEVERITY_DOT,
-    RISK_SEVERITY_TEXT,
-    RISK_STATUS_TEXT,
-} from '@/composables/useRiskTable';
+    useBlockerTable,
+    BLOCKER_SEVERITY_DOT,
+    BLOCKER_SEVERITY_TEXT,
+    BLOCKER_STATUS_TEXT,
+} from '@/composables/useBlockerTable';
 import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useFixedDropdownAnchor } from '@/shared/composables/useFixedDropdownAnchor';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
-const RISK_FILTER_CONTROLS_DEF = [
+const BLOCKER_FILTER_CONTROLS_DEF = [
     { key: 'status', label: 'Trạng thái', default: false },
     { key: 'severity', label: 'Mức độ', default: false },
     { key: 'owner', label: 'Người phụ trách', default: false },
 ];
-const VISIBLE_FILTERS_KEY = 'va-workspace.project-risks.visible-filters.v2';
+const VISIBLE_FILTERS_KEY = 'va-workspace.project-blockers.visible-filters.v3';
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm dark:border-slate-600 dark:bg-slate-800';
 
 const TERMINAL_STATUS = new Set(['resolved', 'closed']);
@@ -48,8 +51,10 @@ const props = defineProps({
     canManage: { type: Boolean, default: false },
     canContribute: { type: Boolean, default: false },
     loading: { type: Boolean, default: false },
-    /** `page` = tab Test case trên Project Show (ẩn tiêu đề panel, nút tạo trên toolbar) */
+    /** `page` = tab Vướng mắc trên Project Show */
     layout: { type: String, default: 'panel' },
+    /** KPI summary từ controller (aggregate) — dùng cho strip nhúng */
+    blockerSummary: { type: Object, default: () => ({}) },
 });
 
 const canEditRow = (row) => props.canManage || row.can?.update;
@@ -61,11 +66,12 @@ const dialog = useDialog();
 const toast = useToast();
 const panelRef = ref(null);
 const highlight = ref(false);
-const table = useRiskTable(toRef(() => props.blockers));
+const table = useBlockerTable(toRef(() => props.blockers));
 const search = table.search;
 const filterStatus = table.filterStatus;
 const filterSeverity = table.filterSeverity;
 const filterOwner = table.filterOwner;
+const filterRecheckPending = table.filterRecheckPending;
 
 const {
     visibleFilters,
@@ -75,17 +81,16 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(RISK_FILTER_CONTROLS_DEF, VISIBLE_FILTERS_KEY);
+} = useVisibleFilterControls(BLOCKER_FILTER_CONTROLS_DEF, VISIBLE_FILTERS_KEY);
 const filterPanelDdRef = ref(null);
 
 const modalOpen = ref(false);
-const importModalOpen = ref(false);
+const dataModalOpen = ref(false);
+const dataModalInitialTab = ref('import');
 const editing = ref(null);
+const recheckOpen = ref(false);
+const recheckTarget = ref(null);
 const statusUpdating = ref(new Set());
-const showColumns = ref(false);
-const columnsBtnRef = ref(null);
-const columnsMenuRef = ref(null);
-const columnsMenuStyle = ref({ top: '0px', left: '0px' });
 const dataMenuRef = ref(null);
 const dataMenu = ref(false);
 const { panelStyle: dataMenuStyle } = useFixedDropdownAnchor(
@@ -99,6 +104,15 @@ const actionBtnRefs = ref({});
 const actionMenuRef = ref(null);
 const actionMenuStyle = ref({ top: '0px', left: '0px' });
 
+// ── Column visibility ──
+const visibleColumns = ref(loadBlockerTableColumns());
+watch(visibleColumns, (v) => localStorage.setItem(BLOCKER_TABLE_COLS_KEY, JSON.stringify(v)), { deep: true });
+const colVisible = (key) => visibleColumns.value.includes(key);
+const showColumnsMenu = ref(false);
+const columnsBtnRef = ref(null);
+const columnsMenuRef = ref(null);
+const columnsMenuStyle = ref({ top: '0px', left: '0px' });
+
 const positionColumnsMenu = () => {
     const btn = columnsBtnRef.value;
     if (!btn) return;
@@ -111,8 +125,8 @@ const positionColumnsMenu = () => {
 };
 
 const toggleColumnsMenu = async () => {
-    showColumns.value = !showColumns.value;
-    if (showColumns.value) {
+    showColumnsMenu.value = !showColumnsMenu.value;
+    if (showColumnsMenu.value) {
         showFilterPanelDd.value = false;
         dataMenu.value = false;
         closeActionMenu();
@@ -121,10 +135,34 @@ const toggleColumnsMenu = async () => {
     }
 };
 
-const onColumnsReposition = () => {
-    if (showColumns.value) positionColumnsMenu();
-    if (actionMenuRowId.value) positionActionMenu(actionMenuRowId.value);
+const toggleColumn = (key) => {
+    const s = new Set(visibleColumns.value);
+    if (s.has(key)) {
+        if (s.size <= 1) return;
+        s.delete(key);
+    } else {
+        s.add(key);
+    }
+    visibleColumns.value = BLOCKER_TABLE_COLUMNS.filter((c) => s.has(c.key)).map((c) => c.key);
 };
+
+const fixedColCount = computed(() => {
+    let n = 1; // title
+    n += 1; // actions
+    return n + visibleColumns.value.length;
+});
+
+// ── KPI summary (computed from blockers for embedded strip) ──
+const embeddedSummary = computed(() => {
+    const s = props.blockerSummary;
+    if (s && (s.open !== undefined || s.critical !== undefined)) return s;
+    const all = props.blockers;
+    const open = all.filter((b) => !TERMINAL_STATUS.has(b.status?.value)).length;
+    const critical = all.filter((b) => b.severity?.value === 'critical' && !TERMINAL_STATUS.has(b.status?.value)).length;
+    const resolved = all.filter((b) => TERMINAL_STATUS.has(b.status?.value)).length;
+    const recheck_pending = all.filter((b) => b.recheck_pending).length;
+    return { open, critical, resolved, recheck_pending };
+});
 
 const setActionBtnRef = (rowId, el) => {
     if (el) actionBtnRefs.value[rowId] = el;
@@ -142,58 +180,73 @@ const positionActionMenu = (rowId) => {
     };
 };
 
-const closeActionMenu = () => {
-    actionMenuRowId.value = null;
-};
+const closeActionMenu = () => { actionMenuRowId.value = null; };
 
 const toggleActionMenu = async (row) => {
-    if (actionMenuRowId.value === row.id) {
-        closeActionMenu();
-        return;
-    }
+    if (actionMenuRowId.value === row.id) { closeActionMenu(); return; }
     actionMenuRowId.value = row.id;
-    showColumns.value = false;
+    showColumnsMenu.value = false;
     dataMenu.value = false;
     await nextTick();
     positionActionMenu(row.id);
 };
 
-const menuToggleDetail = (row) => {
-    table.toggleExpand(row.id);
-    closeActionMenu();
+const onRepositionAll = () => {
+    if (showColumnsMenu.value) positionColumnsMenu();
+    if (actionMenuRowId.value) positionActionMenu(actionMenuRowId.value);
 };
 
-const menuEdit = (row) => {
+const menuToggleDetail = (row) => { table.toggleExpand(row.id); closeActionMenu(); };
+const menuEdit = (row) => { closeActionMenu(); openEdit(row); };
+const menuResolve = async (row) => { closeActionMenu(); await markResolved(row); };
+const menuRecheck = (row) => {
     closeActionMenu();
-    openEdit(row);
+    recheckTarget.value = row;
+    recheckOpen.value = true;
+};
+const menuDelete = async (row) => { closeActionMenu(); await removeOne(row); };
+
+const onKpiQuickFilter = (payload) => {
+    filterRecheckPending.value = false;
+    if (payload?.recheck_pending === '1') {
+        filterStatus.value = 'all';
+        filterSeverity.value = 'all';
+        filterRecheckPending.value = true;
+    } else if (payload?.status === 'active') {
+        filterStatus.value = 'active';
+        filterSeverity.value = payload.severity || 'all';
+    } else if (payload?.status === 'resolved') {
+        filterStatus.value = 'resolved';
+        filterSeverity.value = 'all';
+    } else {
+        filterStatus.value = payload?.status || 'all';
+        filterSeverity.value = payload?.severity || 'all';
+    }
+    table.page.value = 1;
 };
 
-const menuResolve = async (row) => {
-    closeActionMenu();
-    await markResolved(row);
-};
-
-const menuDelete = async (row) => {
-    closeActionMenu();
-    await removeOne(row);
+const onRecheckClosed = () => {
+    const hadTarget = Boolean(recheckTarget.value);
+    recheckOpen.value = false;
+    recheckTarget.value = null;
+    if (hadTarget) {
+        emit('saved', { type: 'rechecked' });
+    }
 };
 
 const toggleDataMenu = () => {
     dataMenu.value = !dataMenu.value;
     if (dataMenu.value) {
-        showColumns.value = false;
+        showColumnsMenu.value = false;
         showFilterPanelDd.value = false;
         closeActionMenu();
     }
 };
 
-const runExport = (format) => {
-    table.exportRisk(table.filtered.value, {
-        projectCode: props.projectCode,
-        projectName: props.projectName,
-        format,
-    });
-    toast.success(format === 'csv' ? 'Đã xuất file CSV' : 'Đã xuất file Excel');
+const openDataModal = (tab = 'import') => {
+    dataMenu.value = false;
+    dataModalInitialTab.value = tab;
+    dataModalOpen.value = true;
 };
 
 const runExportFromMenu = (format) => {
@@ -202,17 +255,17 @@ const runExportFromMenu = (format) => {
         toast.warning('Không có dữ liệu để xuất.');
         return;
     }
-    runExport(format);
+    table.exportRisk(table.filtered.value, {
+        projectCode: props.projectCode,
+        projectName: props.projectName,
+        format,
+    });
+    toast.success(format === 'csv' ? 'Đã xuất file CSV' : 'Đã xuất file Excel');
 };
 
-const openImportFromMenu = () => {
-    dataMenu.value = false;
-    importModalOpen.value = true;
-};
-
-const openRiskFilterPanel = () => {
+const openBlockerFilterPanel = () => {
     openFilterPanel(() => {
-        showColumns.value = false;
+        showColumnsMenu.value = false;
         dataMenu.value = false;
         closeActionMenu();
     });
@@ -222,28 +275,6 @@ watch(
     () => [search.value, filterStatus.value, filterSeverity.value, filterOwner.value],
     () => { table.page.value = 1; },
 );
-
-const visibleColumns = ref(loadRiskTableColumns());
-watch(visibleColumns, (v) => localStorage.setItem(RISK_TABLE_COLS_KEY, JSON.stringify(v)), { deep: true });
-
-const colVisible = (key) => visibleColumns.value.includes(key);
-
-const toggleColumn = (key) => {
-    const s = new Set(visibleColumns.value);
-    if (s.has(key)) {
-        if (s.size <= 1) return;
-        s.delete(key);
-    } else {
-        s.add(key);
-    }
-    visibleColumns.value = RISK_TABLE_COLUMNS.filter((c) => s.has(c.key)).map((c) => c.key);
-};
-
-const fixedColCount = computed(() => {
-    let n = 1; // title (mã gộp trong tiêu đề)
-    n += 1; // actions
-    return n + visibleColumns.value.length;
-});
 
 const listSummary = computed(() => {
     const total = props.blockers.length;
@@ -257,7 +288,6 @@ const actionMenuRow = computed(() =>
 );
 
 const isTerminal = (row) => TERMINAL_STATUS.has(row.status?.value);
-
 const canResolve = (row) => canEditRow(row) && !isTerminal(row);
 
 const changeStatus = (row, status) => {
@@ -266,9 +296,7 @@ const changeStatus = (row, status) => {
     router.put(`/blockers/${row.id}`, { status }, {
         preserveScroll: true,
         onSuccess: () => {
-            if (status === 'resolved') {
-                toast.success('Đã xác nhận giải quyết test case');
-            }
+            if (status === 'resolved') toast.success('Đã xác nhận giải quyết vướng mắc');
         },
         onFinish: () => {
             const next = new Set(statusUpdating.value);
@@ -291,12 +319,12 @@ const onDocClick = (e) => {
     const inColumnsBtn = columnsBtnRef.value?.contains(e.target);
     const inColumnsMenu = columnsMenuRef.value?.contains(e.target);
     const inDataMenu = dataMenuRef.value?.contains(e.target)
-        || e.target.closest?.('[data-risk-data-panel]');
+        || e.target.closest?.('[data-blocker-data-panel]');
     const inFilterPanel = filterPanelDdRef.value?.contains(e.target)
         || e.target.closest?.('[data-filter-visibility-panel]');
     const inActionMenu = actionMenuRef.value?.contains(e.target);
     const inAnyActionBtn = Object.values(actionBtnRefs.value).some((el) => el?.contains(e.target));
-    if (!inColumnsBtn && !inColumnsMenu) showColumns.value = false;
+    if (!inColumnsBtn && !inColumnsMenu) showColumnsMenu.value = false;
     if (!inDataMenu) dataMenu.value = false;
     if (!inFilterPanel) showFilterPanelDd.value = false;
     if (!inActionMenu && !inAnyActionBtn) closeActionMenu();
@@ -304,20 +332,20 @@ const onDocClick = (e) => {
 
 onMounted(() => {
     document.addEventListener('mousedown', onDocClick);
-    window.addEventListener('resize', onColumnsReposition);
-    window.addEventListener('scroll', onColumnsReposition, true);
+    window.addEventListener('resize', onRepositionAll);
+    window.addEventListener('scroll', onRepositionAll, true);
 });
 onUnmounted(() => {
     document.removeEventListener('mousedown', onDocClick);
-    window.removeEventListener('resize', onColumnsReposition);
-    window.removeEventListener('scroll', onColumnsReposition, true);
+    window.removeEventListener('resize', onRepositionAll);
+    window.removeEventListener('scroll', onRepositionAll, true);
 });
 
 const openCreate = () => { editing.value = null; modalOpen.value = true; };
 const openEdit = (row) => { editing.value = row; modalOpen.value = true; };
 
 const removeOne = async (row) => {
-    if (!await dialog.confirm({ title: 'Xoá test case', message: `Xoá "${row.title}"?`, tone: 'danger', confirmText: 'Xoá' })) return;
+    if (!await dialog.confirm({ title: 'Xoá vướng mắc', message: `Xoá "${row.title}"?`, tone: 'danger', confirmText: 'Xoá' })) return;
     router.delete(`/blockers/${row.id}`, { preserveScroll: true });
 };
 
@@ -329,7 +357,7 @@ const onSaved = () => {
 };
 
 const onImported = ({ count }) => {
-    toast.success(`Đã nhập ${count} test case từ file`);
+    toast.success(`Đã nhập ${count} vướng mắc từ file`);
     emit('saved', { type: 'imported', count });
 };
 
@@ -343,11 +371,11 @@ const scrollHere = () => {
 };
 
 const truncate = (text, max = 48) => {
-    if (!text) return '—';
+    if (!text?.trim()) return displayOrEmpty(null, EMPTY_LABELS.generic);
     return text.length > max ? `${text.slice(0, max)}…` : text;
 };
 
-const openImport = () => { importModalOpen.value = true; };
+const openImport = () => openDataModal('import');
 
 defineExpose({ scrollHere, openCreate, openImport });
 </script>
@@ -358,7 +386,15 @@ defineExpose({ scrollHere, openCreate, openImport });
     class="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-elevation-1 transition ring-2 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none"
     :class="highlight ? 'ring-brand/30' : 'ring-transparent'"
   >
-    <!-- Header + toolbar -->
+    <!-- ── KPI strip nhúng (chỉ layout=page) ── -->
+    <BlockerSummaryBar
+      v-if="layout === 'page'"
+      :summary="embeddedSummary"
+      class="shrink-0 border-b border-slate-100 dark:border-slate-800"
+      @quick-filter="onKpiQuickFilter"
+    />
+
+    <!-- ── Header + toolbar ── -->
     <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5 sm:py-4">
       <div
         v-if="layout !== 'page'"
@@ -366,7 +402,7 @@ defineExpose({ scrollHere, openCreate, openImport });
       >
         <div>
           <h2 class="font-display text-base font-bold text-slate-900 dark:text-slate-50">
-            Trường hợp kiểm thử
+            Vướng mắc
           </h2>
           <p class="text-xs text-slate-500 dark:text-slate-400">
             {{ listSummary }}
@@ -378,7 +414,7 @@ defineExpose({ scrollHere, openCreate, openImport });
         <div class="min-w-0 w-full basis-full lg:min-w-[10rem] lg:flex-1 lg:basis-auto">
           <DatagridToolbarSearch
             v-model="search"
-            input-id="risk-issue-search"
+            input-id="blocker-panel-search"
             placeholder="Mã, tiêu đề, mô tả…"
             stretch
             inline-actions
@@ -396,7 +432,7 @@ defineExpose({ scrollHere, openCreate, openImport });
               icon="filter"
               :active="showFilterPanelDd"
               :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-              @click.stop="openRiskFilterPanel"
+              @click.stop="openBlockerFilterPanel"
             >
               Lọc
             </DatagridToolbarActionButton>
@@ -415,7 +451,7 @@ defineExpose({ scrollHere, openCreate, openImport });
           >
             <DatagridToolbarActionButton
               icon="columns"
-              :active="showColumns"
+              :active="showColumnsMenu"
               title="Cột hiển thị"
               @click.stop="toggleColumnsMenu"
             >
@@ -423,7 +459,7 @@ defineExpose({ scrollHere, openCreate, openImport });
             </DatagridToolbarActionButton>
             <Teleport to="body">
               <div
-                v-if="showColumns"
+                v-if="showColumnsMenu"
                 ref="columnsMenuRef"
                 class="fixed z-[200] w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
                 :style="columnsMenuStyle"
@@ -433,10 +469,10 @@ defineExpose({ scrollHere, openCreate, openImport });
                   Cột hiển thị
                 </p>
                 <p class="px-2 pb-1 text-[10px] text-slate-400">
-                  Cột «Test case» luôn hiển thị
+                  Cột «Vướng mắc» luôn hiển thị
                 </p>
                 <label
-                  v-for="c in RISK_TABLE_COLUMNS"
+                  v-for="c in BLOCKER_TABLE_COLUMNS"
                   :key="c.key"
                   class="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-slate-600 hover:bg-slate-50 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
@@ -460,7 +496,7 @@ defineExpose({ scrollHere, openCreate, openImport });
             <DatagridToolbarActionButton
               icon="upload"
               :active="dataMenu"
-              title="Nhập · Xuất dữ liệu test case"
+              title="Nhập · Xuất · Đối soát vướng mắc"
               @click.stop="toggleDataMenu"
             >
               Dữ liệu
@@ -481,11 +517,12 @@ defineExpose({ scrollHere, openCreate, openImport });
               name="add"
               :size="15"
             />
-            Thêm test case
+            Thêm vướng mắc
           </button>
         </div>
       </div>
 
+      <!-- Data menu dropdown -->
       <Teleport to="body">
         <Transition
           enter-active-class="transition duration-150 ease-out"
@@ -497,7 +534,7 @@ defineExpose({ scrollHere, openCreate, openImport });
             v-if="dataMenu"
             :style="dataMenuStyle"
             class="overflow-hidden rounded-card border border-slate-200 bg-white p-1 shadow-elevation-2 dark:border-slate-600 dark:bg-slate-900"
-            data-risk-data-panel
+            data-blocker-data-panel
           >
             <button
               type="button"
@@ -510,47 +547,31 @@ defineExpose({ scrollHere, openCreate, openImport });
                 class="shrink-0 text-emerald-600"
               />
               <div>
-                <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất Excel</span>
-                <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · .xlsx có định dạng</span>
+                <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất trang này (.xlsx)</span>
+                <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · có định dạng</span>
               </div>
             </button>
+            <hr class="my-1 border-slate-100 dark:border-slate-700">
             <button
               type="button"
               class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
-              @click="runExportFromMenu('csv')"
+              @click="openDataModal('import')"
             >
               <AppIcon
-                name="download"
+                name="upload"
                 :size="15"
-                class="shrink-0 text-sky-600"
+                class="shrink-0 text-brand"
               />
               <div>
-                <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Xuất CSV</span>
-                <span class="block text-[10px] text-slate-400">{{ exportRowCount }} mục · .csv</span>
+                <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Nhập / Xuất / Đối soát…</span>
+                <span class="block text-[10px] text-slate-400">File mẫu · xem trước · đối soát dữ liệu</span>
               </div>
             </button>
-            <template v-if="canManage">
-              <hr class="my-1 border-slate-100 dark:border-slate-700">
-              <button
-                type="button"
-                class="flex w-full items-center gap-2.5 rounded-btn px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
-                @click="openImportFromMenu"
-              >
-                <AppIcon
-                  name="upload"
-                  :size="15"
-                  class="shrink-0 text-slate-400"
-                />
-                <div>
-                  <span class="block text-sm font-medium text-slate-700 dark:text-slate-200">Nhập từ Excel…</span>
-                  <span class="block text-[10px] text-slate-400">File mẫu · xem trước · nhập hàng loạt</span>
-                </div>
-              </button>
-            </template>
           </div>
         </Transition>
       </Teleport>
 
+      <!-- Filter row -->
       <Transition name="fade-slide">
         <div
           v-if="hasFilterRow"
@@ -639,7 +660,7 @@ defineExpose({ scrollHere, openCreate, openImport });
       </p>
     </div>
 
-    <!-- Table -->
+    <!-- ── Table ── -->
     <div class="overflow-x-auto">
       <table class="w-full min-w-[640px] border-separate border-spacing-0 text-sm">
         <thead>
@@ -648,7 +669,7 @@ defineExpose({ scrollHere, openCreate, openImport });
               class="sticky top-0 z-10 min-w-[11rem] cursor-pointer border-b border-slate-200 bg-slate-50 px-2 py-1.5 dark:border-slate-700 dark:bg-slate-800/95"
               @click="table.toggleSort('title')"
             >
-              Test case <AppIcon
+              Vướng mắc <AppIcon
                 name="sort"
                 :size="11"
                 class="inline opacity-40"
@@ -748,10 +769,10 @@ defineExpose({ scrollHere, openCreate, openImport });
                   />
                 </span>
                 <p class="font-semibold text-slate-700 dark:text-slate-200">
-                  {{ blockers.length ? 'Không có kết quả phù hợp' : 'Không có test case' }}
+                  {{ blockers.length ? 'Không có kết quả phù hợp' : 'Không có vướng mắc' }}
                 </p>
                 <p class="mt-1 text-sm text-slate-500">
-                  {{ blockers.length ? 'Thử đổi từ khoá hoặc bộ lọc.' : 'Thêm mục mới để theo dõi test case dự án.' }}
+                  {{ blockers.length ? 'Thử đổi từ khoá hoặc bộ lọc.' : 'Thêm mục mới để theo dõi vướng mắc dự án.' }}
                 </p>
                 <button
                   v-if="canManage"
@@ -762,7 +783,7 @@ defineExpose({ scrollHere, openCreate, openImport });
                   <AppIcon
                     name="add"
                     :size="14"
-                  /> Thêm test case
+                  /> Thêm vướng mắc
                 </button>
               </div>
             </td>
@@ -798,11 +819,11 @@ defineExpose({ scrollHere, openCreate, openImport });
               >
                 <span
                   class="inline-flex items-center gap-1.5 text-[11px] leading-tight"
-                  :class="RISK_SEVERITY_TEXT[row.severity?.value] || RISK_SEVERITY_TEXT.medium"
+                  :class="BLOCKER_SEVERITY_TEXT[row.severity?.value] || BLOCKER_SEVERITY_TEXT.medium"
                 >
                   <span
                     class="h-1.5 w-1.5 shrink-0 rounded-full"
-                    :class="RISK_SEVERITY_DOT[row.severity?.value] || RISK_SEVERITY_DOT.medium"
+                    :class="BLOCKER_SEVERITY_DOT[row.severity?.value] || BLOCKER_SEVERITY_DOT.medium"
                   />
                   {{ row.severity?.label }}
                 </span>
@@ -813,7 +834,7 @@ defineExpose({ scrollHere, openCreate, openImport });
               >
                 <span
                   class="text-[11px]"
-                  :class="RISK_STATUS_TEXT[row.status?.value] || RISK_STATUS_TEXT.open"
+                  :class="BLOCKER_STATUS_TEXT[row.status?.value] || BLOCKER_STATUS_TEXT.open"
                 >
                   {{ row.status?.label }}
                 </span>
@@ -838,7 +859,7 @@ defineExpose({ scrollHere, openCreate, openImport });
                 <span
                   v-else
                   class="text-[11px] text-slate-400"
-                >—</span>
+                >{{ EMPTY_LABELS.generic }}</span>
               </td>
               <td
                 v-if="colVisible('raised_by')"
@@ -860,20 +881,20 @@ defineExpose({ scrollHere, openCreate, openImport });
                 <span
                   v-else
                   class="text-[11px] text-slate-400"
-                >—</span>
+                >{{ EMPTY_LABELS.generic }}</span>
               </td>
               <td
                 v-if="colVisible('raised_at')"
                 class="border-b border-slate-100 px-2 py-2 text-xs text-slate-500 dark:border-slate-800"
               >
-                {{ date(row.raised_at) }}
+                {{ displayOrEmpty(date(row.raised_at), EMPTY_LABELS.notUpdated) }}
               </td>
               <td
                 v-if="colVisible('due_date')"
                 class="border-b border-slate-100 px-2 py-2 text-xs dark:border-slate-800"
                 :class="row.is_overdue ? 'font-semibold text-rose-600' : 'text-slate-500'"
               >
-                {{ date(row.due_date) }}
+                {{ displayOrEmpty(date(row.due_date), 'Chưa đặt hạn') }}
               </td>
               <td
                 v-if="colVisible('root_cause')"
@@ -891,7 +912,7 @@ defineExpose({ scrollHere, openCreate, openImport });
                 v-if="colVisible('updated_at')"
                 class="border-b border-slate-100 px-2 py-2 text-xs text-slate-500 dark:border-slate-800"
               >
-                {{ date(row.updated_at) }}
+                {{ displayOrEmpty(date(row.updated_at), EMPTY_LABELS.notUpdated) }}
               </td>
               <td class="border-b border-slate-100 px-1 py-1 text-right dark:border-slate-800">
                 <button
@@ -917,7 +938,7 @@ defineExpose({ scrollHere, openCreate, openImport });
                 :colspan="fixedColCount"
                 class="border-b border-slate-200 px-4 py-4 dark:border-slate-700"
               >
-                <RiskIssueDetailPanel
+                <BlockerInlineDetail
                   :row="row"
                   :can-comment="canCommentRow()"
                 />
@@ -928,7 +949,7 @@ defineExpose({ scrollHere, openCreate, openImport });
       </table>
     </div>
 
-    <!-- Pagination -->
+    <!-- ── Pagination ── -->
     <footer
       v-if="table.sorted.value.length"
       class="flex flex-col gap-3 border-t border-slate-200/80 bg-slate-50/60 px-4 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800 dark:bg-slate-800/40"
@@ -992,6 +1013,7 @@ defineExpose({ scrollHere, openCreate, openImport });
       </div>
     </footer>
 
+    <!-- ── Action menu ── -->
     <Teleport to="body">
       <div
         v-if="actionMenuRow"
@@ -1039,6 +1061,18 @@ defineExpose({ scrollHere, openCreate, openImport });
           Giải quyết
         </button>
         <button
+          v-if="actionMenuRow.can?.recheck"
+          type="button"
+          class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-violet-700 hover:bg-violet-50 dark:text-violet-300 dark:hover:bg-violet-950/40"
+          @click="menuRecheck(actionMenuRow)"
+        >
+          <AppIcon
+            name="review-reports"
+            :size="15"
+          />
+          Kiểm tra lại
+        </button>
+        <button
           v-if="actionMenuRow.can?.delete"
           type="button"
           class="flex w-full items-center gap-2 border-t border-slate-100 px-3 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:border-slate-800 dark:hover:bg-rose-950/30"
@@ -1053,15 +1087,24 @@ defineExpose({ scrollHere, openCreate, openImport });
       </div>
     </Teleport>
 
-    <RiskImportModal
-      :show="importModalOpen"
+    <!-- ── Modals ── -->
+    <BlockerRecheckModal
+      :show="recheckOpen"
+      :blocker="recheckTarget"
+      @close="onRecheckClosed"
+    />
+    <BlockerDataModal
+      :show="dataModalOpen"
       :project-id="projectId"
       :project-code="projectCode"
       :project-name="projectName"
       :employees="employees"
       :severity-options="severityOptions"
       :status-options="statusOptions"
-      @close="importModalOpen = false"
+      :can-manage="canManage"
+      :blockers="blockers"
+      :initial-tab="dataModalInitialTab"
+      @close="dataModalOpen = false"
       @imported="onImported"
     />
     <BlockerFormModal

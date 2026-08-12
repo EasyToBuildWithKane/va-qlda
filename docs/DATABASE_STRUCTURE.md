@@ -373,6 +373,56 @@ Department ──→ Employee ──→ SystemAccount
 
 ---
 
+### 3.15b va_prd_test_suites
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| project_id | bigint UNSIGNED | NO | FK → projects |
+| name | varchar(255) | NO | Tên bộ test |
+| sort_order | int | NO | Mặc định 0 |
+| created_at / updated_at | timestamp | YES | |
+
+### 3.15c va_prd_test_cases
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| project_id | bigint UNSIGNED | NO | FK → projects |
+| suite_id | bigint UNSIGNED | YES | FK → test_suites |
+| task_id | bigint UNSIGNED | YES | FK → tasks |
+| blocker_id | bigint UNSIGNED | YES | FK → blockers (defect sau Fail) |
+| code | varchar(32) | YES | Auto: TC-001 |
+| title | varchar(255) | NO | |
+| preconditions | text | YES | |
+| steps | json | YES | `[{step, expected?}]` |
+| expected_result | text | YES | |
+| priority | varchar(20) | NO | low/medium/high/critical |
+| status | varchar(20) | NO | draft/ready/deprecated |
+| owner_id | bigint UNSIGNED | YES | FK → employees |
+| last_result | varchar(20) | YES | pass/fail/blocked/skipped |
+| last_run_at | timestamp | YES | |
+| last_run_by_id | bigint UNSIGNED | YES | FK → employees |
+| last_actual_result | text | YES | |
+| last_run_note | text | YES | |
+| created_at / updated_at | timestamp | YES | |
+
+### 3.15d va_prd_test_case_runs
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| test_case_id | bigint UNSIGNED | NO | FK → test_cases cascade |
+| result | varchar(20) | NO | pass/fail/blocked/skipped |
+| actual_result | text | YES | |
+| note | text | YES | |
+| executed_by_id | bigint UNSIGNED | YES | FK → employees |
+| executed_at | timestamp | NO | |
+| blocker_id | bigint UNSIGNED | YES | FK → blockers |
+| created_at / updated_at | timestamp | YES | |
+
+---
+
 ### 3.16 va_prd_blocker_attachments
 
 Tương tự task_attachments, FK → blockers.

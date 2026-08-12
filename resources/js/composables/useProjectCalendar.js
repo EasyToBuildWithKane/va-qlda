@@ -41,14 +41,32 @@ export const paletteFor = (task) => {
     return CALENDAR_STATUS_PALETTE[task.status?.value] || FALLBACK_PALETTE;
 };
 
+const normalizeSearch = (q) => String(q || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+
 /**
  * Lịch dự án từ danh sách task (client-side, không cần feed server).
- * @param {{ tasks: import('vue').MaybeRefOrGetter<Array>, sprints?: any, editable?: any }} props
+ * @param {{
+ *   tasks: import('vue').MaybeRefOrGetter<Array>,
+ *   sprints?: import('vue').MaybeRefOrGetter<Array>,
+ *   editable?: import('vue').MaybeRefOrGetter<boolean>,
+ *   filters?: import('vue').MaybeRefOrGetter<{
+ *     search?: string,
+ *     status?: string|null,
+ *     sprintId?: number|null,
+ *     assigneeId?: number|null,
+ *     kpi?: string|null,
+ *   }>,
+ * }} props
  */
 export function useProjectCalendar(props) {
     const tasks = computed(() => toValue(props.tasks) || []);
     const sprints = computed(() => toValue(props.sprints) || []);
     const editable = computed(() => !!toValue(props.editable));
+    const filters = computed(() => toValue(props.filters) || {});
 
     const sprintNameById = computed(() => {
         const map = new Map();
@@ -72,53 +90,91 @@ export function useProjectCalendar(props) {
         return { start: s, endExclusive: addDays(e, 1), single: false };
     };
 
-    const events = computed(() =>
-        tasks.value.flatMap((task) => {
-            const sched = scheduleOf(task);
-            if (!sched) return [];
-            const milestone = isMilestone(task);
-            const palette = paletteFor(task);
-            const overdue = !milestone && isTaskOverdue(task);
-            const done = task.status?.value === 'done';
-            const people = getAssignees(task);
+    const matchesFilters = (task) => {
+        const f = filters.value;
+        const people = getAssignees(task);
+        const q = normalizeSearch(f.search);
+        if (q) {
+            const hay = normalizeSearch([
+                task.title,
+                task.id,
+                task.status?.label,
+                ...people.map((a) => a.name),
+                task.sprint_id ? sprintNameById.value.get(task.sprint_id) : '',
+            ].filter(Boolean).join(' '));
+            if (!hay.includes(q)) return false;
+        }
+        if (f.status) {
+            if (task.status?.value !== f.status) return false;
+        }
+        const sprintId = f.sprintId === '' || f.sprintId == null ? null : Number(f.sprintId);
+        if (sprintId != null && !Number.isNaN(sprintId) && Number(task.sprint_id) !== sprintId) return false;
+        const assigneeId = f.assigneeId === '' || f.assigneeId == null ? null : Number(f.assigneeId);
+        if (assigneeId != null && !Number.isNaN(assigneeId)
+            && !people.some((a) => Number(a.id) === assigneeId)) return false;
 
-            const ev = {
-                id: String(task.id),
-                title: task.title || 'Không tiêu đề',
-                start: sched.start,
-                allDay: true,
-                backgroundColor: palette.soft,
-                borderColor: palette.main,
-                textColor: palette.text,
-                editable: editable.value && !milestone,
-                durationEditable: editable.value && !milestone && !sched.single,
-                classNames: [
-                    'pc-ev',
-                    milestone ? 'pc-ev--milestone' : '',
-                    overdue ? 'pc-ev--overdue' : '',
-                    done ? 'pc-ev--done' : '',
-                ].filter(Boolean),
-                extendedProps: {
-                    taskId: task.id,
-                    milestone,
-                    overdue,
-                    done,
-                    accent: palette.main,
-                    status: task.status?.value || null,
-                    statusLabel: task.status?.label || null,
-                    priorityLabel: task.priority?.label || null,
-                    progress: Number(task.progress) || 0,
-                    sprintName: task.sprint_id ? sprintNameById.value.get(task.sprint_id) || null : null,
-                    assignees: people.map((a) => ({ id: a.id, name: a.name, avatar: a.avatar_path })),
-                    startDate: task.start_date || null,
-                    dueDate: task.due_date || null,
-                },
-            };
-            if (sched.endExclusive) ev.end = sched.endExclusive;
-            return [ev];
-        }),
-    );
+        const kpi = f.kpi || null;
+        if (kpi === 'inProgress' && task.status?.value !== 'in_progress') return false;
+        if (kpi === 'completed' && task.status?.value !== 'done') return false;
+        if (kpi === 'overdue' && (isMilestone(task) || !isTaskOverdue(task))) return false;
+        if (kpi === 'milestones' && !isMilestone(task)) return false;
+        if (kpi === 'unscheduled' && scheduleOf(task) !== null) return false;
+        return true;
+    };
 
+    const filteredTasks = computed(() => tasks.value.filter(matchesFilters));
+
+    const toEvent = (task) => {
+        const sched = scheduleOf(task);
+        if (!sched) return null;
+        const milestone = isMilestone(task);
+        const palette = paletteFor(task);
+        const overdue = !milestone && isTaskOverdue(task);
+        const done = task.status?.value === 'done';
+        const people = getAssignees(task);
+
+        const ev = {
+            id: String(task.id),
+            title: task.title || 'Không tiêu đề',
+            start: sched.start,
+            allDay: true,
+            backgroundColor: palette.soft,
+            borderColor: palette.main,
+            textColor: palette.text,
+            editable: editable.value && !milestone,
+            durationEditable: editable.value && !milestone && !sched.single,
+            classNames: [
+                'pc-ev',
+                milestone ? 'pc-ev--milestone' : '',
+                overdue ? 'pc-ev--overdue' : '',
+                done ? 'pc-ev--done' : '',
+            ].filter(Boolean),
+            extendedProps: {
+                taskId: task.id,
+                milestone,
+                overdue,
+                done,
+                accent: palette.main,
+                status: task.status?.value || null,
+                statusLabel: task.status?.label || null,
+                priorityLabel: task.priority?.label || null,
+                progress: Number(task.progress) || 0,
+                sprintName: task.sprint_id ? sprintNameById.value.get(task.sprint_id) || null : null,
+                assignees: people.map((a) => ({ id: a.id, name: a.name, avatar: a.avatar_path })),
+                startDate: task.start_date || null,
+                dueDate: task.due_date || null,
+            },
+        };
+        if (sched.endExclusive) ev.end = sched.endExclusive;
+        return ev;
+    };
+
+    const events = computed(() => {
+        if (filters.value.kpi === 'unscheduled') return [];
+        return filteredTasks.value.map(toEvent).filter(Boolean);
+    });
+
+    /** KPI luôn trên toàn bộ task (không theo filter) để chip vẫn phản ánh tổng quan. */
     const kpis = computed(() => {
         const list = tasks.value;
         const scheduled = list.filter((t) => scheduleOf(t) !== null).length;
@@ -133,11 +189,12 @@ export function useProjectCalendar(props) {
         };
     });
 
-    /** Chú thích màu — chỉ các trạng thái thực sự có trên lịch. */
+    /** Chú thích màu — chỉ các trạng thái thực sự có trên lịch (sau filter). */
     const legend = computed(() => {
         const seen = new Map();
         let hasMilestone = false;
-        tasks.value.forEach((t) => {
+        const source = filters.value.kpi === 'unscheduled' ? [] : filteredTasks.value;
+        source.forEach((t) => {
             if (scheduleOf(t) === null) return;
             if (isMilestone(t)) {
                 hasMilestone = true;
@@ -159,15 +216,70 @@ export function useProjectCalendar(props) {
         return items;
     });
 
-    const hasScheduledData = computed(() => events.value.length > 0);
+    const unscheduledTasks = computed(() =>
+        filteredTasks.value
+            .filter((t) => scheduleOf(t) === null)
+            .map((t) => ({
+                id: t.id,
+                title: t.title || 'Không tiêu đề',
+                status: t.status?.value || null,
+                statusLabel: t.status?.label || null,
+                priorityLabel: t.priority?.label || null,
+                accent: paletteFor(t).main,
+                assignees: getAssignees(t).map((a) => ({ id: a.id, name: a.name, avatar: a.avatar_path })),
+                sprintName: t.sprint_id ? sprintNameById.value.get(t.sprint_id) || null : null,
+            })),
+    );
+
+    const statusFilterOptions = computed(() => {
+        const seen = new Map();
+        tasks.value.forEach((t) => {
+            const value = t.status?.value;
+            if (value && !seen.has(value)) {
+                seen.set(value, { value, label: t.status?.label || value });
+            }
+        });
+        return [...seen.values()];
+    });
+
+    const assigneeFilterOptions = computed(() => {
+        const seen = new Map();
+        tasks.value.forEach((t) => {
+            getAssignees(t).forEach((a) => {
+                if (a?.id != null && !seen.has(a.id)) {
+                    seen.set(a.id, { value: a.id, label: a.name || `Nhân sự #${a.id}` });
+                }
+            });
+        });
+        return [...seen.values()].sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+    });
+
+    const sprintFilterOptions = computed(() =>
+        sprints.value.map((s) => ({ value: s.id, label: s.name || `Sprint #${s.id}` })),
+    );
+
+    const hasScheduledData = computed(() => tasks.value.some((t) => scheduleOf(t) !== null));
+    const hasVisibleEvents = computed(() => events.value.length > 0);
+    const hasActiveFilters = computed(() => {
+        const f = filters.value;
+        return !!(f.search || f.status || f.sprintId != null || f.assigneeId != null || f.kpi);
+    });
 
     return {
         events,
         kpis,
         legend,
         hasScheduledData,
+        hasVisibleEvents,
+        hasActiveFilters,
+        unscheduledTasks,
+        statusFilterOptions,
+        assigneeFilterOptions,
+        sprintFilterOptions,
+        filteredTasks,
         toYmd,
         addDays,
         isMilestone,
+        scheduleOf,
     };
 }

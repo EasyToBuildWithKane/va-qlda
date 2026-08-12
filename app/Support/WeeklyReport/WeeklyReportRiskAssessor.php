@@ -31,7 +31,7 @@ class WeeklyReportRiskAssessor
                 : 'Chưa có người phụ trách';
             $risks[] = [
                 'level' => $level,
-                'label' => 'Test case ['.$sev.']: '.$blocker->title.$taskBit,
+                'label' => 'Vướng mắc ['.$sev.']: '.$blocker->title.$taskBit,
                 'reason' => $ownerBit.'.',
             ];
         }

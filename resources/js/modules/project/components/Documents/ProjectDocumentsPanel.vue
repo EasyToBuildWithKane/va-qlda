@@ -11,6 +11,7 @@ import DocumentFolderCard from '@/modules/project/components/Documents/DocumentF
 import DocumentFileCard from '@/modules/project/components/Documents/DocumentFileCard.vue';
 import DocumentFilesTable from '@/modules/project/components/Documents/DocumentFilesTable.vue';
 import DocumentContextMenu from '@/modules/project/components/Documents/DocumentContextMenu.vue';
+import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import Drawer from '@/Components/Ui/Drawer.vue';
 import { useModalFormDraft } from '@/composables/useModalFormDraft';
 import { buildDraftSaveMeta } from '@/composables/useModalDraftHelpers';
@@ -77,6 +78,9 @@ const moveTarget = ref(null);
 const moveDestinationId = ref(null);
 const folderUploadParentId = ref(null);
 const folderUploadInput = ref(null);
+const docsSearchQuery = ref('');
+const bulkMoveTarget = ref(null);
+const bulkMoving = ref(false);
 
 const VA_DOC_MIME = 'application/x-va-doc-attachment';
 
@@ -252,12 +256,6 @@ const currentLevelFolders = computed(() => {
 const activeFolderNode = computed(() => {
     if (!activeFolderId.value) return null;
     return props.attachments.find((a) => a.id === activeFolderId.value) ?? null;
-});
-
-const projectPanelTitle = computed(() => {
-    if (activeFolderNode.value?.original_name) return activeFolderNode.value.original_name;
-    if (activeCat.value?.label) return activeCat.value.label;
-    return 'Tài liệu dự án';
 });
 
 const canMutateDocs = computed(() => props.canUpload && !isDriveRoot.value);
@@ -454,20 +452,21 @@ const toggleRowSelection = (id) => {
     }
 };
 
+watch([activeCategory, activeFolderId], () => {
+    selectedRowIds.value = [];
+    docsSearchQuery.value = '';
+});
+
 const toggleAllRows = (checked) => {
     if (!checked) {
         selectedRowIds.value = [];
         return;
     }
     selectedRowIds.value = [
-        ...currentLevelFolders.value.map((f) => f.id),
-        ...visibleFiles.value.map((f) => f.id),
+        ...filteredLevelFolders.value.map((f) => f.id),
+        ...filteredVisibleFiles.value.map((f) => f.id),
     ];
 };
-
-watch([activeCategory, activeFolderId], () => {
-    selectedRowIds.value = [];
-});
 
 const folderCardMeta = (folder) => {
     if (folder.is_category) {
@@ -483,11 +482,6 @@ const folderCardStats = (folder) => {
     }
     return countFolderContents(folder.id, categoryFiles.value);
 };
-
-const hasBrowsableContent = computed(() => {
-    if (isDriveRoot.value) return driveRootFolders.value.length > 0;
-    return currentLevelFolders.value.length > 0 || visibleFiles.value.length > 0;
-});
 
 const transferHasOsFiles = (dt) => {
     if (!dt?.types) return false;
@@ -623,8 +617,8 @@ const closeContextMenu = () => {
     contextMenu.value = { open: false, x: 0, y: 0, item: null };
 };
 
-const openFolderContextMenu = ({ item, event }) => {
-    if (!item?.is_folder || item.is_category) return;
+const openItemContextMenu = ({ item, event }) => {
+    if (!item || item.is_category) return;
     event?.preventDefault?.();
     contextMenu.value = {
         open: true,
@@ -634,26 +628,102 @@ const openFolderContextMenu = ({ item, event }) => {
     };
 };
 
-const folderContextMenuItems = computed(() => {
+const contextMenuItems = computed(() => {
     const item = contextMenu.value.item;
-    if (!item?.is_folder) return [];
+    if (!item) return [];
+    const sep = (key) => ({ type: 'separator', key });
+
+    if (item.is_folder) {
+        return [
+            {
+                key: 'create-folder',
+                label: 'Tạo thư mục',
+                icon: 'folder-plus',
+                hidden: !props.canUpload,
+            },
+            {
+                key: 'upload',
+                label: 'Tải lên',
+                icon: 'file-plus',
+                hidden: !props.canUpload,
+            },
+            {
+                key: 'rename',
+                label: 'Đổi tên',
+                icon: 'edit',
+                hidden: !props.canEdit,
+            },
+            {
+                key: 'move',
+                label: 'Chuyển tới thư mục',
+                icon: 'folder-input',
+                hidden: !props.canEdit,
+            },
+            sep('folder-danger'),
+            {
+                key: 'delete',
+                label: 'Xóa',
+                icon: 'delete',
+                danger: true,
+                hidden: !props.canDelete,
+            },
+        ];
+    }
+
+    if (item.is_external_link) {
+        return [
+            {
+                key: 'open-link',
+                label: 'Mở link',
+                icon: 'external-link',
+                hidden: !item.url,
+            },
+            {
+                key: 'copy-url',
+                label: 'Sao chép URL',
+                icon: 'copy',
+                hidden: !item.url,
+            },
+            {
+                key: 'rename',
+                label: 'Đổi tên',
+                icon: 'edit',
+                hidden: !props.canEdit,
+            },
+            {
+                key: 'move',
+                label: 'Chuyển tới thư mục',
+                icon: 'folder-input',
+                hidden: !props.canEdit,
+            },
+            sep('link-danger'),
+            {
+                key: 'delete',
+                label: 'Xóa',
+                icon: 'delete',
+                danger: true,
+                hidden: !props.canDelete,
+            },
+        ];
+    }
+
     return [
         {
             key: 'download',
             label: 'Tải xuống',
             icon: 'download',
+            hidden: !item.url,
         },
         {
-            key: 'create-folder',
-            label: 'Tạo thư mục',
-            icon: 'folder-plus',
-            hidden: !props.canUpload,
+            key: 'view',
+            label: 'Xem',
+            icon: 'search',
         },
         {
-            key: 'upload',
-            label: 'Tải lên',
-            icon: 'file-plus',
-            hidden: !props.canUpload,
+            key: 'replace',
+            label: 'Cập nhật lại',
+            icon: 'cloud-upload',
+            hidden: !props.canEdit,
         },
         {
             key: 'rename',
@@ -667,6 +737,7 @@ const folderContextMenuItems = computed(() => {
             icon: 'folder-input',
             hidden: !props.canEdit,
         },
+        sep('file-danger'),
         {
             key: 'delete',
             label: 'Xóa',
@@ -695,9 +766,14 @@ const collectDescendantFolderIds = (folderId) => {
 };
 
 const moveDestinationOptions = computed(() => {
-    const target = moveTarget.value;
-    if (!target) return [];
-    const blocked = collectDescendantFolderIds(target.id);
+    if (!moveTarget.value && !bulkMoveTarget.value) return [];
+    const blocked = new Set();
+    const sources = bulkMoveTarget.value ? selectedItems.value : [moveTarget.value].filter(Boolean);
+    sources.forEach((item) => {
+        if (item?.is_folder) {
+            collectDescendantFolderIds(item.id).forEach((id) => blocked.add(id));
+        }
+    });
     const folders = categoryFiles.value
         .filter((f) => f.is_folder && !blocked.has(Number(f.id)))
         .slice()
@@ -714,6 +790,7 @@ const moveDestinationOptions = computed(() => {
 });
 
 const openMoveModal = (item) => {
+    bulkMoveTarget.value = null;
     moveTarget.value = item;
     moveDestinationId.value = item.parent_id == null ? '' : item.parent_id;
     showMoveModal.value = true;
@@ -723,14 +800,7 @@ const closeMoveModal = () => {
     showMoveModal.value = false;
     moveTarget.value = null;
     moveDestinationId.value = '';
-};
-
-const submitMoveModal = () => {
-    if (!moveTarget.value) return;
-    const raw = moveDestinationId.value;
-    const dest = raw === '' || raw === null || raw === 'null' ? null : Number(raw);
-    moveAttachmentToFolder(moveTarget.value.id, dest);
-    closeMoveModal();
+    bulkMoveTarget.value = null;
 };
 
 const pickFilesIntoFolder = (folderId) => {
@@ -745,39 +815,221 @@ const onFolderUploadSelected = (event) => {
     uploadFiles(activeCategory.value, event.target.files, event.target, parentId);
 };
 
-const onFolderContextAction = (key) => {
+const downloadAttachment = (item) => {
+    if (!item?.url) {
+        toast.error(item?.is_folder ? 'Chưa hỗ trợ tải xuống cả thư mục.' : 'Không có file để tải xuống.');
+        return;
+    }
+    if (item.is_external_link) {
+        window.open(item.url, '_blank', 'noopener,noreferrer');
+        return;
+    }
+    const anchor = document.createElement('a');
+    anchor.href = item.url;
+    anchor.download = item.original_name || 'tai-lieu';
+    anchor.rel = 'noopener';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+};
+
+const pickReplaceForItem = (item) => {
+    if (!item || item.is_folder || item.is_external_link) return;
+    selectedId.value = item.id;
+    nextTick(() => replaceInput.value?.click?.());
+};
+
+const onContextAction = (key) => {
     const item = contextMenu.value.item;
     closeContextMenu();
     if (!item) return;
+
+    if (item.is_folder) {
+        if (key === 'create-folder') {
+            openFolderModal(item.id);
+            return;
+        }
+        if (key === 'upload') {
+            pickFilesIntoFolder(item.id);
+            return;
+        }
+        if (key === 'rename') {
+            openRenameModal(item);
+            return;
+        }
+        if (key === 'move') {
+            openMoveModal(item);
+            return;
+        }
+        if (key === 'delete') {
+            removeFile(item);
+        }
+        return;
+    }
+
+    if (key === 'open-link') {
+        if (item.url) window.open(item.url, '_blank', 'noopener,noreferrer');
+        return;
+    }
+    if (key === 'copy-url') {
+        if (!item.url) return;
+        navigator.clipboard?.writeText(item.url)
+            .then(() => toast.success('Đã sao chép URL.'))
+            .catch(() => toast.error('Không thể sao chép URL.'));
+        return;
+    }
     if (key === 'download') {
-        toast.error('Chưa hỗ trợ tải xuống cả thư mục.');
+        downloadAttachment(item);
         return;
     }
-    if (key === 'create-folder') {
-        openFolderModal(item.id);
+    if (key === 'view') {
+        openPreviewModal(item);
         return;
     }
-    if (key === 'upload') {
-        pickFilesIntoFolder(item.id);
+    if (key === 'replace') {
+        pickReplaceForItem(item);
         return;
     }
     if (key === 'rename') {
         openRenameModal(item);
         return;
     }
-    if (key === 'move') {
-        openMoveModal(item);
-        return;
-    }
     if (key === 'delete') {
         removeFile(item);
+        return;
+    }
+    if (key === 'move') {
+        openMoveModal(item);
     }
 };
 
-const fileCardMeta = (file) => formatCardMeta(
-    file.updated_at || file.created_at,
-    formatSize(file.size, file),
-);
+const fileCardDate = (file) => formatCardDate(file.updated_at || file.created_at);
+const fileCardSize = (file) => formatSize(file.size, file);
+
+const categoryTone = (color) => {
+    const map = {
+        sky: 'sky',
+        violet: 'violet',
+        amber: 'amber',
+        indigo: 'violet',
+        emerald: 'emerald',
+        rose: 'rose',
+        brand: 'rose',
+    };
+    return map[color] || 'violet';
+};
+
+const matchesDocsSearch = (name) => {
+    const q = docsSearchQuery.value.trim().toLowerCase();
+    if (!q) return true;
+    return String(name || '').toLowerCase().includes(q);
+};
+
+const filteredLevelFolders = computed(() => currentLevelFolders.value.filter((f) => matchesDocsSearch(f.original_name)));
+const filteredVisibleFiles = computed(() => visibleFiles.value.filter((f) => matchesDocsSearch(f.original_name)));
+
+const hasBrowsableContent = computed(() => {
+    if (isDriveRoot.value) return driveRootFolders.value.length > 0;
+    return filteredLevelFolders.value.length > 0 || filteredVisibleFiles.value.length > 0;
+});
+
+const selectedItems = computed(() => {
+    const ids = new Set(selectedRowIds.value.map(String));
+    return props.attachments.filter((a) => ids.has(String(a.id)));
+});
+
+const openBulkMoveModal = () => {
+    if (!selectedItems.value.length) return;
+    bulkMoveTarget.value = true;
+    moveTarget.value = selectedItems.value[0];
+    moveDestinationId.value = '';
+    showMoveModal.value = true;
+};
+
+const submitMoveModal = () => {
+    const raw = moveDestinationId.value;
+    const dest = raw === '' || raw === null || raw === 'null' ? null : Number(raw);
+
+    if (bulkMoveTarget.value) {
+        const items = selectedItems.value.slice();
+        bulkMoveTarget.value = null;
+        closeMoveModal();
+        if (!items.length) return;
+        bulkMoving.value = true;
+        let i = 0;
+        const runNext = () => {
+            if (i >= items.length) {
+                bulkMoving.value = false;
+                selectedRowIds.value = [];
+                toast.success(`Đã chuyển ${items.length} mục.`);
+                return;
+            }
+            const item = items[i];
+            i += 1;
+            router.put(`/projects/${props.projectId}/attachments/${item.id}`, {
+                parent_id: dest,
+            }, {
+                preserveScroll: true,
+                onFinish: runNext,
+                onError: () => {
+                    bulkMoving.value = false;
+                    toast.error('Không thể di chuyển một số mục.');
+                },
+            });
+        };
+        runNext();
+        return;
+    }
+
+    if (!moveTarget.value) return;
+    moveAttachmentToFolder(moveTarget.value.id, dest);
+    closeMoveModal();
+};
+
+const clearSelection = () => {
+    selectedRowIds.value = [];
+};
+
+const isRowSelected = (id) => selectedRowIds.value.map(String).includes(String(id));
+
+const bulkDeleteSelected = () => {
+    const items = selectedItems.value.slice();
+    if (!items.length) return;
+    confirmDelete(
+        `Xoá ${items.length} mục đã chọn?`,
+        () => {
+            let i = 0;
+            const runNext = () => {
+                if (i >= items.length) {
+                    selectedRowIds.value = [];
+                    toast.success('Đã xoá các mục đã chọn.');
+                    return;
+                }
+                const item = items[i];
+                i += 1;
+                router.delete(`/projects/${props.projectId}/attachments/${item.id}`, {
+                    preserveScroll: true,
+                    onFinish: runNext,
+                    onSuccess: () => {
+                        if (activeFolderId.value === item.id) activeFolderId.value = null;
+                    },
+                });
+            };
+            runNext();
+        },
+        { title: 'Xoá nhiều mục' },
+    );
+};
+
+const bulkDownloadSelected = () => {
+    const files = selectedItems.value.filter((i) => !i.is_folder && i.url && !i.is_external_link);
+    if (!files.length) {
+        toast.error('Không có file tải được trong lựa chọn.');
+        return;
+    }
+    files.forEach((f) => downloadAttachment(f));
+    toast.success(`Đã tải ${files.length} file.`);
+};
 
 const folderBreadcrumb = computed(() => {
     if (isDriveRoot.value) return [];
@@ -802,12 +1054,6 @@ const onBreadcrumbClick = (crumb) => {
         return;
     }
     activeFolderId.value = crumb.id;
-};
-
-const openFileDetails = (file) => {
-    if (!file || file.is_folder) return;
-    selectFile(file);
-    detailDrawerOpen.value = true;
 };
 
 const acceptFor = (category) => {
@@ -1403,7 +1649,7 @@ const activityTone = (event) => ({
           </div>
         </div>
 
-        <header class="relative flex shrink-0 flex-col gap-1 border-b border-slate-100/90 px-3 py-2.5 dark:border-slate-800">
+        <header class="relative flex shrink-0 flex-col gap-2 border-b border-slate-100/90 px-3 py-2.5 dark:border-slate-800">
           <div class="flex min-w-0 flex-wrap items-center gap-2">
             <button
               v-if="!isDriveRoot"
@@ -1418,9 +1664,39 @@ const activityTone = (event) => ({
               />
             </button>
             <div class="min-w-0 flex-1">
-              <h2 class="truncate text-[15px] font-bold tracking-tight text-slate-800 dark:text-slate-100 sm:text-base">
-                {{ projectPanelTitle }}
-              </h2>
+              <nav
+                class="flex min-w-0 items-center gap-1 overflow-x-auto text-[13px]"
+                aria-label="Đường dẫn thư mục"
+              >
+                <button
+                  type="button"
+                  class="shrink-0 rounded px-1 py-0.5 font-semibold transition hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
+                  :class="isDriveRoot ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'"
+                  @click="goToDriveRoot"
+                >
+                  Tài liệu dự án
+                </button>
+                <template
+                  v-for="(crumb, index) in folderBreadcrumb"
+                  :key="crumb.id"
+                >
+                  <AppIcon
+                    name="chevron-right"
+                    :size="11"
+                    class="shrink-0 opacity-50"
+                  />
+                  <button
+                    type="button"
+                    class="max-w-[14rem] truncate rounded px-1 py-0.5 font-semibold hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
+                    :class="index === folderBreadcrumb.length - 1
+                      ? 'text-slate-800 dark:text-slate-100'
+                      : 'text-slate-500'"
+                    @click="onBreadcrumbClick(crumb)"
+                  >
+                    {{ crumb.name }}
+                  </button>
+                </template>
+              </nav>
             </div>
 
             <div class="ml-auto flex shrink-0 items-center gap-1.5">
@@ -1489,7 +1765,7 @@ const activityTone = (event) => ({
                       <AppIcon
                         name="folder"
                         :size="14"
-                        class="text-amber-600"
+                        class="text-violet-600"
                       />
                       Thư mục mới
                     </button>
@@ -1572,39 +1848,73 @@ const activityTone = (event) => ({
               </button>
             </div>
           </div>
-          <nav
-            class="flex min-w-0 items-center gap-1 overflow-x-auto text-[11px] text-slate-500"
-            aria-label="Đường dẫn thư mục"
+
+          <div
+            v-if="!isDriveRoot"
+            class="flex min-w-0 flex-wrap items-center gap-2"
           >
+            <DatagridToolbarSearch
+              v-model="docsSearchQuery"
+              input-id="project-docs-search"
+              hide-label
+              compact
+              input-height="h-8"
+              placeholder="Tìm trong thư mục…"
+              class="min-w-0 flex-1"
+            />
+          </div>
+
+          <div
+            v-if="selectedRowIds.length"
+            class="flex flex-wrap items-center gap-2 rounded-lg border border-brand/20 bg-brand/[0.04] px-2.5 py-1.5"
+          >
+            <span class="text-xs font-semibold tabular-nums text-brand">
+              Đã chọn {{ selectedRowIds.length }}
+            </span>
             <button
+              v-if="canEdit"
               type="button"
-              class="shrink-0 rounded px-1 py-0.5 font-medium transition hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
-              :class="isDriveRoot ? 'text-slate-800 dark:text-slate-100' : 'text-slate-500'"
-              @click="goToDriveRoot"
-            >
-              Tài liệu dự án
-            </button>
-            <template
-              v-for="(crumb, index) in folderBreadcrumb"
-              :key="crumb.id"
+              class="btn-ghost inline-flex h-7 items-center gap-1 px-2 text-xs"
+              :disabled="bulkMoving"
+              @click="openBulkMoveModal"
             >
               <AppIcon
-                name="chevron-right"
-                :size="10"
-                class="shrink-0 opacity-50"
+                name="folder-input"
+                :size="13"
               />
-              <button
-                type="button"
-                class="max-w-[12rem] truncate rounded px-1 py-0.5 font-medium hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
-                :class="index === folderBreadcrumb.length - 1
-                  ? 'text-slate-800 dark:text-slate-100'
-                  : 'text-slate-500'"
-                @click="onBreadcrumbClick(crumb)"
-              >
-                {{ crumb.name }}
-              </button>
-            </template>
-          </nav>
+              Chuyển tới
+            </button>
+            <button
+              type="button"
+              class="btn-ghost inline-flex h-7 items-center gap-1 px-2 text-xs"
+              @click="bulkDownloadSelected"
+            >
+              <AppIcon
+                name="download"
+                :size="13"
+              />
+              Tải xuống
+            </button>
+            <button
+              v-if="canDelete"
+              type="button"
+              class="btn-ghost inline-flex h-7 items-center gap-1 px-2 text-xs text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
+              @click="bulkDeleteSelected"
+            >
+              <AppIcon
+                name="delete"
+                :size="13"
+              />
+              Xóa
+            </button>
+            <button
+              type="button"
+              class="ml-auto btn-ghost inline-flex h-7 items-center px-2 text-xs text-slate-500"
+              @click="clearSelection"
+            >
+              Bỏ chọn
+            </button>
+          </div>
         </header>
 
         <div
@@ -1617,24 +1927,19 @@ const activityTone = (event) => ({
             class="min-w-0"
           >
             <DocumentFilesTable
-              :folders="isDriveRoot ? driveRootFolders : currentLevelFolders"
-              :files="isDriveRoot ? [] : visibleFiles"
+              :folders="isDriveRoot ? driveRootFolders : filteredLevelFolders"
+              :files="isDriveRoot ? [] : filteredVisibleFiles"
               :selected-id="selectedId"
               :selected-ids="selectedRowIds"
               :format-size="formatSize"
               :file-ext="fileExt"
-              :can-edit="canEdit && !isDriveRoot"
-              :can-delete="canDelete && !isDriveRoot"
               :can-drag="canEdit && !isDriveRoot"
               :drop-target-id="dropTargetId"
               @select-folder="onSelectFolder"
               @select-file="openPreviewModal"
               @toggle-row="toggleRowSelection"
               @toggle-all="toggleAllRows"
-              @rename-item="openRenameModal"
-              @preview-file="openPreviewModal"
-              @delete-item="removeFile"
-              @contextmenu-item="openFolderContextMenu"
+              @contextmenu-item="openItemContextMenu"
               @drag-start-item="onDragStartItem"
               @drag-end-item="onDragEndItem"
               @drop-on-folder="handleDropOnFolder"
@@ -1657,15 +1962,16 @@ const activityTone = (event) => ({
                 :icon="folder.icon || 'folder'"
                 :file-count="folderCardStats(folder).files"
                 :subfolder-count="folderCardStats(folder).subfolders"
+                :tone="categoryTone(folder.color)"
                 @click="onSelectFolder(folder)"
               />
             </div>
 
             <template v-else-if="hasBrowsableContent">
-              <div v-if="currentLevelFolders.length">
+              <div v-if="filteredLevelFolders.length">
                 <div class="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
                   <DocumentFolderCard
-                    v-for="folder in currentLevelFolders"
+                    v-for="folder in filteredLevelFolders"
                     :key="folder.id"
                     :name="folder.original_name"
                     :meta="folderCardMeta(folder)"
@@ -1673,8 +1979,12 @@ const activityTone = (event) => ({
                     :subfolder-count="folderCardStats(folder).subfolders"
                     :can-drag="canEdit"
                     :drop-active="dropTargetId === folder.id"
+                    :selectable="canEdit || canDelete"
+                    :selected="isRowSelected(folder.id)"
+                    tone="violet"
                     @click="onSelectFolder(folder)"
-                    @contextmenu="openFolderContextMenu({ item: folder, event: $event })"
+                    @toggle-select="toggleRowSelection(folder.id)"
+                    @contextmenu="openItemContextMenu({ item: folder, event: $event })"
                     @drag-start="onDragStartItem({ item: folder, event: $event })"
                     @drag-end="onDragEndItem"
                     @drag-over="handleDragOverFolder({ folderId: folder.id, event: $event })"
@@ -1685,15 +1995,16 @@ const activityTone = (event) => ({
               </div>
 
               <div
-                v-if="visibleFiles.length"
-                :class="currentLevelFolders.length ? 'mt-5' : ''"
+                v-if="filteredVisibleFiles.length"
+                :class="filteredLevelFolders.length ? 'mt-5' : ''"
               >
                 <div class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
                   <DocumentFileCard
-                    v-for="file in visibleFiles"
+                    v-for="file in filteredVisibleFiles"
                     :key="file.id"
                     :name="file.original_name"
-                    :meta="fileCardMeta(file)"
+                    :date-label="fileCardDate(file)"
+                    :size-label="fileCardSize(file)"
                     :url="file.url"
                     :is-image="Boolean(file.is_image)"
                     :is-pdf="Boolean(file.is_pdf)"
@@ -1701,14 +2012,12 @@ const activityTone = (event) => ({
                     :badge="listBadge(file)"
                     :preview-snippet="file.preview_snippet || null"
                     :active="selectedId === file.id"
-                    :can-edit="canEdit"
-                    :can-delete="canDelete"
                     :can-drag="canEdit"
+                    :selectable="canEdit || canDelete"
+                    :selected="isRowSelected(file.id)"
                     @click="openPreviewModal(file)"
-                    @preview="openPreviewModal(file)"
-                    @rename="openRenameModal(file)"
-                    @details="openFileDetails(file)"
-                    @delete="removeFile(file)"
+                    @toggle-select="toggleRowSelection(file.id)"
+                    @contextmenu="openItemContextMenu({ item: file, event: $event })"
                     @drag-start="onDragStartItem({ item: file, event: $event })"
                     @drag-end="onDragEndItem"
                   />
@@ -1718,9 +2027,23 @@ const activityTone = (event) => ({
 
             <div
               v-else
-              class="flex items-center justify-center px-3 py-10 text-sm text-slate-400 dark:text-slate-500"
+              class="flex flex-col items-center justify-center gap-3 px-3 py-12 text-center"
             >
-              {{ activeFolderId ? 'Thư mục trống' : 'Chưa có tài liệu' }}
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                {{ docsSearchQuery.trim() ? 'Không tìm thấy kết quả' : (activeFolderId ? 'Thư mục trống' : 'Chưa có tài liệu') }}
+              </p>
+              <button
+                v-if="canMutateDocs && !docsSearchQuery.trim()"
+                type="button"
+                class="btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-sm"
+                @click="pickFiles(activeCategory)"
+              >
+                <AppIcon
+                  name="upload"
+                  :size="14"
+                />
+                Tải lên
+              </button>
             </div>
           </template>
         </div>
@@ -1831,8 +2154,8 @@ const activityTone = (event) => ({
       :open="contextMenu.open"
       :x="contextMenu.x"
       :y="contextMenu.y"
-      :items="folderContextMenuItems"
-      @select="onFolderContextAction"
+      :items="contextMenuItems"
+      @select="onContextAction"
       @close="closeContextMenu"
     />
 
@@ -1844,8 +2167,14 @@ const activityTone = (event) => ({
     >
       <div class="space-y-3">
         <p class="text-sm text-slate-600 dark:text-slate-300">
-          Chọn thư mục đích cho
-          <span class="font-semibold text-slate-800 dark:text-slate-100">{{ moveTarget?.original_name }}</span>
+          <template v-if="bulkMoveTarget">
+            Chọn thư mục đích cho
+            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ selectedRowIds.length }} mục đã chọn</span>
+          </template>
+          <template v-else>
+            Chọn thư mục đích cho
+            <span class="font-semibold text-slate-800 dark:text-slate-100">{{ moveTarget?.original_name }}</span>
+          </template>
         </p>
         <select
           v-model="moveDestinationId"
