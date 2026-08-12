@@ -215,7 +215,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file, gồm **Tài liệu Dev**); **cây thư mục** (`ProjectDocumentTree`) + kéo thả upload/chuyển `parent_id`; đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; **preview `.md` (Markdown) / `.html` (iframe sandbox)**; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS, fit-width, bảng/ảnh không tràn, phân trang/cuộn; Excel bảng phân trang dòng — không Office Online); list `table-fixed` (Tên · Dung lượng · Định dạng · Thao tác — ẩn Ngày tạo / Người tạo); cột đính kèm task hẹp |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive (danh mục → thư mục → file, gồm **Tài liệu Dev**); kéo thả upload/chuyển `parent_id` (list/grid); đổi tên (inline trong preview + nút trên thẻ grid); thẻ grid preview ảnh / PDF trang 1 / snippet `.txt`; xem trước + sửa nội dung text; **preview `.md` (Markdown) / `.html` (iframe sandbox)**; Word/Excel preview client-side (`DocumentPreviewPane` + `useDocumentPreview`: iframe Word cách ly CSS, fit-width, bảng/ảnh không tràn, phân trang/cuộn; Excel bảng phân trang dòng — không Office Online); list `table-fixed` (Tên · Dung lượng · Định dạng · Thao tác — ẩn Ngày tạo / Người tạo); cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` — Gantt mini, kéo ngày → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -311,11 +311,11 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 
 **Tạo file trống:** chỉ `.txt` — `is_new_file`, `file_name`, `file_type=txt` — ghi file lên disk `public` qua `ProjectAttachmentNewFile`, activity `file_created`.
 
-**Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha. **Kéo thả:** file OS vào panel / thẻ thư mục / hàng cây → upload vào đích; kéo item nội bộ sang thư mục (list/grid/cây) hoặc «Gốc danh mục» → `PUT parent_id`.
+**Thư mục:** `is_folder` + `folder_name`, tối đa 12 cấp; UI modal có vị trí danh mục/thư mục cha. **Kéo thả:** file OS vào panel / thẻ thư mục → upload vào đích; kéo item nội bộ sang thư mục (list/grid) → `PUT parent_id`.
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** toolbar gọn (`Tải lên` primary → `Thêm` ▾ thư mục/file/link); layout **hai panel** — trái «Tài liệu dự án» (khi vào danh mục: **cây thư mục** `ProjectDocumentTree` + vùng browse list/grid; folder card + `DocumentFileCard`: ảnh thật, PDF trang 1 lazy iframe, snippet `.txt`, nút đổi tên), phải «Đính kèm công việc». Thư mục trống: **không** card CTA giữa màn — gợi ý một dòng dưới breadcrumb + bảng list trống (hoặc strip lưới gọn); tạo file/thư mục chỉ qua toolbar. Preview full-screen: đổi tên inline; sửa text; **`.md`** / **`.html`**; Word/Excel client-side. Chi tiết drawer. Modal tạo `max-w-sm`.
+**UI tab Tài liệu:** toolbar gọn (`Tải lên` primary → `Thêm` ▾ thư mục/file/link); layout **hai panel** — trái «Tài liệu dự án» (folder card + `DocumentFileCard`; **chuột phải** thư mục → menu: tải xuống / tạo thư mục / tải lên / đổi tên / chuyển tới / xoá), phải «Đính kèm công việc». Thư mục trống: nhãn ngắn, không hint CTA. Preview full-screen: đổi tên inline; sửa text; **`.md`** / **`.html`**; Word/Excel client-side. Chi tiết drawer. Modal tạo `max-w-sm`.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

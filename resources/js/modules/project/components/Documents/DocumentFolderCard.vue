@@ -8,16 +8,13 @@ defineProps({
     subfolderCount: { type: Number, default: 0 },
     icon: { type: String, default: 'folder' },
     active: { type: Boolean, default: false },
-    canRename: { type: Boolean, default: false },
-    canDelete: { type: Boolean, default: false },
     canDrag: { type: Boolean, default: false },
     dropActive: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
     'click',
-    'rename',
-    'delete',
+    'contextmenu',
     'drag-start',
     'drag-end',
     'drag-over',
@@ -42,6 +39,7 @@ const emit = defineEmits([
     @dragover.prevent="emit('drag-over', $event)"
     @dragleave="emit('drag-leave', $event)"
     @drop.prevent="emit('drop', $event)"
+    @contextmenu.prevent="emit('contextmenu', $event)"
   >
     <button
       type="button"
@@ -66,7 +64,14 @@ const emit = defineEmits([
           {{ name }}
         </span>
         <span class="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px] text-slate-500">
-          <span class="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 tabular-nums ring-1 ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700">
+          <span
+            v-if="meta"
+            class="tabular-nums text-slate-400"
+          >{{ meta }}</span>
+          <span
+            v-else
+            class="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 tabular-nums ring-1 ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700"
+          >
             <AppIcon
               name="documents"
               :size="10"
@@ -75,7 +80,7 @@ const emit = defineEmits([
             {{ fileCount }}
           </span>
           <span
-            v-if="subfolderCount > 0"
+            v-if="!meta && subfolderCount > 0"
             class="inline-flex items-center gap-1 rounded-md bg-slate-50 px-1.5 py-0.5 tabular-nums ring-1 ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700"
           >
             <AppIcon
@@ -85,44 +90,8 @@ const emit = defineEmits([
             />
             {{ subfolderCount }}
           </span>
-          <span
-            v-if="meta"
-            class="tabular-nums text-slate-400"
-          >{{ meta }}</span>
         </span>
       </span>
     </button>
-
-    <div
-      v-if="canRename || canDelete"
-      class="flex items-center justify-end gap-0.5 border-t border-slate-100 px-2 py-1.5 dark:border-slate-800"
-    >
-      <button
-        v-if="canRename"
-        type="button"
-        class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-        title="Đổi tên"
-        @click.stop="emit('rename')"
-      >
-        <AppIcon
-          name="edit"
-          :size="12"
-        />
-        Đổi tên
-      </button>
-      <button
-        v-if="canDelete"
-        type="button"
-        class="inline-flex h-7 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
-        title="Xoá"
-        @click.stop="emit('delete')"
-      >
-        <AppIcon
-          name="delete"
-          :size="12"
-        />
-        Xoá
-      </button>
-    </div>
   </div>
 </template>

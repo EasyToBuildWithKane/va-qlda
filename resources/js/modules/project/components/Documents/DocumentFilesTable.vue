@@ -23,6 +23,7 @@ const emit = defineEmits([
     'rename-item',
     'preview-file',
     'delete-item',
+    'contextmenu-item',
     'drag-start-item',
     'drag-end-item',
     'drop-on-folder',
@@ -143,6 +144,7 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
           :class="dropTargetId === folder.id && !folder.is_category ? 'bg-brand/[0.08] ring-2 ring-inset ring-brand/30' : ''"
           :draggable="canDrag && !folder.is_category"
           @click="emit('select-folder', folder)"
+          @contextmenu.prevent="!folder.is_category && emit('contextmenu-item', { item: folder, event: $event })"
           @dragstart="canDrag && !folder.is_category && emit('drag-start-item', { item: folder, event: $event })"
           @dragend="emit('drag-end-item')"
           @dragover.prevent="!folder.is_category && emit('drag-over-folder', { folderId: folder.id, event: $event })"
@@ -192,32 +194,7 @@ const isEmpty = (folders, files) => !folders.length && !files.length;
             class="px-1 py-2 align-top"
             @click.stop
           >
-            <div class="flex items-center justify-end gap-0.5 opacity-70 transition group-hover:opacity-100">
-              <button
-                v-if="canEdit && !folder.is_category"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
-                title="Đổi tên"
-                @click="emit('rename-item', folder)"
-              >
-                <AppIcon
-                  name="edit"
-                  :size="13"
-                />
-              </button>
-              <button
-                v-if="canDelete && !folder.is_category"
-                type="button"
-                class="grid h-7 w-7 place-items-center rounded-md text-slate-300 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40"
-                title="Xoá"
-                @click="emit('delete-item', folder)"
-              >
-                <AppIcon
-                  name="delete"
-                  :size="13"
-                />
-              </button>
-            </div>
+            <span class="sr-only">Chuột phải để mở thao tác</span>
           </td>
         </tr>
 
