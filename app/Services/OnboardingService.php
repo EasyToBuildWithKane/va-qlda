@@ -181,8 +181,10 @@ class OnboardingService
             'enabled' => $enabled,
             'seen' => $seen,
             'employee_name' => $employee?->full_name ?? $account->display_name,
+            'employee_avatar' => PublicMediaUrl::fromPublicDisk($employee?->avatar_path),
             'role' => $account->role->value,
             'role_label' => $account->role->label(),
+            'role_title' => $employee?->role_title,
             'department' => $departmentPayload,
             'coworkers' => $coworkers,
             'coworker_total' => $coworkerTotal,
@@ -246,7 +248,20 @@ class OnboardingService
     }
 
     /**
-     * @return array{0: list<array{id: int, name: string, avatar: string|null}>, 1: int}
+     * @return array{id: int, name: string, avatar: string|null, role_title: string|null}
+     */
+    private function coworkerCard(Employee $employee): array
+    {
+        return [
+            'id' => $employee->id,
+            'name' => $employee->full_name,
+            'avatar' => PublicMediaUrl::fromPublicDisk($employee->avatar_path),
+            'role_title' => $employee->role_title,
+        ];
+    }
+
+    /**
+     * @return array{0: list<array{id: int, name: string, avatar: string|null, role_title: string|null}>, 1: int}
      */
     private function resolveWelcomeCoworkers(Employee $employee, ?Department $localDepartment): array
     {
@@ -257,11 +272,7 @@ class OnboardingService
 
             if ($members->isNotEmpty()) {
                 return [
-                    $members->take(9)->map(fn (Employee $e) => [
-                        'id' => $e->id,
-                        'name' => $e->full_name,
-                        'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
-                    ])->all(),
+                    $members->take(8)->map(fn (Employee $e) => $this->coworkerCard($e))->all(),
                     $members->count(),
                 ];
             }
@@ -291,11 +302,7 @@ class OnboardingService
             ->get();
 
         return [
-            $peers->take(9)->map(fn (Employee $e) => [
-                'id' => $e->id,
-                'name' => $e->full_name,
-                'avatar' => PublicMediaUrl::fromPublicDisk($e->avatar_path),
-            ])->all(),
+            $peers->take(8)->map(fn (Employee $e) => $this->coworkerCard($e))->all(),
             $peers->count(),
         ];
     }

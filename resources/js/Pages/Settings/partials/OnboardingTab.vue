@@ -52,7 +52,9 @@ const previewData = computed(() => {
         enabled: true,
         seen: false,
         employee_name: page.props.auth?.user?.display_name || 'Người dùng',
+        role: 'member',
         role_label: 'Thành viên',
+        role_title: '',
         department: { name: 'Phòng ban mẫu', color: '#9A0036' },
         coworkers: [],
         coworker_total: 0,
@@ -215,7 +217,7 @@ async function resetForSelf() {
       class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-brand/[0.04] p-4"
       aria-label="Xem trước màn hình chào mừng"
     >
-      <div class="w-full max-w-4xl max-h-full">
+      <div class="w-full max-w-3xl max-h-full overflow-y-auto">
         <WelcomePanel
           :welcome="previewData"
           :show-actions="false"

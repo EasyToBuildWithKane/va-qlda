@@ -173,6 +173,7 @@ class OnboardingTest extends TestCase
     public function test_welcome_payload_uses_hrm_meta_department_without_pivot(): void
     {
         $employee = \App\Models\Employee::factory()->create([
+            'role_title' => 'Chuyên viên phát triển',
             'meta' => [
                 'department_name' => 'Phòng Công nghệ',
                 'department_code' => 'CNTT',
@@ -186,6 +187,8 @@ class OnboardingTest extends TestCase
 
         $this->assertSame('Phòng Công nghệ', $payload['department']['name'] ?? null);
         $this->assertNotEmpty($payload['department']['color'] ?? null);
+        $this->assertSame('Chuyên viên phát triển', $payload['role_title'] ?? null);
+        $this->assertSame('member', $payload['role'] ?? null);
     }
 
     public function test_welcome_payload_lists_meta_department_peers(): void

@@ -13,29 +13,33 @@ trên — đây là 1 màn hình chào mừng hiện đúng 1 lần, không ph�
 |-----|-----|---------|
 | Composable | `modules/onboarding/composables/useOnboardingWelcome.js` | Đọc `onboarding.welcome` + preview override (shared module state) |
 | | `modules/onboarding/composables/motion.js` | `prefersReducedMotionNow()` |
-| UI | `modules/onboarding/components/WelcomeScreen.vue` | Overlay full-screen (Teleport), mount **luôn** trong `AppLayout` (không gắn `renderSidebarHere` — AppChrome khiến cờ đó = false); modal `max-w-4xl` |
-| | `modules/onboarding/components/WelcomePanel.vue` | Thẻ nội dung layout ngang (cột brand + nội dung) — overlay + preview trên settings |
+| UI | `modules/onboarding/components/WelcomeScreen.vue` | Overlay full-screen (Teleport), mount **luôn** trong `AppLayout` (không gắn `renderSidebarHere` — AppChrome khiến cờ đó = false); modal `max-w-3xl`, cuộn khi viewport thấp |
+| | `modules/onboarding/components/WelcomePanel.vue` | Thẻ chào mừng: hero brand + tên đầy đủ (không cắt), phòng ban/vai trò dạng thẻ chữ (không badge), danh sách đồng nghiệp + gợi ý bắt đầu — overlay + preview settings |
 | Backend | `OnboardingService::welcomePayload($account, force:)` / `markWelcomeSeen` / `resetWelcomeForAll` / `resetWelcomeFor` | Payload + ghi «đã xem» + reset |
 | | `OnboardingController::seenWelcome` | `POST /onboarding/welcome/seen` (204) |
 | Cấu hình | `config/va.php` → `onboarding_welcome_enabled` + `SettingsSchema` group `onboarding` | Bật/tắt tại `/settings/onboarding` |
 | | `SystemSettingController::resetOnboardingWelcome` | `POST /settings/onboarding/reset` — xoá `onboarding_seen_at` hàng loạt |
 | | `SystemSettingController::resetOnboardingWelcomeSelf` | `POST /settings/onboarding/reset-self` — chỉ tài khoản hiện tại |
-| Settings UI | `Pages/Settings/partials/OnboardingTab.vue` | Một viewport: toolbar ngang (toggle + lưu + xem thử + reset) + preview `WelcomePanel` layout ngang (`max-w-4xl`) |
+| Settings UI | `Pages/Settings/partials/OnboardingTab.vue` | Một viewport: toolbar ngang (toggle + lưu + xem thử + reset) + preview `WelcomePanel` (`max-w-3xl`) |
 
 **Dữ liệu:** cột `system_accounts.onboarding_seen_at` (nullable timestamp,
 migration `2026_08_12_130000_add_onboarding_seen_at_to_system_accounts_table`).
 
-**Nội dung màn hình:** tên nhân viên, phòng ban (ưu tiên pivot
-`department_member`, fallback `employees.meta` từ HRM — cùng nguồn hồ sơ),
-vai trò, tối đa 9 đồng nghiệp (pivot members hoặc peers cùng `meta.department_*`),
-mascot `vas-mascot-wave.png` (`animate-cn-float`).
+**Nội dung màn hình:** lời chào theo buổi, tên nhân viên đầy đủ (xuống dòng,
+không `truncate`), phòng ban (ưu tiên pivot `department_member`, fallback
+`employees.meta` từ HRM — cùng nguồn hồ sơ), vai trò hệ thống (nhãn tiếng Việt)
++ chức danh `role_title`, tối đa 8 đồng nghiệp (tên đầy đủ + chức danh; pivot
+members hoặc peers cùng `meta.department_*`), 3 gợi ý bắt đầu (báo cáo ngày /
+dự án / hồ sơ), mascot `vas-mascot-wave.png` (`animate-cn-float`). Không dùng
+`Badge`.
 
 **Hiệu năng:** `welcomePayload()` **early-return** khi tắt hoặc đã xem (trừ
 `force: true` cho preview settings).
 
-**Super-admin `/settings/onboarding`:** `AppLayout` flush, một viewport không
-scroll — toolbar ngang (toggle `welcome_enabled`, lưu, xem thử overlay không
-ghi «đã xem», «Hiện lại cho tôi», «Cho mọi người») + preview `WelcomePanel`.
+**Super-admin `/settings/onboarding`:** `AppLayout` flush, một viewport —
+toolbar ngang (toggle `welcome_enabled`, lưu, xem thử overlay không
+ghi «đã xem», «Hiện lại cho tôi», «Cho mọi người») + preview `WelcomePanel`
+(vùng preview cuộn nội bộ).
 
 ## Kiến trúc
 

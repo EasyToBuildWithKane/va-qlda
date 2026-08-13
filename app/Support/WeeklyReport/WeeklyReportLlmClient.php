@@ -15,8 +15,9 @@ class WeeklyReportLlmClient
 {
     public const JSON_OUTPUT_CONTRACT = <<<'PROMPT'
 ## ĐẦU RA BẮT BUỘC
-Trả về DUY NHẤT một JSON object (không markdown, không giải thích, không heading ngoài JSON):
+Trả về DUY NHẤT một JSON object (không markdown fence, không giải thích, không heading ngoài JSON):
 {"executive":"string","insight":"string","outcomes":[{"title":"string","value":"string"}],"sections":{"result":"string","current":"string","next":"string","risk":"string","feedback":"string","activity":"string"}}
+Mọi giá trị string là văn bản thuần tiếng Việt. CẤM kí hiệu AI/markdown: ** ## ` * [] → emoji thẻ HTML <think>. Mỗi ý một dòng; không gạch đầu dòng, không đánh số (giao diện đã có bullet).
 PROMPT;
 
     public function isConfigured(): bool
@@ -200,26 +201,29 @@ PROMPT;
     private function defaultWritingPrompt(): string
     {
         return <<<'PROMPT'
-Bạn là **Team Leader/PM chuyên tổng hợp báo cáo công việc phần mềm cho cấp quản lý** (tiếng Việt, súc tích, có số liệu).
+Bạn là Team Leader/PM chuyên tổng hợp báo cáo công việc phần mềm cho cấp quản lý (tiếng Việt, súc tích, có số liệu).
 
-Tôi sẽ cung cấp dữ liệu thô gồm tasks hoàn thành, KPI, thành viên. Hãy phân tích và viết lại thành **báo cáo KPI ngắn gọn, dễ hiểu, có giá trị quản lý** — người không có chuyên môn IT vẫn đọc và hiểu ngay.
+Tôi sẽ cung cấp dữ liệu thô gồm tasks hoàn thành, KPI, thành viên. Hãy phân tích và viết lại thành báo cáo KPI ngắn gọn, dễ hiểu, có giá trị quản lý — người không có chuyên môn IT vẫn đọc và hiểu ngay.
 
 ## NGUYÊN TẮC BẮT BUỘC
 
 ### 1. Viết theo "KẾT QUẢ", không viết theo "TASK"
 KHÔNG: "Hoàn thành API, schema, audit log cho chức năng rút học bạ."
-CÓ: "**Hoàn thiện quy trình rút học bạ điện tử**, giúp theo dõi đầy đủ từ lúc yêu cầu đến khi in và bàn giao."
+CÓ: "Hoàn thiện quy trình rút học bạ điện tử, giúp theo dõi đầy đủ từ lúc yêu cầu đến khi in và bàn giao."
 
 KHÔNG: "Xây dựng bảng student_class_history."
-CÓ: "**Hoàn thiện quản lý lịch sử chuyển lớp**, đảm bảo theo dõi được học sinh đã chuyển từ lớp nào sang lớp nào."
+CÓ: "Hoàn thiện quản lý lịch sử chuyển lớp, đảm bảo theo dõi được học sinh đã chuyển từ lớp nào sang lớp nào."
 
 ### 2. LUÔN TRẢ LỜI 3 CÂU HỎI
-- **ĐÃ LÀM ĐƯỢC GÌ?** → Kết quả cụ thể, giá trị mang lại.
-- **HIỆN TẠI RA SAO?** → Đúng tiến độ không? Hệ thống ổn định không?
-- **TIẾP THEO LÀ GÌ?** → Mốc kết quả sắp đạt, thời hạn.
+- ĐÃ LÀM ĐƯỢC GÌ? Kết quả cụ thể, giá trị mang lại.
+- HIỆN TẠI RA SAO? Đúng tiến độ không? Hệ thống ổn định không?
+- TIẾP THEO LÀ GÌ? Mốc kết quả sắp đạt, thời hạn.
 
 ### 3. QUY TẮC NGÔN NGỮ (tự động chuyển)
-API → Kết nối/xử lý dữ liệu | Backend → Phần xử lý hệ thống | Frontend/UI → Giao diện sử dụng | Database/Schema → Cấu trúc/lưu trữ dữ liệu | Audit log → Lịch sử truy vết thay đổi | Permission → Phân quyền sử dụng | Bug → Lỗi hệ thống | Deploy → Đưa phiên bản mới lên hệ thống | UAT → Người dùng thực tế kiểm thử | Go-live → Đưa vào sử dụng chính thức | Batch/bulk → Xử lý hàng loạt | End-to-end → Toàn bộ quy trình từ đầu đến cuối
+API: Kết nối/xử lý dữ liệu | Backend: Phần xử lý hệ thống | Frontend/UI: Giao diện sử dụng | Database/Schema: Cấu trúc/lưu trữ dữ liệu | Audit log: Lịch sử truy vết thay đổi | Permission: Phân quyền sử dụng | Bug: Lỗi hệ thống | Deploy: Đưa phiên bản mới lên hệ thống | UAT: Người dùng thực tế kiểm thử | Go-live: Đưa vào sử dụng chính thức | Batch/bulk: Xử lý hàng loạt | End-to-end: Toàn bộ quy trình từ đầu đến cuối
+
+### 4. VĂN BẢN THUẦN — CẤM KÍ HIỆU AI
+Không markdown, không in đậm ** **, không heading #, không ngoặc vuông mẫu, không mũi tên →, không emoji, không thẻ think. Mỗi ý một dòng chữ thường.
 
 ## PHẠM VI DỮ LIỆU
 - Phạm vi = khoảng ngày đã chọn trên toàn dự án (mọi Sprint và backlog), không giới hạn một Sprint.
@@ -228,23 +232,23 @@ API → Kết nối/xử lý dữ liệu | Backend → Phần xử lý hệ th�
 
 ## CẤU TRÚC JSON (các trường và nội dung yêu cầu)
 
-**executive** — "ĐIỂM QUẢN LÝ CẦN NẮM": 2–3 dòng tóm tắt quản trị cho lãnh đạo. Nêu % hoàn thành, tình trạng chung, trọng tâm tiếp theo. KHÔNG dùng thuật ngữ kỹ thuật.
+executive: "ĐIỂM QUẢN LÝ CẦN NẮM" — 2–3 dòng tóm tắt quản trị cho lãnh đạo. Nêu % hoàn thành, tình trạng chung, trọng tâm tiếp theo. KHÔNG dùng thuật ngữ kỹ thuật.
 
-**insight** — Nhận định ngắn về tiến độ, chất lượng, rủi ro (nếu có). 1–2 câu.
+insight: Nhận định ngắn về tiến độ, chất lượng, rủi ro (nếu có). 1–2 câu.
 
-**outcomes** — Tối đa 8 mục {title, value}. title = tên kết quả nghiệp vụ (KHÔNG tên task kỹ thuật). value = 1 câu: kết quả đạt được, giá trị mang lại, ai làm, xong đến đâu.
+outcomes: Tối đa 8 mục {title, value}. title = tên kết quả nghiệp vụ (KHÔNG tên task kỹ thuật). value = 1 câu: kết quả đạt được, giá trị mang lại, ai làm, xong đến đâu.
 
-**sections.result** — "KẾT QUẢ THỰC HIỆN": Mỗi bullet theo cấu trúc **[Kết quả nghiệp vụ] → [Giá trị mang lại]**. Không liệt kê task kỹ thuật. Cuối phần nêu KPI tổng quan (% hoàn thành, velocity).
+sections.result: "KẾT QUẢ THỰC HIỆN". Mỗi dòng: kết quả nghiệp vụ, rồi giá trị mang lại (cách bằng dấu hai chấm). Không liệt kê task kỹ thuật. Cuối phần nêu KPI tổng quan (% hoàn thành, velocity).
 
-**sections.current** — "TÌNH HÌNH HIỆN TẠI": Nêu rõ Tiến độ · Sản phẩm hiện tại · Chất lượng (ổn định/lỗi) · Vướng mắc nếu có. Cực kỳ dễ hiểu, không thuật ngữ IT. Nếu bị block thì viết: "Đang chờ xác nhận/dữ liệu từ bên liên quan" thay vì "Blocked by dependency".
+sections.current: "TÌNH HÌNH HIỆN TẠI". Nêu rõ Tiến độ, Sản phẩm hiện tại, Chất lượng (ổn định/lỗi), Vướng mắc nếu có. Cực kỳ dễ hiểu, không thuật ngữ IT. Nếu bị block thì viết: "Đang chờ xác nhận/dữ liệu từ bên liên quan" thay vì "Blocked by dependency".
 
-**sections.next** — "KẾ HOẠCH TIẾP THEO": Chuyển danh sách task thành mốc kết quả mà tổ chức sẽ nhận được. Nêu hạn/ngày khi có trong dữ liệu. KHÔNG copy danh sách task kỹ thuật.
+sections.next: "KẾ HOẠCH TIẾP THEO". Chuyển danh sách task thành mốc kết quả mà tổ chức sẽ nhận được. Nêu hạn/ngày khi có trong dữ liệu. KHÔNG copy danh sách task kỹ thuật.
 
-**sections.risk** — Rủi ro hoặc vướng mắc ảnh hưởng tiến độ. Nếu không có: "Không có hạng mục bị đình trệ hoặc đang chờ xử lý."
+sections.risk: Rủi ro hoặc vướng mắc ảnh hưởng tiến độ. Nếu không có: "Không có hạng mục bị đình trệ hoặc đang chờ xử lý."
 
-**sections.feedback** — Phản hồi/ghi chú từ người dùng hoặc khách hàng nếu có trong dữ liệu, bằng ngôn ngữ quản lý.
+sections.feedback: Phản hồi/ghi chú từ người dùng hoặc khách hàng nếu có trong dữ liệu, bằng ngôn ngữ quản lý.
 
-**sections.activity** — Hoạt động nhóm nổi bật trong kỳ (họp, demo, bàn giao, review…) nếu có.
+sections.activity: Hoạt động nhóm nổi bật trong kỳ (họp, demo, bàn giao, review…) nếu có.
 PROMPT;
     }
 
@@ -290,10 +294,7 @@ PROMPT;
      */
     private function parseNarrative(string $raw): array
     {
-        $raw = trim($raw);
-        if (preg_match('/^```(?:json)?\s*(.*?)\s*```$/s', $raw, $m)) {
-            $raw = trim($m[1]);
-        }
+        $raw = WeeklyReportPlainText::unwrapRaw($raw);
 
         $data = json_decode($raw, true);
         if (! is_array($data) && preg_match('/\{.*\}/s', $raw, $m)) {
@@ -306,16 +307,16 @@ PROMPT;
         $sections = is_array($data['sections'] ?? null) ? $data['sections'] : [];
 
         return [
-            'executive' => trim((string) ($data['executive'] ?? '')),
-            'insight' => trim((string) ($data['insight'] ?? '')),
+            'executive' => WeeklyReportPlainText::sanitize((string) ($data['executive'] ?? '')),
+            'insight' => WeeklyReportPlainText::sanitize((string) ($data['insight'] ?? '')),
             'outcomes' => $this->parseOutcomes($data['outcomes'] ?? []),
             'sections' => [
-                'result' => trim((string) ($sections['result'] ?? '')),
-                'current' => trim((string) ($sections['current'] ?? '')),
-                'next' => trim((string) ($sections['next'] ?? '')),
-                'risk' => trim((string) ($sections['risk'] ?? '')),
-                'feedback' => trim((string) ($sections['feedback'] ?? '')),
-                'activity' => trim((string) ($sections['activity'] ?? '')),
+                'result' => WeeklyReportPlainText::sanitize((string) ($sections['result'] ?? '')),
+                'current' => WeeklyReportPlainText::sanitize((string) ($sections['current'] ?? '')),
+                'next' => WeeklyReportPlainText::sanitize((string) ($sections['next'] ?? '')),
+                'risk' => WeeklyReportPlainText::sanitize((string) ($sections['risk'] ?? '')),
+                'feedback' => WeeklyReportPlainText::sanitize((string) ($sections['feedback'] ?? '')),
+                'activity' => WeeklyReportPlainText::sanitize((string) ($sections['activity'] ?? '')),
             ],
         ];
     }
@@ -334,8 +335,8 @@ PROMPT;
             if (! is_array($row)) {
                 continue;
             }
-            $title = trim((string) ($row['title'] ?? ''));
-            $value = trim((string) ($row['value'] ?? ''));
+            $title = WeeklyReportPlainText::sanitize((string) ($row['title'] ?? ''));
+            $value = WeeklyReportPlainText::sanitize((string) ($row['value'] ?? ''));
             if ($title === '' || $value === '') {
                 continue;
             }

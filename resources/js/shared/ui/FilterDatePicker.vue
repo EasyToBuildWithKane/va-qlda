@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
+import { vi as dateFnsVi } from 'date-fns/locale/vi';
 import '@vuepic/vue-datepicker/dist/main.css';
 
 const props = defineProps({
@@ -21,6 +22,12 @@ const inputAriaLabel = computed(() => props.placeholder || 'Chọn ngày');
 
 const ariaLabels = computed(() => ({
     input: inputAriaLabel.value,
+}));
+
+const inputAttrs = computed(() => ({
+    id: props.id || undefined,
+    name: props.name || props.id || undefined,
+    clearable: props.clearable,
 }));
 
 function isoToDate(iso) {
@@ -69,6 +76,15 @@ function formatDisplay(date) {
     return `${dd}/${mm}/${d.getFullYear()}`;
 }
 
+/** VueDatePicker v14: format/preview-format → formats.input|preview */
+const pickerFormats = {
+    input: formatDisplay,
+    preview: formatDisplay,
+};
+
+/** VueDatePicker v14: enable-time-picker → timeConfig */
+const timeConfig = { enableTimePicker: false };
+
 function onUpdate(val) {
     emit('update:modelValue', val || '');
 }
@@ -77,25 +93,21 @@ function onUpdate(val) {
 <template>
   <div class="va-filter-date-picker min-w-0 w-full">
     <VueDatePicker
-      :id="id"
-      :name="name || id || undefined"
-      :uid="id"
+      :input-attrs="inputAttrs"
       :aria-labels="ariaLabels"
       :model-value="modelValue || null"
       model-type="yyyy-MM-dd"
-      :format="formatDisplay"
-      :preview-format="formatDisplay"
-      locale="vi"
+      :formats="pickerFormats"
+      :locale="dateFnsVi"
       :placeholder="placeholder"
       :disabled="disabled"
       :min-date="minD"
       :max-date="maxD"
-      :enable-time-picker="false"
+      :time-config="timeConfig"
       :teleport="true"
       auto-apply
-      :clearable="clearable"
       :ui="pickerUi"
-      week-start="1"
+      :week-start="1"
       @update:model-value="onUpdate"
     />
   </div>

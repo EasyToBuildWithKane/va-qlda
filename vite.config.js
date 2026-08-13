@@ -46,8 +46,8 @@ export default defineConfig({
                     // Excel I/O (xlsx-js-style only — avoid duplicate sheetjs)
                     'vendor-excel': ['xlsx-js-style'],
 
-                    // Date picker (FilterDatePicker)
-                    'vendor-datepicker': ['@vuepic/vue-datepicker'],
+                    // Date picker (FilterDatePicker + date-fns vi locale)
+                    'vendor-datepicker': ['@vuepic/vue-datepicker', 'date-fns/locale/vi'],
 
                     // FullCalendar (project + coaching)
                     'vendor-calendar': [

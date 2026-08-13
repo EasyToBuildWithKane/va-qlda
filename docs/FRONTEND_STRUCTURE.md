@@ -67,7 +67,7 @@ resources/js/
 │   ├── credential/               ← Kho mật khẩu: components, composables
 │   ├── performance/              ← Dashboard + audit components/composables
 │   ├── profile/                  ← Hồ sơ (/profile): HR identity + skill matrix **read-only** (mirror VA-HRM); không form identity/avatar/skill local
-│   ├── onboarding/               ← WelcomeScreen + WelcomePanel (layout ngang max-w-4xl); useOnboardingWelcome; settings một viewport
+│   ├── onboarding/               ← WelcomeScreen + WelcomePanel (hero + nội dung, max-w-3xl, không badge/cắt tên); useOnboardingWelcome; settings một viewport
 │   ├── notifications/            ← Bell, center drawer, preferences
 │   ├── audit/                    ← Audit trail viewer components/composables
 │   ├── aiAccount/                ← Tài khoản AI: FormModal 4 tab (Thông tin·Chứng từ·Chi phí&hạn·Phân quyền) + AccessGrantsPanel + Index; CostReport + AiCostReportSummaryBar (KPI strip)
@@ -161,7 +161,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
 | `DatagridToolbarSearch.vue`, `FilterVisibilityDropdown.vue`, `ColumnVisibilityDropdown.vue` | Toolbar bảng (tìm kiếm, bật lọc/cột) |
 | `DatagridToolbarActionButton.vue`, `DatagridSegmentedControl.vue`, `DatagridFilterField.vue` | Nút Lọc/Cột/Xuất, segmented, ô lọc grid `w-full h-10` |
-| `FilterDatePicker.vue` | Lọc ngày (`@vuepic/vue-datepicker`, `dd/MM/yyyy` ↔ ISO) |
+| `FilterDatePicker.vue` | Lọc ngày (`@vuepic/vue-datepicker` v14: `formats.input` `dd/MM/yyyy` ↔ ISO, locale date-fns `vi` — không truyền chuỗi `"vi"`) |
 | `form/FormField.vue`, `TextInput.vue`, `SelectInput.vue`, `DateInput.vue`, `TimeInput.vue` | Form primitives (`input--picker`: date/time hiển thị rõ, click cả ô) |
 
 ### 6.3 Project Module — `modules/project/components/`

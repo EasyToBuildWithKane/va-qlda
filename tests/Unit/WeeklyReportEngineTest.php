@@ -370,4 +370,53 @@ class WeeklyReportEngineTest extends TestCase
         $this->assertNotEmpty($report->executiveSummary);
         Http::assertNothingSent();
     }
+
+    public function test_llm_strips_markdown_and_thinking_from_narrative(): void
+    {
+        config([
+            'weekly_report.llm.enabled' => true,
+            'weekly_report.llm.provider' => 'openai',
+            'weekly_report.llm.api_key' => 'sk-test',
+            'weekly_report.llm.model' => 'gpt-4o-mini',
+            'weekly_report.llm.base_url' => '',
+        ]);
+
+        $payload = json_encode([
+            'executive' => '**Tóm tắt** → lãnh đạo nắm 80%.',
+            'insight' => '`Ổn định` trong kỳ.',
+            'outcomes' => [
+                ['title' => '[Module A]', 'value' => '**Đã demo** với phòng Đào tạo.'],
+            ],
+            'sections' => [
+                'result' => "- **Hoàn thiện rút học bạ** → giúp theo dõi bàn giao.\n- Schema xong",
+                'current' => '### Đúng tiến độ',
+                'next' => '📌 Chuẩn bị UAT',
+                'risk' => 'Không có hạng mục bị đình trệ hoặc đang chờ xử lý.',
+                'feedback' => '',
+                'activity' => '',
+            ],
+        ], JSON_UNESCAPED_UNICODE);
+
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => "<think>viết báo cáo</think>\n```json\n{$payload}\n```",
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $report = app(WeeklyReportGenerator::class)->generate($this->context());
+
+        $this->assertSame('Tóm tắt: lãnh đạo nắm 80%.', $report->executiveSummary);
+        $this->assertSame('Ổn định trong kỳ.', $report->aiSummary);
+        $this->assertSame('Hoàn thiện rút học bạ: giúp theo dõi bàn giao.'."\n".'Schema xong', $report->sections['result']);
+        $this->assertSame('Đúng tiến độ', $report->sections['current']);
+        $this->assertSame('Chuẩn bị UAT', $report->sections['next']);
+        $this->assertSame('Module A', $report->meta['outcomes'][0]['title']);
+        $this->assertSame('Đã demo với phòng Đào tạo.', $report->meta['outcomes'][0]['value']);
+        $this->assertStringNotContainsString('**', $report->sections['result']);
+        $this->assertSame('llm', $report->meta['engine']);
+    }
 }

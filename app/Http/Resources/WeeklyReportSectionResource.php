@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Support\WeeklyReport\WeeklyReportPlainText;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,7 +21,7 @@ class WeeklyReportSectionResource extends JsonResource
             'label' => $this->section->label(),
             'icon' => $this->section->icon(),
             'editable' => $this->section->isEditable(),
-            'content' => $this->content,
+            'content' => WeeklyReportPlainText::sanitize((string) ($this->content ?? '')),
             'is_edited' => (bool) $this->is_edited,
             'sort_order' => $this->sort_order,
         ];

@@ -28,6 +28,8 @@ Prompt viết báo cáo chỉnh tại **`/settings/ai`** (ô «Prompt tùy chỉ
 
 LLM **không** nhận bản draft heuristic (tránh copy danh sách task). Chỉ nhận KPI + dữ liệu thô (mô tả, ghi chú, thành viên, vướng mắc, phản hồi).
 
+Văn bản LLM được gỡ markdown / thinking token / emoji (`WeeklyReportPlainText`) trước khi lưu và khi trả ra UI / PDF / DOCX — 3 thẻ không hiện `**`, `###`, `→`, `` ` ``.
+
 Nút **Tạo lại** ghi đè toàn bộ thẻ (không giữ bản đã sửa) để prompt mới có hiệu lực.
 
 ```
@@ -51,11 +53,12 @@ Xem [`SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md) tab **Trí tuệ nhân tạo**.
 | `WeeklyReportDataHasher` | Hash dữ liệu → phát hiện "dữ liệu kỳ đã đổi" |
 | `SprintWeekResolver` | Kỳ mặc định = tuần lịch T2–CN (`calendarWeek`); `weekByNumber` còn dùng bucket Sprint khi POST `week_number` |
 | `WeeklyReportLlmClient` | LLM đọc nội dung task + thành viên rồi viết lại kết quả/outcomes; không bịa số liệu |
+| `WeeklyReportPlainText` | Gỡ markdown, thinking token, emoji khỏi văn bản LLM trước khi lưu / xuất / hiển thị |
 | `LlmWeeklyReportGenerator` | Ghép heuristic + LLM; fallback khi API lỗi |
 
 ## Kỳ báo cáo (khoảng ngày)
 
-Người dùng chọn **Từ ngày → Đến ngày** khi tạo báo cáo (tối đa 31 ngày). Kỳ mặc định trên UI
+Người dùng chọn **Từ ngày → Đến ngày** (`FilterDatePicker`, hiển thị `dd/MM/yyyy`) khi tạo báo cáo (tối đa 31 ngày). Kỳ mặc định trên UI
 là tuần T2–CN chứa hôm nay (`SprintWeekResolver::calendarWeek`) — **không** kẹp ngày bắt đầu/kết thúc Sprint.
 Cùng khoảng ngày trên dự án đã có báo cáo → mở lại / tạo lại nội dung, không nhân bản (lookup theo
 `project_id` + `week_start` + `week_end`, không theo Sprint).

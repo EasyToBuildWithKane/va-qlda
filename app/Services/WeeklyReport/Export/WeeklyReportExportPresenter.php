@@ -5,6 +5,7 @@ namespace App\Services\WeeklyReport\Export;
 use App\Models\WeeklyReport;
 use App\Models\WeeklyReportSection;
 use App\Support\Enums\WeeklyReportSection as SectionEnum;
+use App\Support\WeeklyReport\WeeklyReportPlainText;
 
 /**
  * Chuẩn hoá dữ liệu báo cáo tuần thành mảng phẳng cho cả PDF (Blade) lẫn DOCX (PhpWord).
@@ -46,8 +47,8 @@ class WeeklyReportExportPresenter
             'week_number' => $report->week_number,
             'period' => $report->week_start->format('d/m/Y').' – '.$report->week_end->format('d/m/Y'),
             'status_label' => $report->status->label(),
-            'executive_summary' => $report->executive_summary ?? '',
-            'ai_summary' => $report->ai_summary ?? '',
+            'executive_summary' => WeeklyReportPlainText::sanitize((string) ($report->executive_summary ?? '')),
+            'ai_summary' => WeeklyReportPlainText::sanitize((string) ($report->ai_summary ?? '')),
             'kpi' => $this->kpiRows($kpi),
             'cards' => [
                 ['label' => 'Kết quả thực hiện', 'lines' => $this->lines($sections, SectionEnum::Result)],
@@ -86,10 +87,10 @@ class WeeklyReportExportPresenter
      */
     private function lines($sections, SectionEnum $key): array
     {
-        $content = $sections->get($key->value)?->content ?? '';
+        $content = WeeklyReportPlainText::sanitize((string) ($sections->get($key->value)?->content ?? ''));
 
         return collect(explode("\n", $content))
-            ->map(fn ($l) => trim(preg_replace('/^•\s*/u', '', $l)))
+            ->map(fn ($l) => trim($l))
             ->filter()
             ->values()
             ->all();

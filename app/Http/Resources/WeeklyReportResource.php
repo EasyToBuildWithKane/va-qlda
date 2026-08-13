@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\WeeklyReport\WeeklyReportPlainText;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -33,8 +34,8 @@ class WeeklyReportResource extends JsonResource
             'title' => $this->title,
             'status' => $this->enum($this->status),
             'is_locked' => $this->isLocked(),
-            'executive_summary' => $this->executive_summary,
-            'ai_summary' => $this->ai_summary,
+            'executive_summary' => WeeklyReportPlainText::sanitize((string) ($this->executive_summary ?? '')),
+            'ai_summary' => WeeklyReportPlainText::sanitize((string) ($this->ai_summary ?? '')),
             'kpi' => $this->kpi_snapshot ?? [],
             'meta' => $this->meta ?? [],
             'sections' => WeeklyReportSectionResource::collection(
