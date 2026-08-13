@@ -59,19 +59,49 @@ class WeeklyReportTest extends TestCase
     public function test_admin_can_generate_weekly_report_with_sections_and_kpi(): void
     {
         [$project] = $this->projectWithSprint();
+        $start = Carbon::today()->startOfWeek()->toDateString();
+        $end = Carbon::today()->startOfWeek()->addDays(6)->toDateString();
 
         $this->actingAs($this->admin(), 'system')
-            ->post("/projects/{$project->id}/weekly-reports", ['week_number' => 1])
+            ->post("/projects/{$project->id}/weekly-reports", [
+                'week_start' => $start,
+                'week_end' => $end,
+            ])
             ->assertRedirect();
 
         $report = WeeklyReport::query()->where('project_id', $project->id)->first();
 
         $this->assertNotNull($report);
+        $this->assertSame($start, $report->week_start->toDateString());
+        $this->assertSame($end, $report->week_end->toDateString());
         $this->assertSame(WeeklyReportStatus::Generated, $report->status);
         $this->assertNotNull($report->executive_summary);
         $this->assertCount(6, $report->sections);
         $this->assertSame(2, $report->kpi_snapshot['total_tasks']);
         $this->assertSame(1, $report->kpi_snapshot['blocked']);
+    }
+
+    public function test_store_rejects_period_longer_than_31_days(): void
+    {
+        [$project] = $this->projectWithSprint();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/weekly-reports", [
+                'week_start' => '2026-01-01',
+                'week_end' => '2026-03-01',
+            ])
+            ->assertSessionHasErrors('week_end');
+    }
+
+    public function test_store_still_accepts_week_number_for_sprint_bucket(): void
+    {
+        [$project] = $this->projectWithSprint();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/weekly-reports", ['week_number' => 1])
+            ->assertRedirect();
+
+        $this->assertNotNull(WeeklyReport::query()->where('project_id', $project->id)->first());
     }
 
     public function test_regenerate_preserves_user_edited_section(): void
@@ -123,10 +153,10 @@ class WeeklyReportTest extends TestCase
             ->get("/projects/{$project->id}?tab=weekly")
             ->assertOk()
             ->assertInertia(fn ($page) => $page
-                ->has('weeklyReports.weeks')
-                ->has('weeklyReports.engine.mode')
+                ->has('weeklyReports.reports')
+                ->has('weeklyReports.default_start')
+                ->has('weeklyReports.default_end')
                 ->where('weeklyReports.sprint.name', 'Sprint 1')
-                ->where('weeklyReports.engine.mode', 'heuristic')
             );
     }
 

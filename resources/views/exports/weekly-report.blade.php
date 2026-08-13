@@ -24,7 +24,7 @@
     </style>
 </head>
 <body>
-    <h1>Báo cáo tuần {{ $data['week_number'] }}</h1>
+    <h1>Báo cáo tuần</h1>
     <div class="muted">
         {{ $data['project'] }} · {{ $data['sprint'] }} · {{ $data['period'] }} · {{ $data['status_label'] }}
     </div>

@@ -32,12 +32,23 @@ class WeeklyReportKpiBuilder
             ->count();
 
         $worklogHours = round((float) $context->worklogs->sum(fn ($w) => (float) $w->hours), 1);
+        $weekDone = WeeklyReportTaskFacts::completedInWeek($context);
+        $weekSp = round((float) $weekDone->sum(fn (Task $t) => (float) ($t->story_points ?? 0)), 1);
+        $sprintSp = round((float) $rootTasks->sum(fn (Task $t) => (float) ($t->story_points ?? 0)), 1);
+        $inProgress = $tasks->filter(fn (Task $t) => in_array($t->status, [
+            TaskStatus::InProgress,
+            TaskStatus::InReview,
+        ], true))->count();
 
         return [
             'sprint_progress' => $total > 0 ? (int) round($done / $total * 100) : 0,
             'completed_tasks' => $done,
+            'week_completed' => $weekDone->count(),
+            'week_story_points' => $weekSp,
+            'sprint_story_points' => $sprintSp,
             'total_tasks' => $total,
             'remaining_tasks' => max($total - $done, 0),
+            'in_progress' => $inProgress,
             'overdue' => $overdue,
             'blocked' => $blocked,
             'open_issues' => $openBlockers->count(),

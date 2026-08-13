@@ -27,6 +27,7 @@ class WeeklyReportListResource extends JsonResource
             'week_number' => $this->week_number,
             'week_start' => $this->week_start->toDateString(),
             'week_end' => $this->week_end->toDateString(),
+            'period_label' => $this->periodLabel(),
             'status' => $this->enum($this->status),
             'generated_at' => $this->generated_at?->toIso8601String(),
             'approved_at' => $this->approved_at?->toIso8601String(),

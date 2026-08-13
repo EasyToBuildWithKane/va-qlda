@@ -45,7 +45,7 @@ const props = defineProps({
     attachments: { type: Array, default: () => [] },
     options: { type: Object, default: () => ({ employees: [], enums: {} }) },
     activityFeed: { type: Array, default: () => [] },
-    weeklyReports: { type: Object, default: () => ({ sprint: null, weeks: [], current_week: 1 }) },
+    weeklyReports: { type: Object, default: () => ({ sprint: null, reports: [], default_start: '', default_end: '' }) },
     weeklyReport: { type: Object, default: null },
     testCases: { type: Array, default: () => [] },
     testSuites: { type: Array, default: () => [] },

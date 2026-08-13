@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
+import { EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     kpi: { type: Object, default: () => ({}) },
@@ -10,38 +11,63 @@ const cards = computed(() => {
     const k = props.kpi || {};
     const n = (v) => Number(v ?? 0);
     const total = n(k.total_tasks);
-    const completed = n(k.completed_tasks);
-    const pct = (v) => (total > 0 ? Math.round((v / total) * 100) : 0);
+    const weekDone = n(k.week_completed);
+    const weekSp = n(k.week_story_points);
+    const hours = n(k.worklog_hours);
+    const remaining = n(k.remaining_tasks);
+    const pctSprint = n(k.sprint_progress);
+
+    const weekSub = weekDone === 0
+        ? 'Chưa hoàn thành hạng mục mới'
+        : (weekSp > 0 ? `${weekSp} story points giao trong tuần` : `${weekDone} hạng mục trong cửa sổ tuần`);
 
     return [
         {
-            key: 'progress',
-            label: 'Tiến độ Sprint',
-            value: `${n(k.sprint_progress)}%`,
-            tone: 'brand',
-            icon: 'overview',
-            sub: total ? `${completed}/${total} hạng mục` : 'Chưa có công việc',
-            progress: n(k.sprint_progress),
+            key: 'week_done',
+            label: 'Hoàn thành tuần',
+            value: weekDone,
+            tone: weekDone ? 'emerald' : 'slate',
+            icon: 'check-circle',
+            sub: weekSub,
             interactive: false,
         },
         {
-            key: 'completed',
-            label: 'Hoàn thành',
-            value: `${completed} / ${total}`,
-            tone: 'emerald',
-            icon: 'check-circle',
-            sub: total ? `${pct(completed)}% sprint` : 'Chưa có công việc',
-            progress: pct(completed),
+            key: 'progress',
+            label: 'Tiến độ Sprint',
+            value: `${pctSprint}%`,
+            tone: 'brand',
+            icon: 'overview',
+            sub: total ? `${n(k.completed_tasks)}/${total} hạng mục` : EMPTY_LABELS.generic,
+            progress: pctSprint,
+            interactive: false,
+        },
+        {
+            key: 'value',
+            label: 'Giá trị (SP)',
+            value: weekSp > 0 ? weekSp : n(k.sprint_story_points),
+            tone: 'violet',
+            icon: 'sparkles',
+            sub: weekSp > 0
+                ? 'Story points hoàn thành tuần'
+                : (n(k.sprint_story_points) > 0 ? `${n(k.sprint_story_points)} SP cam kết Sprint` : 'Chưa gán story points'),
+            interactive: false,
+        },
+        {
+            key: 'hours',
+            label: 'Giờ công tuần',
+            value: hours,
+            tone: hours ? 'sky' : 'slate',
+            icon: 'clock',
+            sub: hours ? 'Worklog đã ghi nhận' : 'Chưa ghi nhận giờ công',
             interactive: false,
         },
         {
             key: 'remaining',
             label: 'Còn lại',
-            value: n(k.remaining_tasks),
+            value: remaining,
             tone: 'sky',
             icon: 'task',
-            sub: total ? `${pct(n(k.remaining_tasks))}% chưa xong` : 'Chưa có công việc',
-            progress: pct(n(k.remaining_tasks)),
+            sub: n(k.in_progress) ? `${n(k.in_progress)} đang làm / review` : (total ? 'Chưa có việc đang làm' : EMPTY_LABELS.generic),
             interactive: false,
         },
         {
@@ -49,26 +75,8 @@ const cards = computed(() => {
             label: 'Quá hạn',
             value: n(k.overdue),
             tone: n(k.overdue) ? 'rose' : 'slate',
-            icon: 'clock',
-            sub: n(k.overdue) ? 'Cần xử lý ưu tiên' : 'Không quá hạn',
-            interactive: false,
-        },
-        {
-            key: 'issues',
-            label: 'Vướng mắc mở',
-            value: n(k.open_issues),
-            tone: n(k.open_issues) ? 'amber' : 'slate',
             icon: 'alert',
-            sub: n(k.open_issues) ? 'Đang theo dõi' : 'Không vướng mắc mở',
-            interactive: false,
-        },
-        {
-            key: 'feedback',
-            label: 'Phản hồi',
-            value: n(k.feedback),
-            tone: 'violet',
-            icon: 'feedback',
-            sub: n(k.feedback) ? 'Trong phạm vi tuần' : 'Chưa có phản hồi',
+            sub: n(k.overdue) ? 'Cần xử lý ưu tiên' : 'Không quá hạn',
             interactive: false,
         },
     ];
@@ -78,12 +86,12 @@ const cards = computed(() => {
 <template>
   <KpiSummaryStrip
     variant="embedded"
-    aria-label="Thống kê báo cáo tuần"
-    heading="Chỉ số tuần"
-    hint="Tổng hợp từ Sprint và dữ liệu dự án"
+    aria-label="KPI kết quả tuần"
+    eyebrow="Thống kê"
+    heading="Kết quả hoàn thành trong tuần"
+    hint="Số liệu từ task Sprint — giá trị lấy story points và giờ công"
     :cards="cards"
-    :progress-denominator="Number(kpi?.total_tasks ?? 0)"
+    :progress-denominator="100"
     grid-class="grid-cols-2 sm:grid-cols-3 lg:grid-cols-6"
-    shell-class="kpi-strip relative overflow-x-hidden rounded-xl border border-slate-200/80 bg-gradient-to-b from-slate-50/90 to-white px-4 py-4 shadow-sm dark:border-slate-700 dark:from-slate-900/80 dark:to-slate-900 sm:px-5 sm:py-5"
   />
 </template>

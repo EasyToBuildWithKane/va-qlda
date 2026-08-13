@@ -493,7 +493,7 @@ class NotificationDispatcher
             $report,
             $actor,
             NotificationType::WeeklyReportSubmitted,
-            ($actor ? "{$actor->display_name} gửi duyệt " : 'Chờ duyệt ')."báo cáo tuần {$report->week_number}",
+            ($actor ? "{$actor->display_name} gửi duyệt " : 'Chờ duyệt ')."báo cáo {$report->periodLabel()}",
             $report->project?->name,
         );
     }
@@ -504,7 +504,7 @@ class NotificationDispatcher
             $report,
             $actor,
             NotificationType::WeeklyReportApproved,
-            ($actor ? "{$actor->display_name} đã duyệt " : 'Đã duyệt ')."báo cáo tuần {$report->week_number}",
+            ($actor ? "{$actor->display_name} đã duyệt " : 'Đã duyệt ')."báo cáo {$report->periodLabel()}",
             $report->project?->name,
         );
     }
@@ -515,7 +515,7 @@ class NotificationDispatcher
             $report,
             $actor,
             NotificationType::WeeklyReportRejected,
-            "Báo cáo tuần {$report->week_number} bị trả lại",
+            "Báo cáo {$report->periodLabel()} bị trả lại",
             $report->reject_reason,
         );
     }

@@ -14,6 +14,7 @@ use App\Services\WeeklyReport\WeeklyReportPresenter;
 use App\Services\WeeklyReport\WeeklyReportService;
 use App\Support\Enums\WeeklyReportStatus;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Symfony\Component\HttpFoundation\Response;
 
 class WeeklyReportController extends Controller
@@ -23,17 +24,28 @@ class WeeklyReportController extends Controller
         private readonly WeeklyReportPresenter $presenter,
     ) {}
 
-    /** Tạo draft cho tuần đã chọn rồi tổng hợp nội dung ngay. */
+    /** Tạo draft cho khoảng ngày đã chọn rồi tổng hợp nội dung ngay. */
     public function store(StoreWeeklyReportRequest $request, Project $project): RedirectResponse
     {
         $sprint = $this->presenter->activeSprint($project);
+        $data = $request->validated();
 
-        $report = $this->service->createForWeek(
-            $project,
-            $sprint,
-            (int) $request->validated('week_number'),
-            $request->user(),
-        );
+        if (! empty($data['week_start']) && ! empty($data['week_end'])) {
+            $report = $this->service->createForPeriod(
+                $project,
+                $sprint,
+                Carbon::parse($data['week_start']),
+                Carbon::parse($data['week_end']),
+                $request->user(),
+            );
+        } else {
+            $report = $this->service->createForWeek(
+                $project,
+                $sprint,
+                (int) $data['week_number'],
+                $request->user(),
+            );
+        }
 
         return $this->backToReport($project, $report, 'Đã tạo báo cáo tuần.');
     }

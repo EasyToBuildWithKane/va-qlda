@@ -29,6 +29,7 @@ class WeeklyReportResource extends JsonResource
             'week_number' => $this->week_number,
             'week_start' => $this->week_start->toDateString(),
             'week_end' => $this->week_end->toDateString(),
+            'period_label' => $this->periodLabel(),
             'title' => $this->title,
             'status' => $this->enum($this->status),
             'is_locked' => $this->isLocked(),

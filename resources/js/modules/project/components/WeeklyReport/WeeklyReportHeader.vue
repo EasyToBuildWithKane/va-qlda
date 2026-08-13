@@ -12,19 +12,12 @@ const props = defineProps({
 
 const emit = defineEmits(['regenerate', 'export', 'submit', 'approve', 'reject']);
 
-function fmt(d) {
-    if (!d) return '';
-    const [y, m, day] = d.split('-');
-    return `${day}/${m}/${y}`;
-}
-
 const exportOpen = ref(false);
 function pick(format) {
     exportOpen.value = false;
     emit('export', format);
 }
 
-const period = computed(() => `${fmt(props.report.week_start)} – ${fmt(props.report.week_end)}`);
 const updated = computed(() => {
     const iso = props.report.updated_at;
     if (!iso) return null;
@@ -35,28 +28,19 @@ const updated = computed(() => {
 <template>
   <div class="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-700 lg:flex-row lg:items-start lg:justify-between">
     <div class="min-w-0 flex-1 space-y-2">
-      <div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-2">
-        <h2 class="shrink-0 font-display text-lg font-semibold text-slate-900 dark:text-slate-50">
-          Báo cáo tuần {{ report.week_number }}
-        </h2>
-        <WeeklyReportApprovalBar
-          inline
-          :report="report"
-          :processing="processing"
-          class="min-w-0 flex-1"
-          @submit="emit('submit')"
-          @approve="emit('approve')"
-          @reject="emit('reject', $event)"
-        />
-      </div>
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-        <span v-if="report.sprint_name">{{ report.sprint_name }}</span>
-        <span class="inline-flex items-center gap-1">
-          <AppIcon
-            name="calendar"
-            :size="12"
-          /> {{ period }}
-        </span>
+      <WeeklyReportApprovalBar
+        inline
+        :report="report"
+        :processing="processing"
+        class="min-w-0"
+        @submit="emit('submit')"
+        @approve="emit('approve')"
+        @reject="emit('reject', $event)"
+      />
+      <div
+        v-if="updated || report.approved_by"
+        class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500"
+      >
         <span v-if="updated">Cập nhật {{ updated }}</span>
         <span
           v-if="report.approved_by"

@@ -2,19 +2,21 @@ import { computed, reactive, ref, watch } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useToast } from '@/shared/composables/useToast';
 
+const MAX_PERIOD_DAYS = 31;
+
 /**
- * Logic tab "Báo cáo tuần": chọn tuần, tạo/tổng hợp/regenerate, lưu chỉnh sửa
+ * Logic tab "Báo cáo tuần": chọn khoảng ngày, tạo/tổng hợp/regenerate, lưu chỉnh sửa
  * (3 thẻ chính + tóm tắt điều hành) với theo dõi dirty. Mọi thao tác server đi
  * qua Inertia router; backend redirect về Project/Show với ?wr=id.
  *
  * @param {import('vue').Ref<string>|string} [options.tab] Tab hiện tại (`overview` | `weekly`)
- *   để giữ nguyên sau chọn tuần / tạo / lưu.
+ *   để giữ nguyên sau chọn kỳ / tạo / lưu.
  */
 export function useWeeklyReport(projectId, { overview, detail, tab } = {}) {
     const toast = useToast();
 
     const processing = ref(false);
-    const pendingWeek = ref(null); // tuần được chọn nhưng chưa có report
+    const pendingPeriod = ref(null);
 
     // Buffer chỉnh sửa cục bộ cho 3 thẻ + executive summary.
     const draft = reactive({ executive_summary: '', sections: {} });
@@ -22,8 +24,20 @@ export function useWeeklyReport(projectId, { overview, detail, tab } = {}) {
 
     const report = computed(() => detail.value);
     const sprint = computed(() => overview.value?.sprint ?? null);
-    const weeks = computed(() => overview.value?.weeks ?? []);
-    const currentWeekNumber = computed(() => overview.value?.current_week ?? 1);
+    const reports = computed(() => overview.value?.reports ?? []);
+    const defaultStart = computed(() => overview.value?.default_start ?? '');
+    const defaultEnd = computed(() => overview.value?.default_end ?? '');
+
+    const periodStart = computed(() => (
+        pendingPeriod.value?.start
+        ?? report.value?.week_start
+        ?? defaultStart.value
+    ));
+    const periodEnd = computed(() => (
+        pendingPeriod.value?.end
+        ?? report.value?.week_end
+        ?? defaultEnd.value
+    ));
 
     function resolveTab() {
         const raw = tab && typeof tab === 'object' && 'value' in tab ? tab.value : tab;
@@ -62,35 +76,92 @@ export function useWeeklyReport(projectId, { overview, detail, tab } = {}) {
         );
     });
 
-    // Khi report thay đổi (đổi tuần / reload) → đồng bộ buffer, thoát chế độ sửa.
+    // Khi report thay đổi (đổi kỳ / reload) → đồng bộ buffer, thoát chế độ sửa.
     watch(report, () => {
         editing.value = false;
         resetDraft();
     }, { immediate: true });
 
-    function selectWeek(week) {
-        if (week.report_id) {
-            pendingWeek.value = null;
+    function findReport(start, end) {
+        return reports.value.find((r) => r.week_start === start && r.week_end === end) ?? null;
+    }
+
+    function selectReport(id) {
+        if (!id) {
+            pendingPeriod.value = {
+                start: defaultStart.value,
+                end: defaultEnd.value,
+            };
+            if (report.value?.id) {
+                router.get(
+                    route('projects.show', projectId),
+                    { tab: resolveTab() },
+                    { only: ['weeklyReport'], preserveScroll: true, preserveState: true },
+                );
+            }
+            return;
+        }
+        pendingPeriod.value = null;
+        router.get(
+            route('projects.show', projectId),
+            { tab: resolveTab(), wr: id },
+            { only: ['weeklyReport'], preserveScroll: true, preserveState: true },
+        );
+    }
+
+    function selectPeriod({ start, end }) {
+        const nextStart = start || periodStart.value;
+        const nextEnd = end || periodEnd.value;
+        if (!nextStart || !nextEnd) return;
+
+        const match = findReport(nextStart, nextEnd);
+        if (match) {
+            pendingPeriod.value = null;
+            if (report.value?.id !== match.id) {
+                router.get(
+                    route('projects.show', projectId),
+                    { tab: resolveTab(), wr: match.id },
+                    { only: ['weeklyReport'], preserveScroll: true, preserveState: true },
+                );
+            }
+            return;
+        }
+
+        pendingPeriod.value = { start: nextStart, end: nextEnd };
+        if (report.value?.id) {
             router.get(
                 route('projects.show', projectId),
-                { tab: resolveTab(), wr: week.report_id },
+                { tab: resolveTab() },
                 { only: ['weeklyReport'], preserveScroll: true, preserveState: true },
             );
-        } else {
-            pendingWeek.value = week.week_number;
         }
     }
 
-    function generateForWeek(weekNumber) {
+    function generateForPeriod(start, end) {
         if (processing.value) return;
+        const from = start || periodStart.value;
+        const to = end || periodEnd.value;
+        if (!from || !to) {
+            toast.error('Vui lòng chọn ngày bắt đầu và ngày kết thúc.');
+            return;
+        }
+        if (from > to) {
+            toast.error('Ngày kết thúc phải sau hoặc bằng ngày bắt đầu.');
+            return;
+        }
+        const span = Math.round((new Date(`${to}T00:00:00`) - new Date(`${from}T00:00:00`)) / 86400000) + 1;
+        if (span > MAX_PERIOD_DAYS) {
+            toast.error(`Kỳ báo cáo tối đa ${MAX_PERIOD_DAYS} ngày.`);
+            return;
+        }
         processing.value = true;
         router.post(
             route('projects.weekly-reports.store', projectId),
-            { week_number: weekNumber, tab: resolveTab() },
+            { week_start: from, week_end: to, tab: resolveTab() },
             {
                 preserveScroll: true,
-                onSuccess: () => { pendingWeek.value = null; },
-                onError: () => toast.error('Không tạo được báo cáo tuần.'),
+                onSuccess: () => { pendingPeriod.value = null; },
+                onError: (errors) => toast.error(errors?.week_end || errors?.week_start || 'Không tạo được báo cáo tuần.'),
                 onFinish: () => { processing.value = false; },
             },
         );
@@ -162,17 +233,19 @@ export function useWeeklyReport(projectId, { overview, detail, tab } = {}) {
 
     return {
         processing,
-        pendingWeek,
+        pendingPeriod,
         report,
         sectionList,
         sprint,
-        weeks,
-        currentWeekNumber,
+        reports,
+        periodStart,
+        periodEnd,
         draft,
         editing,
         dirty,
-        selectWeek,
-        generateForWeek,
+        selectReport,
+        selectPeriod,
+        generateForPeriod,
         regenerate,
         startEdit,
         cancelEdit,

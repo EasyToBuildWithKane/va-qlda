@@ -12,26 +12,24 @@ import WeeklyReportEmptyState from './WeeklyReportEmptyState.vue';
 
 const props = defineProps({
     projectId: { type: [Number, String], required: true },
-    overview: { type: Object, default: () => ({ sprint: null, weeks: [], current_week: 1 }) },
+    overview: { type: Object, default: () => ({ sprint: null, reports: [], default_start: '', default_end: '' }) },
     detail: { type: Object, default: null },
     canGenerate: { type: Boolean, default: false },
     /** Nhúng trong tab Tổng quan (cuộn theo trang, không khung h-full). */
     embedded: { type: Boolean, default: false },
-    /** Tab hiện tại — giữ nguyên khi chọn tuần / thao tác Inertia. */
+    /** Tab hiện tại — giữ nguyên khi chọn kỳ / thao tác Inertia. */
     activeTab: { type: String, default: 'weekly' },
 });
 
 const {
-    processing, pendingWeek, report, sectionList, sprint, weeks, currentWeekNumber,
-    draft, editing, dirty, selectWeek, generateForWeek, regenerate,
+    processing, report, sectionList, sprint, reports, periodStart, periodEnd,
+    draft, editing, dirty, selectReport, selectPeriod, generateForPeriod, regenerate,
     startEdit, cancelEdit, save, submit, approve, reject,
 } = useWeeklyReport(props.projectId, {
     overview: toRef(props, 'overview'),
     detail: toRef(props, 'detail'),
     tab: toRef(props, 'activeTab'),
 });
-
-const CARD_ACCENT = { result: 'emerald', current: 'sky', next: 'brand' };
 
 function sectionByKey(key) {
     return sectionList.value.find((s) => s.section === key)
@@ -40,11 +38,8 @@ function sectionByKey(key) {
 
 const regenerationAvailable = computed(() => report.value?.regeneration_available ?? false);
 const canEdit = computed(() => report.value?.can?.update && !report.value?.is_locked);
-const engine = computed(() => props.overview?.engine ?? { mode: 'heuristic' });
-const reportEngine = computed(() => report.value?.meta?.engine ?? engine.value.mode);
 
 const showEmpty = computed(() => !report.value);
-const emptyWeekNumber = computed(() => pendingWeek.value ?? currentWeekNumber.value);
 
 function onExport(format) {
     if (!report.value) return;
@@ -63,13 +58,13 @@ function onExport(format) {
     <div class="shrink-0 border-b border-slate-200/80 dark:border-slate-800">
       <WeeklyReportTimelineNav
         :sprint="sprint"
-        :weeks="weeks"
-        :current-week="currentWeekNumber"
+        :reports="reports"
+        :period-start="periodStart"
+        :period-end="periodEnd"
         :active-report-id="report?.id ?? null"
-        :pending-week="pendingWeek"
         :hide-sprint-scope="embedded"
-        :engine="engine"
-        @select="selectWeek"
+        @select-report="selectReport"
+        @update-period="selectPeriod"
       />
     </div>
 
@@ -79,11 +74,11 @@ function onExport(format) {
     >
       <WeeklyReportEmptyState
         v-if="showEmpty"
-        :week-number="emptyWeekNumber"
+        :period-start="periodStart"
+        :period-end="periodEnd"
         :can-generate="canGenerate"
         :processing="processing"
-        :engine="engine"
-        @generate="generateForWeek"
+        @generate="() => generateForPeriod()"
       />
 
       <div
@@ -102,18 +97,18 @@ function onExport(format) {
           @reject="reject"
         />
 
+        <WeeklyReportKpiStrip :kpi="report.kpi" />
+
         <WeeklyReportExecutiveCard
           :executive-summary="report.executive_summary"
           :ai-summary="report.ai_summary"
           :model-value="draft.executive_summary"
           :editing="editing"
           :can-edit="canEdit"
-          :engine="reportEngine"
+          :outcomes="report.meta?.outcomes ?? []"
           @update:model-value="(v) => (draft.executive_summary = v)"
           @edit="startEdit"
         />
-
-        <WeeklyReportKpiStrip :kpi="report.kpi" />
 
         <div class="grid gap-4 lg:grid-cols-3">
           <WeeklyReportSectionCard
@@ -122,7 +117,6 @@ function onExport(format) {
             :section="sectionByKey(key)"
             :model-value="draft.sections[key] ?? ''"
             :editing="editing"
-            :accent="CARD_ACCENT[key]"
             :can-edit="canEdit"
             :show-save-cancel="key === 'result'"
             :dirty="dirty"

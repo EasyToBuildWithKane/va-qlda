@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 
 /**
  * Dựng dữ liệu props cho tab "Báo cáo tuần" trên trang Project/Show:
- * tổng quan (sprint + danh sách tuần + trạng thái) và chi tiết một tuần.
+ * tổng quan (sprint + kỳ mặc định + danh sách báo cáo) và chi tiết một kỳ.
  */
 class WeeklyReportPresenter
 {
@@ -36,40 +36,36 @@ class WeeklyReportPresenter
     }
 
     /**
-     * Tổng quan: sprint + các tuần (kèm trạng thái report nếu đã có).
+     * Tổng quan: sprint + kỳ mặc định (T2–CN hiện tại) + danh sách báo cáo đã tạo.
      *
      * @return array<string, mixed>
      */
     public function overview(Project $project): array
     {
         $sprint = $this->activeSprint($project);
-        $weeks = $this->weekResolver->weeks($sprint);
         $current = $this->weekResolver->currentWeek($sprint);
 
         $reports = WeeklyReport::query()
             ->forProject($project->id)
-            ->where('sprint_id', $sprint?->id)
-            ->get()
-            ->keyBy('week_number');
-
-        $weekRows = array_map(function (array $w) use ($reports) {
-            $report = $reports->get($w['week_number']);
-
-            return [
-                'week_number' => $w['week_number'],
-                'week_start' => $w['start']->toDateString(),
-                'week_end' => $w['end']->toDateString(),
-                'report_id' => $report?->id,
-                'status' => $report?->status->value,
-                'status_label' => $report?->status->label(),
-            ];
-        }, $weeks);
+            ->when(
+                $sprint,
+                fn ($q) => $q->where('sprint_id', $sprint->id),
+                fn ($q) => $q->whereNull('sprint_id'),
+            )
+            ->latestFirst()
+            ->get();
 
         return [
             'sprint' => $sprint ? ['id' => $sprint->id, 'name' => $sprint->name] : null,
-            'current_week' => $current['week_number'],
-            'weeks' => $weekRows,
-            'engine' => $this->enginePayload(),
+            'default_start' => $current['start']->toDateString(),
+            'default_end' => $current['end']->toDateString(),
+            'reports' => $reports->map(fn (WeeklyReport $report) => [
+                'id' => $report->id,
+                'week_start' => $report->week_start->toDateString(),
+                'week_end' => $report->week_end->toDateString(),
+                'status' => $report->status->value,
+                'status_label' => $report->status->label(),
+            ])->all(),
         ];
     }
 
@@ -125,22 +121,5 @@ class WeeklyReportPresenter
         );
 
         return $report->data_hash !== $this->hasher->hash($context);
-    }
-
-    /**
-     * Trạng thái engine (không lộ API key) — UI badge «Tổng hợp bằng AI».
-     *
-     * @return array{mode: string, provider: string|null, model: string|null}
-     */
-    private function enginePayload(): array
-    {
-        $configured = (bool) config('weekly_report.llm.enabled')
-            && filled(config('weekly_report.llm.api_key'));
-
-        return [
-            'mode' => $configured ? 'llm' : 'heuristic',
-            'provider' => $configured ? (string) config('weekly_report.llm.provider', 'openai') : null,
-            'model' => $configured ? (string) config('weekly_report.llm.model') : null,
-        ];
     }
 }

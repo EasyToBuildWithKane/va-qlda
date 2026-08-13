@@ -8,29 +8,23 @@ const props = defineProps({
     modelValue: { type: String, default: '' },
     editing: { type: Boolean, default: false },
     canEdit: { type: Boolean, default: false },
-    engine: { type: String, default: 'heuristic' },
+    outcomes: { type: Array, default: () => [] },
 });
 
 const emit = defineEmits(['update:modelValue', 'edit']);
-
-const engineLabel = computed(() => {
-    if (props.engine === 'llm') return 'Viết bởi AI từ dữ liệu Sprint';
-    if (props.engine === 'heuristic_fallback') return 'AI lỗi — dùng tổng hợp nội bộ';
-    return 'Tổng hợp từ dữ liệu Sprint';
-});
 
 const displayExecutive = computed(() => (props.editing ? props.modelValue : props.executiveSummary));
 </script>
 
 <template>
   <section
-    class="overflow-hidden rounded-xl border border-brand/15 bg-white shadow-sm dark:border-brand/30 dark:bg-slate-900"
+    class="overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"
     aria-label="Tóm tắt điều hành"
   >
-    <div class="border-b border-brand/10 bg-gradient-to-r from-brand/[0.07] via-violet-500/[0.04] to-transparent px-4 py-3 dark:border-slate-800">
+    <div class="border-b border-slate-200 px-4 py-3 dark:border-slate-800">
       <div class="flex items-start justify-between gap-3">
         <div class="flex min-w-0 items-center gap-2.5">
-          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand">
+          <span class="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
             <AppIcon
               name="sparkles"
               :size="16"
@@ -40,15 +34,12 @@ const displayExecutive = computed(() => (props.editing ? props.modelValue : prop
             <h3 class="font-display text-sm font-semibold text-slate-800 dark:text-slate-100">
               Tóm tắt điều hành
             </h3>
-            <p class="text-[11px] text-slate-500">
-              {{ engineLabel }}
-            </p>
           </div>
         </div>
         <button
           v-if="canEdit && !editing"
           type="button"
-          class="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-slate-500 transition hover:bg-white hover:text-slate-700 dark:hover:bg-slate-800"
+          class="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800"
           @click="emit('edit')"
         >
           <AppIcon
@@ -78,15 +69,33 @@ const displayExecutive = computed(() => (props.editing ? props.modelValue : prop
 
       <div
         v-if="aiSummary"
-        class="rounded-lg border border-violet-200/80 bg-violet-50/70 px-3 py-2.5 dark:border-violet-900/60 dark:bg-violet-950/40"
+        class="rounded-lg border border-slate-200 px-3 py-2.5 dark:border-slate-700"
       >
-        <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-violet-600 dark:text-violet-300">
+        <p class="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
           Nhận định
         </p>
         <p class="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
           {{ aiSummary }}
         </p>
       </div>
+
+      <ul
+        v-if="outcomes.length"
+        class="space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800"
+      >
+        <li
+          v-for="(item, idx) in outcomes"
+          :key="`${item.title}-${idx}`"
+          class="rounded-lg bg-slate-50 px-3 py-2 dark:bg-slate-800/60"
+        >
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {{ item.title }}
+          </p>
+          <p class="mt-0.5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+            {{ item.value }}
+          </p>
+        </li>
+      </ul>
     </div>
   </section>
 </template>

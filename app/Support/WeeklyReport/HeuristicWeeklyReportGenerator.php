@@ -35,6 +35,7 @@ class HeuristicWeeklyReportGenerator implements WeeklyReportGenerator
                 'risk' => $risk,
                 'feedback' => $feedback,
                 'engine' => 'heuristic',
+                'outcomes' => WeeklyReportTaskFacts::heuristicOutcomes($context),
             ],
             sections: $narrative['sections'],
         );

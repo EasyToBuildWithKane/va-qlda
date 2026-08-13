@@ -24,7 +24,7 @@ class WeeklyReportDocxExporter
         $word->addTitleStyle(2, ['bold' => true, 'color' => self::BRAND, 'size' => 12, 'allCaps' => true]);
 
         $section = $word->addSection();
-        $section->addTitle('Báo cáo tuần '.$data['week_number'], 1);
+        $section->addTitle('Báo cáo tuần', 1);
         $section->addText(
             $data['project'].' · '.$data['sprint'].' · '.$data['period'].' · '.$data['status_label'],
             ['color' => '64748B', 'size' => 9],

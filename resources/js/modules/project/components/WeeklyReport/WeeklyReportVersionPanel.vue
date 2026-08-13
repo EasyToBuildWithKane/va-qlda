@@ -57,7 +57,7 @@ function fmt(iso) {
         :key="v.version_number"
         class="flex items-start gap-3 text-sm"
       >
-        <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-[11px] font-semibold text-slate-600 dark:bg-slate-800">
+        <span class="shrink-0 text-xs font-medium tabular-nums text-slate-500">
           v{{ v.version_number }}
         </span>
         <div class="min-w-0 flex-1">

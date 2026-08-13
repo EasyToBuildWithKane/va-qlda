@@ -167,7 +167,11 @@ class WeeklyReportNarrator
             $meta = $this->taskMeta($task, [
                 $at ? 'ngày '.$at->format('d/m') : null,
             ]);
-            $lines[] = "{$prefix}: {$task->title}{$meta}.";
+            $value = WeeklyReportTaskFacts::plain($task->completion_note, 140)
+                ?: WeeklyReportTaskFacts::plain($task->description, 140);
+            $lines[] = $value !== ''
+                ? "{$prefix}: {$task->title}{$meta} — {$value}"
+                : "{$prefix}: {$task->title}{$meta}.";
         }
 
         $hoursByTask = $context->worklogs
@@ -418,18 +422,7 @@ class WeeklyReportNarrator
     /** @return Collection<int, Task> */
     private function tasksCompletedInWeek(WeeklyReportContext $context): Collection
     {
-        $start = $context->weekStart->copy()->startOfDay();
-        $end = $context->weekEnd->copy()->endOfDay();
-
-        return $context->tasks->filter(function (Task $task) use ($start, $end) {
-            if ($task->status !== TaskStatus::Done) {
-                return false;
-            }
-
-            $at = $task->completed_at ?? $task->updated_at;
-
-            return $at !== null && $at->between($start, $end);
-        });
+        return WeeklyReportTaskFacts::completedInWeek($context);
     }
 
     /** @return Collection<int, Task> */
@@ -445,10 +438,7 @@ class WeeklyReportNarrator
 
     private function weekLabel(WeeklyReportContext $context): string
     {
-        $start = $context->weekStart->format('d/m');
-        $end = $context->weekEnd->format('d/m');
-
-        return "tuần {$context->weekNumber} ({$start}–{$end})";
+        return $context->periodLabel();
     }
 
     /**

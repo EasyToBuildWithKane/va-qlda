@@ -131,12 +131,22 @@ class WeeklyReport extends Model
 
     // ---- Helpers --------------------------------------------------------
 
-    /** Mã hiển thị, vd "WR-3-W2" (sprint 3, tuần 2). */
+    /** Mã hiển thị, vd "WR-3-W2" (sprint 3, kỳ 2). */
     public function code(): string
     {
         $sprint = $this->sprint_id ?? '0';
 
         return "WR-{$sprint}-W{$this->week_number}";
+    }
+
+    /** Nhãn khoảng ngày, vd "04/08/2026 – 10/08/2026". */
+    public function periodLabel(): string
+    {
+        if (! $this->week_start || ! $this->week_end) {
+            return '';
+        }
+
+        return $this->week_start->format('d/m/Y').' – '.$this->week_end->format('d/m/Y');
     }
 
     public function isLocked(): bool

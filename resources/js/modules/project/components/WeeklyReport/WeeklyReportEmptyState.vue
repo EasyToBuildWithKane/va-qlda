@@ -3,19 +3,30 @@ import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
 const props = defineProps({
-    weekNumber: { type: [Number, null], default: null },
+    periodStart: { type: String, default: '' },
+    periodEnd: { type: String, default: '' },
     canGenerate: { type: Boolean, default: false },
     processing: { type: Boolean, default: false },
-    engine: { type: Object, default: () => ({ mode: 'heuristic' }) },
 });
 
 const emit = defineEmits(['generate']);
 
-const llmEnabled = computed(() => props.engine?.mode === 'llm');
+function fmt(iso) {
+    if (!iso) return '';
+    const [y, m, d] = iso.split('-');
+    return y && m && d ? `${d}/${m}/${y}` : '';
+}
+
+const rangeLabel = computed(() => {
+    const from = fmt(props.periodStart);
+    const to = fmt(props.periodEnd);
+    if (from && to) return `từ ${from} đến ${to}`;
+    return 'khoảng ngày đã chọn';
+});
 </script>
 
 <template>
-  <div class="flex h-full min-h-[320px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
+  <div class="flex h-full min-h-[280px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-700 dark:bg-slate-900">
     <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-brand/10 text-brand">
       <AppIcon
         name="weekly"
@@ -23,30 +34,23 @@ const llmEnabled = computed(() => props.engine?.mode === 'llm');
       />
     </span>
     <h3 class="mt-4 font-display text-base font-semibold text-slate-800 dark:text-slate-100">
-      Chưa có báo cáo cho {{ weekNumber ? `tuần ${weekNumber}` : 'tuần này' }}
+      Chưa có báo cáo {{ rangeLabel }}
     </h3>
-    <p class="mt-1 max-w-md text-sm text-slate-500">
-      <template v-if="llmEnabled">
-        Hệ thống sẽ nhờ AI viết tóm tắt điều hành từ Tasks, Worklog, Vướng mắc và Phản hồi của Sprint.
-        Bạn chỉ cần kiểm tra, chỉnh sửa và gửi duyệt.
-      </template>
-      <template v-else>
-        Hệ thống sẽ tự tổng hợp Tasks, Worklog, Vướng mắc và Phản hồi của Sprint thành báo cáo quản trị.
-        Super Admin có thể gắn API key AI tại Cấu hình hệ thống để viết lại tóm tắt.
-      </template>
+    <p class="mt-1.5 max-w-sm text-sm text-slate-500">
+      Chọn ngày bắt đầu và ngày kết thúc phía trên, rồi tạo báo cáo cho kỳ đó.
     </p>
     <button
       v-if="canGenerate"
       type="button"
-      :disabled="processing || !weekNumber"
+      :disabled="processing || !periodStart || !periodEnd"
       class="btn-primary mt-5 inline-flex items-center gap-2 text-sm disabled:opacity-60"
-      @click="emit('generate', weekNumber)"
+      @click="emit('generate')"
     >
       <AppIcon
         name="sparkles"
         :size="16"
       />
-      {{ processing ? 'Đang tổng hợp…' : (llmEnabled ? 'Tạo báo cáo bằng AI' : 'Tạo báo cáo tự động') }}
+      {{ processing ? 'Đang tổng hợp…' : 'Tạo báo cáo' }}
     </button>
     <p
       v-else

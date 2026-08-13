@@ -15,6 +15,7 @@ use App\Support\WeeklyReport\Contracts\WeeklyReportGenerator;
 use App\Support\WeeklyReport\SprintWeekResolver;
 use App\Support\WeeklyReport\WeeklyReportDataCollector;
 use App\Support\WeeklyReport\WeeklyReportDataHasher;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -33,25 +34,55 @@ class WeeklyReportService
     ) {}
 
     /**
-     * Lấy báo cáo của tuần (nếu có) hoặc tạo draft mới rồi generate ngay.
+     * Lấy báo cáo của bucket tuần Sprint (nếu có) hoặc tạo draft mới rồi generate ngay.
      */
     public function createForWeek(Project $project, ?Sprint $sprint, int $weekNumber, SystemAccount $actor): WeeklyReport
     {
         $window = $this->weekResolver->weekByNumber($sprint, $weekNumber);
 
+        return $this->createForPeriod($project, $sprint, $window['start'], $window['end'], $actor);
+    }
+
+    /**
+     * Lấy báo cáo đúng khoảng ngày (nếu có) hoặc tạo draft mới rồi generate ngay.
+     */
+    public function createForPeriod(
+        Project $project,
+        ?Sprint $sprint,
+        Carbon $weekStart,
+        Carbon $weekEnd,
+        SystemAccount $actor,
+    ): WeeklyReport {
+        $start = $weekStart->copy()->startOfDay();
+        $end = $weekEnd->copy()->startOfDay();
+
         $report = WeeklyReport::query()
             ->where('project_id', $project->id)
-            ->where('sprint_id', $sprint?->id)
-            ->where('week_number', $window['week_number'])
+            ->when(
+                $sprint,
+                fn ($q) => $q->where('sprint_id', $sprint->id),
+                fn ($q) => $q->whereNull('sprint_id'),
+            )
+            ->whereDate('week_start', $start->toDateString())
+            ->whereDate('week_end', $end->toDateString())
             ->first();
 
         if (! $report) {
+            $nextNumber = (int) WeeklyReport::query()
+                ->where('project_id', $project->id)
+                ->when(
+                    $sprint,
+                    fn ($q) => $q->where('sprint_id', $sprint->id),
+                    fn ($q) => $q->whereNull('sprint_id'),
+                )
+                ->max('week_number');
+
             $report = new WeeklyReport([
                 'project_id' => $project->id,
                 'sprint_id' => $sprint?->id,
-                'week_number' => $window['week_number'],
-                'week_start' => $window['start'],
-                'week_end' => $window['end'],
+                'week_number' => $nextNumber + 1,
+                'week_start' => $start,
+                'week_end' => $end,
                 'title' => null,
                 'status' => WeeklyReportStatus::Draft,
             ]);

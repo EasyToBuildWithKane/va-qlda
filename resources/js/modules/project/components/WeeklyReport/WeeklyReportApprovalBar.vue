@@ -20,11 +20,9 @@ const STEPS = [
 ];
 
 const statusValue = computed(() => props.report.status?.value);
-const activeIndex = computed(() => {
-    const v = statusValue.value;
-    if (v === 'rejected') return 0;
-    const i = STEPS.findIndex((s) => s.key === v);
-    return i === -1 ? 0 : i;
+const statusLabel = computed(() => {
+    if (statusValue.value === 'rejected') return 'Bị trả lại';
+    return STEPS.find((s) => s.key === statusValue.value)?.label ?? 'Nháp';
 });
 
 const can = computed(() => props.report.can ?? {});
@@ -55,45 +53,15 @@ function doReject() {
         ? 'xl:flex-row xl:flex-wrap xl:items-center xl:gap-x-3 xl:gap-y-2'
         : 'sm:flex-row sm:items-center sm:justify-between gap-3'"
     >
-      <!-- Workflow steps -->
-      <ol
-        class="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-xs"
+      <p
+        class="text-sm font-medium text-slate-700 dark:text-slate-200"
         :class="inline ? 'xl:flex-1' : ''"
       >
-        <li
-          v-for="(s, i) in STEPS"
-          :key="s.key"
-          class="flex items-center gap-1.5"
-        >
-          <span
-            class="inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-semibold"
-            :class="i <= activeIndex
-              ? 'bg-brand text-white'
-              : 'bg-slate-200 text-slate-500 dark:bg-slate-700'"
-          >
-            <AppIcon
-              v-if="i < activeIndex"
-              name="check"
-              :size="11"
-            />
-            <template v-else>{{ i + 1 }}</template>
-          </span>
-          <span :class="i <= activeIndex ? 'font-medium text-slate-700 dark:text-slate-200' : 'text-slate-400'">{{ s.label }}</span>
-          <AppIcon
-            v-if="i < STEPS.length - 1"
-            name="chevron-right"
-            :size="12"
-            class="text-slate-300"
-          />
-        </li>
-      </ol>
+        {{ statusLabel }}
+      </p>
 
       <!-- Actions -->
       <div class="flex shrink-0 flex-wrap items-center gap-2">
-        <span
-          v-if="statusValue === 'rejected'"
-          class="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-medium text-rose-700 dark:bg-rose-950 dark:text-rose-300"
-        >Bị trả lại</span>
         <button
           v-if="canSubmit"
           type="button"

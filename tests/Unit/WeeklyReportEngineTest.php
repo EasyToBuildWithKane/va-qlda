@@ -14,6 +14,7 @@ use App\Support\WeeklyReport\WeeklyReportFeedbackClassifier;
 use App\Support\WeeklyReport\WeeklyReportKpiBuilder;
 use App\Support\WeeklyReport\WeeklyReportNarrator;
 use App\Support\WeeklyReport\WeeklyReportRiskAssessor;
+use App\Support\WeeklyReport\WeeklyReportTaskFacts;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
@@ -34,7 +35,7 @@ class WeeklyReportEngineTest extends TestCase
             weekStart: Carbon::parse('2026-06-22'),
             weekEnd: Carbon::parse('2026-06-28'),
             tasks: collect([
-                $mk(['id' => 1, 'title' => 'Module A', 'status' => 'done', 'is_milestone' => true, 'completed_at' => Carbon::parse('2026-06-24')]),
+                $mk(['id' => 1, 'title' => 'Module A', 'status' => 'done', 'is_milestone' => true, 'completed_at' => Carbon::parse('2026-06-24'), 'description' => '<p>Bàn giao module A cho UAT.</p>', 'completion_note' => 'Đã demo với phòng Đào tạo.']),
                 $mk(['id' => 2, 'title' => 'Module B', 'status' => 'done', 'completed_at' => Carbon::parse('2026-06-26')]),
                 $mk(['id' => 3, 'title' => 'Tích hợp', 'status' => 'blocked', 'priority' => 'urgent']),
                 $mk(['id' => 4, 'title' => 'Tài liệu', 'status' => 'todo', 'due_date' => Carbon::parse('2026-06-25')]),
@@ -57,10 +58,28 @@ class WeeklyReportEngineTest extends TestCase
 
         $this->assertSame(4, $kpi['total_tasks']);
         $this->assertSame(2, $kpi['completed_tasks']);
+        $this->assertSame(2, $kpi['week_completed']);
+        $this->assertEquals(6.0, $kpi['week_story_points']);
         $this->assertSame(50, $kpi['sprint_progress']);
         $this->assertSame(1, $kpi['blocked']);
         $this->assertSame(1, $kpi['overdue']);
         $this->assertSame(2, $kpi['feedback']);
+    }
+
+    public function test_task_digest_and_outcomes_read_task_content(): void
+    {
+        $ctx = $this->context();
+        $digest = WeeklyReportTaskFacts::digest($ctx);
+        $outcomes = WeeklyReportTaskFacts::heuristicOutcomes($ctx);
+
+        $done = collect($digest['completed_this_week'])->keyBy('title');
+        $this->assertArrayHasKey('Module A', $done->all());
+        $this->assertStringContainsString('Bàn giao module A', $done['Module A']['description']);
+        $this->assertStringContainsString('phòng Đào tạo', $done['Module A']['completion_note']);
+
+        $byTitle = collect($outcomes)->firstWhere('title', 'Module A');
+        $this->assertNotNull($byTitle);
+        $this->assertStringContainsString('phòng Đào tạo', $byTitle['value']);
     }
 
     public function test_feedback_classifier_buckets(): void
@@ -98,6 +117,10 @@ class WeeklyReportEngineTest extends TestCase
         $this->assertStringContainsString('%', $report->executiveSummary);
         $this->assertArrayHasKey('result', $report->sections);
         $this->assertStringContainsString('•', $report->sections['result']);
+        $this->assertNotEmpty($report->meta['outcomes']);
+        $titles = collect($report->meta['outcomes'])->pluck('title')->all();
+        $this->assertContains('Module A', $titles);
+        $this->assertContains('Module B', $titles);
     }
 
     public function test_narrator_lists_task_titles_in_sections(): void
@@ -113,10 +136,11 @@ class WeeklyReportEngineTest extends TestCase
         $this->assertStringContainsString('Module B', $sections['result']);
         $this->assertStringContainsString('ngày 24/06', $sections['result']);
         $this->assertStringContainsString('Tích hợp', $sections['current']);
-        $this->assertStringContainsString('Test case:', $sections['current']);
+        $this->assertStringContainsString('Vướng mắc:', $sections['current']);
         $this->assertStringContainsString('Tài liệu', $sections['next']);
         $this->assertStringContainsString('Thêm Export', $sections['feedback']);
-        $this->assertStringContainsString('tuần 2', $narrative['executive']);
+        $this->assertStringContainsString('22/06', $narrative['executive']);
+        $this->assertStringContainsString('Trong tuần hoàn thành', $narrative['executive']);
         $this->assertStringContainsString('Chờ UAT', $narrative['insight']);
     }
 
@@ -172,6 +196,9 @@ class WeeklyReportEngineTest extends TestCase
                         'content' => json_encode([
                             'executive' => 'Tóm tắt do AI viết.',
                             'insight' => 'Nhận định do AI viết.',
+                            'outcomes' => [
+                                ['title' => 'Module A', 'value' => 'Đã demo với phòng Đào tạo.'],
+                            ],
                             'sections' => [
                                 'result' => 'Kết quả AI',
                                 'current' => 'Hiện tại AI',
@@ -194,7 +221,15 @@ class WeeklyReportEngineTest extends TestCase
         $this->assertSame('llm', $report->meta['engine']);
         $this->assertSame('openai', $report->meta['llm_provider']);
         $this->assertSame(4, $report->kpi['total_tasks']);
-        Http::assertSent(fn ($request) => str_contains($request->url(), '/v1/chat/completions'));
+        $this->assertSame(2, $report->kpi['week_completed']);
+        $this->assertSame('Module A', $report->meta['outcomes'][0]['title']);
+        Http::assertSent(function ($request) {
+            $payload = json_encode($request->data(), JSON_UNESCAPED_UNICODE);
+
+            return str_contains($request->url(), '/v1/chat/completions')
+                && str_contains($payload, 'Module A')
+                && str_contains($payload, 'completed_this_week');
+        });
     }
 
     public function test_nvidia_provider_posts_to_nim_chat_completions_not_double_v1(): void

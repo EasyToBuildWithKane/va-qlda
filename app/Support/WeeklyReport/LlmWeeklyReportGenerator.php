@@ -56,6 +56,10 @@ class LlmWeeklyReportGenerator implements WeeklyReportGenerator
             }
         }
 
+        $outcomes = $rewritten['outcomes'] !== []
+            ? $rewritten['outcomes']
+            : ($draft->meta['outcomes'] ?? []);
+
         return new GeneratedReport(
             executiveSummary: $rewritten['executive'] !== '' ? $rewritten['executive'] : $draft->executiveSummary,
             aiSummary: $rewritten['insight'] !== '' ? $rewritten['insight'] : $draft->aiSummary,
@@ -64,6 +68,7 @@ class LlmWeeklyReportGenerator implements WeeklyReportGenerator
                 'engine' => 'llm',
                 'llm_provider' => $this->llm->provider(),
                 'llm_model' => $this->llm->model(),
+                'outcomes' => $outcomes,
             ]),
             sections: $sections,
         );

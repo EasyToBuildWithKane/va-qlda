@@ -30,7 +30,7 @@ class WeeklyReportLlmClient
     }
 
     /**
-     * @return array{executive: string, insight: string, sections: array<string, string>}
+     * @return array{executive: string, insight: string, sections: array<string, string>, outcomes: array<int, array{title: string, value: string}>}
      */
     public function rewrite(WeeklyReportContext $context, GeneratedReport $draft): array
     {
@@ -186,12 +186,14 @@ class WeeklyReportLlmClient
     private function systemPrompt(): string
     {
         return <<<'PROMPT'
-Bạn là trợ lý viết báo cáo tuần điều hành cho ban lãnh đạo trường học (tiếng Việt, giọng chuyên nghiệp, súc tích).
-Nhiệm vụ: viết lại các đoạn văn từ bản nháp đã có số liệu và tên hạng mục thật.
-Cấm bịa thêm tên task, số liệu, người, ngày, hoặc sự kiện không có trong bản nháp.
-Giữ nguyên các tên riêng và con số. Có thể sắp xếp câu, làm rõ nhận định, bỏ lặp.
-Trả về DUY NHẤT một JSON object (không markdown) với khóa:
-{"executive":"string","insight":"string","sections":{"result":"string","current":"string","next":"string","risk":"string","feedback":"string","activity":"string"}}
+Bạn là trợ lý viết báo cáo tuần điều hành cho ban lãnh đạo trường học (tiếng Việt, súc tích, có số liệu).
+Nhiệm vụ: ĐỌC nội dung task (tiêu đề, mô tả, ghi chú hoàn thành) rồi tổng hợp KẾT QUẢ mang lại — không chỉ đếm số hạng mục.
+- KPI (sprint_progress, week_completed, week_story_points, worklog_hours…) là số liệu nguồn sự thật: giữ nguyên, không bịa thêm số.
+- Thẻ «result»: mỗi việc hoàn thành trong tuần 1 dòng «Tên — giá trị giao được» (rút từ mô tả/ghi chú; không mô tả thì dùng tiêu đề).
+- «outcomes»: tối đa 8 mục {title, value} — value = 1 câu giá trị (đã làm được gì, cho ai, xong tới đâu).
+- Cấm bịa tên task, số liệu, người, ngày không có trong dữ liệu.
+Trả về DUY NHẤT một JSON object (không markdown):
+{"executive":"string","insight":"string","outcomes":[{"title":"string","value":"string"}],"sections":{"result":"string","current":"string","next":"string","risk":"string","feedback":"string","activity":"string"}}
 PROMPT;
     }
 
@@ -203,18 +205,21 @@ PROMPT;
             'week' => $context->weekNumber,
             'period' => $context->periodLabel(),
             'kpi' => $draft->kpi,
+            'tasks' => WeeklyReportTaskFacts::digest($context),
             'draft' => [
                 'executive' => $draft->executiveSummary,
                 'insight' => $draft->aiSummary,
                 'sections' => $draft->sections,
+                'outcomes' => $draft->meta['outcomes'] ?? [],
             ],
         ];
 
-        return "Viết lại báo cáo tuần từ dữ liệu sau:\n".json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        return "Đọc nội dung task và tổng hợp kết quả tuần (KPI + giá trị giao được):\n"
+            .json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
     /**
-     * @return array{executive: string, insight: string, sections: array<string, string>}
+     * @return array{executive: string, insight: string, sections: array<string, string>, outcomes: array<int, array{title: string, value: string}>}
      */
     private function parseNarrative(string $raw): array
     {
@@ -236,6 +241,7 @@ PROMPT;
         return [
             'executive' => trim((string) ($data['executive'] ?? '')),
             'insight' => trim((string) ($data['insight'] ?? '')),
+            'outcomes' => $this->parseOutcomes($data['outcomes'] ?? []),
             'sections' => [
                 'result' => trim((string) ($sections['result'] ?? '')),
                 'current' => trim((string) ($sections['current'] ?? '')),
@@ -245,5 +251,36 @@ PROMPT;
                 'activity' => trim((string) ($sections['activity'] ?? '')),
             ],
         ];
+    }
+
+    /**
+     * @return array<int, array{title: string, value: string}>
+     */
+    private function parseOutcomes(mixed $raw): array
+    {
+        if (! is_array($raw)) {
+            return [];
+        }
+
+        $out = [];
+        foreach ($raw as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $title = trim((string) ($row['title'] ?? ''));
+            $value = trim((string) ($row['value'] ?? ''));
+            if ($title === '' || $value === '') {
+                continue;
+            }
+            $out[] = [
+                'title' => mb_substr($title, 0, 180),
+                'value' => mb_substr($value, 0, 400),
+            ];
+            if (count($out) >= 8) {
+                break;
+            }
+        }
+
+        return $out;
     }
 }

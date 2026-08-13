@@ -12,10 +12,13 @@ use App\Support\Enums\WeeklyReportSection as SectionEnum;
 class WeeklyReportExportPresenter
 {
     private const KPI_LABELS = [
+        'week_completed' => ['Hoàn thành tuần', ''],
+        'week_story_points' => ['Điểm story tuần', ' SP'],
         'sprint_progress' => ['Tiến độ Sprint', '%'],
-        'completed_tasks' => ['Hoàn thành', ''],
+        'completed_tasks' => ['Hoàn thành Sprint', ''],
         'total_tasks' => ['Tổng công việc', ''],
         'remaining_tasks' => ['Còn lại', ''],
+        'in_progress' => ['Đang làm', ''],
         'overdue' => ['Quá hạn', ''],
         'blocked' => ['Bị chặn', ''],
         'open_issues' => ['Test case mở', ''],
