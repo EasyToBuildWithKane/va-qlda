@@ -71,6 +71,7 @@ class SettingsImportFromEnv extends Command
         'ai.api_key' => 'weekly_report.llm.api_key',
         'ai.model' => 'weekly_report.llm.model',
         'ai.base_url' => 'weekly_report.llm.base_url',
+        'ai.system_prompt' => 'weekly_report.llm.system_prompt',
     ];
 
     public function handle(SettingsRepository $settings): int

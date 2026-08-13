@@ -47,7 +47,7 @@ class WeeklyReportController extends Controller
             );
         }
 
-        return $this->backToReport($project, $report, 'Đã tạo báo cáo tuần.');
+        return $this->backToGenerated($project, $report, 'Đã tạo báo cáo tuần bằng AI.');
     }
 
     /** Lưu chỉnh sửa của người dùng (3 thẻ chính + tóm tắt điều hành). */
@@ -76,7 +76,7 @@ class WeeklyReportController extends Controller
 
         $this->service->generate($weeklyReport, request()->user());
 
-        return $this->backToReport($project, $weeklyReport, 'Đã tổng hợp lại báo cáo.');
+        return $this->backToGenerated($project, $weeklyReport, 'Đã tổng hợp lại báo cáo bằng AI.');
     }
 
     /** Tạo lại nhưng giữ nguyên nội dung các thẻ người dùng đã sửa. */
@@ -91,7 +91,7 @@ class WeeklyReportController extends Controller
 
         $this->service->generate($weeklyReport, request()->user(), preserveEdited: true);
 
-        return $this->backToReport($project, $weeklyReport, 'Đã cập nhật phần dữ liệu thay đổi.');
+        return $this->backToGenerated($project, $weeklyReport, 'Đã cập nhật phần dữ liệu thay đổi.');
     }
 
     /** Gửi duyệt báo cáo. */
@@ -164,13 +164,37 @@ class WeeklyReportController extends Controller
         abort_unless($report->project_id === $project->id, 404);
     }
 
-    private function backToReport(Project $project, WeeklyReport $report, string $message): RedirectResponse
+    private function backToGenerated(Project $project, WeeklyReport $report, string $okWhenLlm): RedirectResponse
+    {
+        $engine = (string) data_get($report->meta, 'engine', 'heuristic');
+
+        if ($engine === 'heuristic_fallback') {
+            return $this->backToReport(
+                $project,
+                $report,
+                'AI không trả lời được — đã dùng bản tổng hợp nội bộ (liệt kê công việc). Kiểm tra API key hoặc prompt tại Cài đặt → Trí tuệ nhân tạo.',
+                'error',
+            );
+        }
+
+        if ($engine !== 'llm') {
+            return $this->backToReport(
+                $project,
+                $report,
+                'Đã tạo báo cáo theo dữ liệu nội bộ. Bật AI tại Cài đặt → Trí tuệ nhân tạo để tổng hợp theo kết quả nghiệp vụ.',
+            );
+        }
+
+        return $this->backToReport($project, $report, $okWhenLlm);
+    }
+
+    private function backToReport(Project $project, WeeklyReport $report, string $message, string $flash = 'success'): RedirectResponse
     {
         $tab = $this->resolveReturnTab();
 
         return redirect()
             ->route('projects.show', ['project' => $project->id, 'tab' => $tab, 'wr' => $report->id])
-            ->with('success', $message);
+            ->with($flash, $message);
     }
 
     /** Tab Tổng quan hoặc Báo cáo tuần — giữ ngữ cảnh UI sau thao tác. */

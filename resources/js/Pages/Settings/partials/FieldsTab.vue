@@ -260,6 +260,23 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
         </FormField>
 
         <FormField
+          v-else-if="f.type === 'textarea'"
+          :id="f.key"
+          :label="f.label"
+          :hint="hideFieldHints ? null : f.help"
+          :error="form.errors[f.name]"
+        >
+          <textarea
+            :id="f.key"
+            v-model="form[f.name]"
+            rows="12"
+            class="input min-h-[12rem] w-full resize-y font-mono text-xs leading-relaxed"
+            :disabled="!canManage"
+            placeholder="Để trống nếu dùng prompt mặc định của hệ thống"
+          />
+        </FormField>
+
+        <FormField
           v-else
           :id="f.key"
           :label="f.label"

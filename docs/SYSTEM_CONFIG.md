@@ -90,6 +90,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `api_key` | **secret** | `weekly_report.llm.api_key` |
 | | | `model` | string | `weekly_report.llm.model` |
 | | | `base_url` | string | `weekly_report.llm.base_url` (bắt buộc với OpenAI-compatible) |
+| | | `system_prompt` | textarea | `weekly_report.llm.system_prompt` — prompt tùy chỉnh; trống = prompt mặc định (tổng hợp kết quả, không liệt kê task). Hệ thống luôn nối hợp đồng JSON đầu ra. |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
 | **Tùy chỉnh menu** | `menu` | `hidden_groups` | list (nav group keys) | `va.menu_hidden_groups` — ẩn nhóm sidebar toàn hệ thống; đồng bộ module hub qua `WorkspaceNavModuleMap` (xem [WORKSPACE_CONFIG.md](WORKSPACE_CONFIG.md) § Menu sidebar) |
 | **Chào mừng nhân viên** | `onboarding` | `welcome_enabled` | bool | `va.onboarding_welcome_enabled` — màn hình chào mừng lần đầu; UI: `OnboardingTab` (một viewport, form ngang) + `WelcomePanel` (`max-w-4xl`); reset: `POST /settings/onboarding/reset` · `reset-self` |

@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from 'vue';
 import { VueDatePicker } from '@vuepic/vue-datepicker';
-import { vi } from 'date-fns/locale';
 import '@vuepic/vue-datepicker/dist/main.css';
 
 const props = defineProps({
@@ -13,6 +12,7 @@ const props = defineProps({
     /** ISO `yyyy-mm-dd` */
     minDate: { type: String, default: null },
     maxDate: { type: String, default: null },
+    clearable: { type: Boolean, default: true },
 });
 
 const emit = defineEmits(['update:modelValue']);
@@ -57,6 +57,18 @@ const pickerUi = {
     ],
 };
 
+function formatDisplay(date) {
+    if (!date) return '';
+    const raw = Array.isArray(date) ? date[0] : date;
+    if (!raw) return '';
+    const d = raw instanceof Date ? raw : new Date(raw);
+    if (Number.isNaN(d.getTime())) return '';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+
+    return `${dd}/${mm}/${d.getFullYear()}`;
+}
+
 function onUpdate(val) {
     emit('update:modelValue', val || '');
 }
@@ -71,9 +83,9 @@ function onUpdate(val) {
       :aria-labels="ariaLabels"
       :model-value="modelValue || null"
       model-type="yyyy-MM-dd"
-      format="dd/MM/yyyy"
-      preview-format="dd/MM/yyyy"
-      :locale="vi"
+      :format="formatDisplay"
+      :preview-format="formatDisplay"
+      locale="vi"
       :placeholder="placeholder"
       :disabled="disabled"
       :min-date="minD"
@@ -81,7 +93,7 @@ function onUpdate(val) {
       :enable-time-picker="false"
       :teleport="true"
       auto-apply
-      :clearable="true"
+      :clearable="clearable"
       :ui="pickerUi"
       week-start="1"
       @update:model-value="onUpdate"

@@ -2,8 +2,6 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
-import ProgressBar from '@/shared/ui/ProgressBar.vue';
-import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import RadioCard from '@/shared/ui/RadioCard.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
 import ProjectDepartmentAccessPanel from '@/modules/project/components/ProjectDepartmentAccessPanel.vue';
@@ -12,6 +10,7 @@ import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
 import { valueLabelOptions } from '@/shared/utils/selectOptions';
 import { PROJECT_COLOR_OPTIONS, PROJECT_COLOR_SWATCH } from '@/modules/project/utils/projectColors';
+import { displayOrEmpty } from '@/shared/utils/emptyDisplay';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import {
@@ -161,56 +160,22 @@ const tracked = computed(() => [
 ]);
 const filledCount = computed(() => tracked.value.filter((t) => t.filled).length);
 const completion = computed(() => Math.round((filledCount.value / tracked.value.length) * 100));
-const missingRequired = computed(() => tracked.value.filter((t) => t.required && !t.filled));
 
-const steps = [
-    'Thông tin cơ bản',
-    'Phạm vi triển khai',
-    'Thời gian thực hiện',
-    'Nhân sự & trạng thái',
-    'Lưu dự án',
-];
-const tips = [
-    'Tên dự án nên ngắn gọn, dễ nhận diện.',
-    'Mã dự án được hệ thống tự sinh — không cần nhập.',
-    'Lưu nháp giữ tạm trên trình duyệt — lấy lại ở «Bản nháp đã lưu».',
-    'Phòng phụ trách chủ trì; phòng liên đới là các phòng được kết nối và được xem dự án.',
-];
+const dayCountLabel = computed(() => (
+    dayCount.value === null
+        ? displayOrEmpty(null, 'Chưa chọn ngày')
+        : `${dayCount.value} ngày`
+));
 
-const tabDefs = [
+const tabs = [
     { key: 'basic', title: 'Thông tin', icon: 'edit' },
     { key: 'scope', title: 'Phạm vi', icon: 'globe' },
     { key: 'time', title: 'Thời gian', icon: 'calendar-clock' },
     { key: 'people', title: 'Nhân sự', icon: 'members' },
 ];
 
-const tabProgress = computed(() => ({
-    basic: [
-        !!form.name?.trim(),
-        !!form.code?.trim(),
-        !!form.type,
-    ].filter(Boolean).length,
-    scope: [
-        !!form.scope,
-        form.scope !== 'regional' || form.scope_regions.length > 0,
-        form.department_id != null && form.department_id !== '',
-    ].filter(Boolean).length,
-    time: [!!form.start_date, !!form.due_date].filter(Boolean).length,
-    people: [!!form.manager_id, !!form.status].filter(Boolean).length,
-}));
-
-const tabTotals = { basic: 3, scope: 3, time: 2, people: 2 };
-
-const tabs = computed(() =>
-    tabDefs.map((t) => ({
-        ...t,
-        filled: tabProgress.value[t.key],
-        total: tabTotals[t.key],
-    })),
-);
-
 const activeTab = ref(0);
-const activeTabMeta = computed(() => tabs.value[activeTab.value]);
+const activeTabMeta = computed(() => tabs[activeTab.value]);
 
 const dialog = useDialog();
 const toast = useToast();
@@ -319,164 +284,85 @@ const submit = (after = 'close') => {
 </script>
 
 <template>
-  <div class="grid grid-cols-1 gap-5 lg:grid-cols-4">
-    <aside class="lg:col-span-1">
-      <div class="space-y-4 lg:sticky lg:top-4">
-        <div class="card p-4">
-          <h3 class="mb-3 flex items-center gap-2 font-display text-sm font-semibold text-slate-800">
-            <AppIcon
-              name="info"
-              :size="16"
-              class="text-brand"
-            /> Hướng dẫn nhanh
-          </h3>
-          <ol class="space-y-2">
-            <li
-              v-for="(s, i) in steps"
-              :key="i"
-              class="flex items-start gap-2.5 text-sm text-slate-600"
-            >
-              <span class="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand-50 text-[11px] font-semibold text-brand">{{ i + 1 }}</span>
-              <span class="leading-snug">{{ s }}</span>
-            </li>
-          </ol>
-        </div>
-
-        <div
-          v-if="isCreate"
-          class="card p-4"
-        >
-          <button
-            type="button"
-            class="mb-3 flex w-full items-center justify-between gap-2 text-left"
-            @click="draftsOpen = !draftsOpen"
-          >
-            <h3 class="flex items-center gap-2 font-display text-sm font-semibold text-slate-800">
-              <AppIcon
-                name="save"
-                :size="16"
-                class="text-brand"
-              />
-              Bản nháp đã lưu
-              <span
-                v-if="draftStore.drafts.length"
-                class="rounded-full bg-brand-100 px-2 py-0.5 text-[11px] font-semibold text-brand"
-              >{{ draftStore.drafts.length }}</span>
-            </h3>
-            <AppIcon
-              name="chevron-down"
-              :size="16"
-              class="shrink-0 text-slate-400 transition"
-              :class="draftsOpen ? 'rotate-180' : ''"
-            />
-          </button>
-          <div v-show="draftsOpen">
-            <p
-              v-if="!draftStore.drafts.length"
-              class="text-xs leading-relaxed text-slate-500"
-            >
-              Chưa có bản nháp. Nhập thông tin rồi bấm <b>Lưu nháp</b> ở thanh dưới — dữ liệu lưu trên trình duyệt của bạn.
-            </p>
-            <ul
-              v-else
-              class="max-h-52 space-y-2 overflow-y-auto"
-            >
-              <li
-                v-for="d in draftStore.drafts"
-                :key="d.id"
-                class="rounded-lg border border-slate-100 bg-slate-50/80 p-2.5"
-                :class="draftStore.activeDraftId === d.id ? 'ring-1 ring-brand/40' : ''"
-              >
-                <p class="truncate text-sm font-medium text-slate-800">
-                  {{ draftTitle(d) }}
-                </p>
-                <p class="mt-0.5 text-[11px] text-slate-400">
-                  {{ formatDraftSavedAt(d.savedAt) }}
-                </p>
-                <div class="mt-2 flex flex-wrap gap-1.5">
-                  <button
-                    type="button"
-                    class="btn-primary py-1 px-2.5 text-xs"
-                    @click="loadDraft(d)"
-                  >
-                    Lấy bản nháp
-                  </button>
-                  <button
-                    type="button"
-                    class="btn-ghost py-1 px-2 text-xs text-rose-600"
-                    @click="deleteDraft(d)"
-                  >
-                    Xóa
-                  </button>
-                </div>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="card p-4">
-          <h3 class="mb-2 font-display text-sm font-semibold text-slate-800">
-            Mẹo nhập liệu
-          </h3>
-          <ul class="space-y-1.5">
-            <li
-              v-for="(t, i) in tips"
-              :key="i"
-              class="flex items-start gap-2 text-xs leading-snug text-slate-500"
-            >
-              <span class="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />{{ t }}
-            </li>
-          </ul>
-        </div>
-
-        <div class="card p-4">
-          <h3 class="mb-3 font-display text-sm font-semibold text-slate-800">
-            Trạng thái dữ liệu
-          </h3>
-          <div class="mb-2 flex items-end justify-between">
-            <span class="text-xs text-slate-500">Hoàn thành</span>
-            <span class="font-display text-lg font-bold text-brand">{{ completion }}%</span>
-          </div>
-          <ProgressBar
-            :value="completion"
-            :show-label="false"
-          />
-          <div class="mt-3 flex items-center justify-between text-xs text-slate-500">
-            <span>Đã nhập: <b class="text-slate-700">{{ filledCount }}</b>/{{ tracked.length }}</span>
-            <span>Thiếu: <b :class="missingRequired.length ? 'text-danger' : 'text-emerald-600'">{{ missingRequired.length }}</b> bắt buộc</span>
-          </div>
-          <ul
-            v-if="missingRequired.length"
-            class="mt-3 space-y-1 border-t border-slate-100 pt-3"
-          >
-            <li
-              v-for="m in missingRequired"
-              :key="m.key"
-              class="flex items-center gap-1.5 text-xs text-danger"
-            >
-              <AppIcon
-                name="close"
-                :size="12"
-              /> Thiếu: {{ m.label }}
-            </li>
-          </ul>
-          <p
-            v-else
-            class="mt-3 flex items-center gap-1.5 border-t border-slate-100 pt-3 text-xs text-emerald-600"
-          >
-            <AppIcon
-              name="check"
-              :size="13"
-            /> Đã đủ trường bắt buộc.
-          </p>
-        </div>
-      </div>
-    </aside>
-
-    <form
-      class="lg:col-span-3"
-      @submit.prevent="submit('close')"
+  <div class="space-y-5">
+    <div
+      v-if="isCreate"
+      class="card p-4"
     >
+      <button
+        type="button"
+        class="flex w-full items-center justify-between gap-2 text-left"
+        @click="draftsOpen = !draftsOpen"
+      >
+        <h3 class="flex items-center gap-2 font-display text-sm font-semibold text-slate-800">
+          <AppIcon
+            name="save"
+            :size="16"
+            class="text-brand"
+          />
+          Bản nháp đã lưu
+          <span
+            v-if="draftStore.drafts.length"
+            class="text-sm font-medium text-slate-500"
+          >({{ draftStore.drafts.length }})</span>
+        </h3>
+        <AppIcon
+          name="chevron-down"
+          :size="16"
+          class="shrink-0 text-slate-400 transition"
+          :class="draftsOpen ? 'rotate-180' : ''"
+        />
+      </button>
+      <div
+        v-show="draftsOpen"
+        class="mt-3"
+      >
+        <p
+          v-if="!draftStore.drafts.length"
+          class="text-sm text-slate-500"
+        >
+          Chưa có bản nháp. Nhập thông tin rồi bấm Lưu nháp ở thanh dưới.
+        </p>
+        <ul
+          v-else
+          class="grid gap-2 sm:grid-cols-2"
+        >
+          <li
+            v-for="d in draftStore.drafts"
+            :key="d.id"
+            class="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5"
+            :class="draftStore.activeDraftId === d.id ? 'border-brand/40 ring-1 ring-brand/20' : ''"
+          >
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-slate-800">
+                {{ draftTitle(d) }}
+              </p>
+              <p class="mt-0.5 text-xs text-slate-400">
+                {{ formatDraftSavedAt(d.savedAt) }}
+              </p>
+            </div>
+            <div class="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                class="btn-primary py-1 px-2.5 text-xs"
+                @click="loadDraft(d)"
+              >
+                Lấy
+              </button>
+              <button
+                type="button"
+                class="btn-ghost py-1 px-2 text-xs text-rose-600"
+                @click="deleteDraft(d)"
+              >
+                Xóa
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <form @submit.prevent="submit('close')">
       <div
         v-if="hasVisibleErrors"
         class="mb-4 rounded-card border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-900"
@@ -503,80 +389,49 @@ const submit = (after = 'close') => {
         </ul>
       </div>
 
-      <div
-        v-if="isCreate && draftStore.drafts.length"
-        class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-card border border-brand-200 bg-brand-50/50 px-4 py-3"
-      >
-        <div class="flex items-start gap-2 text-sm text-slate-700">
-          <AppIcon
-            name="info"
-            :size="18"
-            class="mt-0.5 shrink-0 text-brand"
-          />
-          <span>
-            Có <b>{{ draftStore.drafts.length }}</b> bản nháp đã lưu.
-            Mở danh sách ở cột trái hoặc lấy nhanh bản mới nhất.
-          </span>
-        </div>
-        <button
-          type="button"
-          class="btn-primary shrink-0 text-sm"
-          @click="loadDraft(draftStore.drafts[0])"
-        >
-          Lấy bản nháp mới nhất
-        </button>
-      </div>
-
       <div class="card overflow-visible">
-        <div class="flex flex-wrap border-b border-slate-200">
+        <div class="flex border-b border-slate-200">
           <button
             v-for="(t, i) in tabs"
             :key="t.key"
             type="button"
-            class="flex min-w-[7rem] flex-1 items-center justify-center gap-2 border-b-2 px-3 py-3 text-sm font-medium transition"
+            class="flex min-w-0 flex-1 items-center justify-center gap-2 border-b-2 px-3 py-3.5 text-sm font-medium transition"
             :class="activeTab === i
-              ? 'border-brand text-brand bg-brand-50/40'
+              ? 'border-brand bg-brand-50/40 text-brand'
               : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700'"
             @click="activeTab = i"
           >
             <AppIcon
               :name="t.icon"
               :size="16"
-              class="shrink-0 opacity-70"
+              class="shrink-0"
             />
-            <span>{{ t.title }}</span>
-            <span
-              class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-              :class="t.filled >= t.total
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-slate-100 text-slate-500'"
-            >{{ t.filled }}/{{ t.total }}</span>
+            <span class="truncate">{{ t.title }}</span>
           </button>
         </div>
 
-        <div class="overflow-visible p-6">
+        <div class="overflow-visible p-6 sm:p-7">
           <!-- Tab: Thông tin cơ bản -->
           <div
             v-show="activeTabMeta.key === 'basic'"
-            class="space-y-4"
+            class="space-y-5"
           >
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
               <div class="sm:col-span-2">
-                <label class="label flex items-center gap-1.5">
+                <label class="label">
                   Tên dự án <span class="text-danger">*</span>
-                  <FieldTooltip text="Tên ngắn gọn, dễ nhận diện dự án trong toàn hệ thống." />
                 </label>
                 <input
                   v-model="form.name"
                   type="text"
                   class="input"
                   :class="errFor('name') ? 'border-danger focus:border-danger focus:ring-danger/30' : ''"
-                  placeholder="Ví dụ: Triển khai hệ thống ERP toàn hệ thống năm 2026"
+                  placeholder="Tên dự án"
                   @blur="touch('name')"
                 >
                 <p
                   v-if="errFor('name')"
-                  class="mt-1 flex items-center gap-1 text-xs text-danger"
+                  class="mt-1.5 flex items-center gap-1 text-xs text-danger"
                 >
                   <AppIcon
                     name="close"
@@ -585,10 +440,7 @@ const submit = (after = 'close') => {
                 </p>
               </div>
               <div>
-                <label class="label flex items-center gap-1.5">
-                  Mã dự án
-                  <FieldTooltip text="Mã định danh duy nhất, hệ thống tự sinh khi tạo mới." />
-                </label>
+                <label class="label">Mã dự án</label>
                 <input
                   v-model="form.code"
                   type="text"
@@ -598,22 +450,15 @@ const submit = (after = 'close') => {
                   tabindex="-1"
                 >
                 <p
-                  v-if="isCreate"
-                  class="mt-1 text-xs text-slate-400"
-                >
-                  Tự động sinh khi mở trang tạo dự án
-                </p>
-                <p
                   v-if="form.errors.code"
-                  class="mt-1 text-xs text-danger"
+                  class="mt-1.5 text-xs text-danger"
                 >
                   {{ form.errors.code }}
                 </p>
               </div>
               <div class="sm:col-span-2">
-                <label class="label flex items-center gap-1.5">
+                <label class="label">
                   Loại dự án <span class="text-danger">*</span>
-                  <FieldTooltip text="Vòng đời dự án: nghiên cứu, triển khai hoặc vận hành." />
                 </label>
                 <SearchSelect
                   v-model="form.type"
@@ -623,20 +468,20 @@ const submit = (after = 'close') => {
                 />
                 <p
                   v-if="form.errors.type"
-                  class="mt-1 text-xs text-danger"
+                  class="mt-1.5 text-xs text-danger"
                 >
                   {{ form.errors.type }}
                 </p>
               </div>
               <div>
                 <label class="label">Màu nhãn</label>
-                <div class="flex flex-wrap gap-2 pt-1.5">
+                <div class="flex flex-wrap items-center gap-2 pt-1">
                   <button
                     v-for="c in colors"
                     :key="c.key"
                     type="button"
-                    class="h-7 w-7 rounded-full ring-offset-2 transition hover:scale-110"
-                    :class="[swatch[c.key], form.color === c.key ? 'ring-2 ring-brand' : '']"
+                    class="h-8 w-8 rounded-full ring-offset-2 transition hover:scale-105"
+                    :class="[swatch[c.key], form.color === c.key ? 'ring-2 ring-brand' : 'ring-1 ring-black/5']"
                     :aria-label="c.label"
                     :title="c.label"
                     @click="form.color = c.key"
@@ -647,9 +492,7 @@ const submit = (after = 'close') => {
                 <KbRichTextField
                   v-model="form.description"
                   label="Mô tả"
-                  tooltip="Mục tiêu, phạm vi và ghi chú tài liệu liên quan."
                   placeholder="Mô tả mục tiêu, phạm vi, kết quả kỳ vọng…"
-                  hint="Soạn thảo rich text — tiêu đề, danh sách, liên kết. Nội dung hiển thị trên tab Tổng quan dự án."
                   editor-min-height-class="min-h-[16rem] sm:min-h-[18rem]"
                   :error="form.errors.description"
                 />
@@ -660,14 +503,14 @@ const submit = (after = 'close') => {
           <!-- Tab: Phạm vi -->
           <div
             v-show="activeTabMeta.key === 'scope'"
-            class="space-y-5"
+            class="space-y-6"
           >
             <div>
-              <p class="text-xs text-slate-500">
-                Nơi dự án được triển khai. <span class="text-danger">*</span>
-              </p>
+              <label class="label">
+                Phạm vi triển khai <span class="text-danger">*</span>
+              </label>
               <div
-                class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+                class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2"
                 role="radiogroup"
               >
                 <RadioCard
@@ -676,7 +519,6 @@ const submit = (after = 'close') => {
                   v-model="form.scope"
                   :value="o.value"
                   :label="o.label"
-                  :description="o.description"
                   :icon="o.icon"
                 />
               </div>
@@ -691,11 +533,8 @@ const submit = (after = 'close') => {
               </p>
             </div>
 
-            <div
-              v-if="form.scope === 'regional'"
-              class="rounded-card border border-amber-200 bg-amber-50/60 p-4"
-            >
-              <label class="label flex items-center gap-1.5">Khu vực áp dụng <FieldTooltip text="Gõ để tìm, chọn các khu vực/chi nhánh dự án sẽ triển khai." /></label>
+            <div v-if="form.scope === 'regional'">
+              <label class="label">Khu vực áp dụng</label>
               <SearchMultiSelect
                 v-model="form.scope_regions"
                 :options="regionOptions"
@@ -704,7 +543,6 @@ const submit = (after = 'close') => {
                 placeholder="Tìm & chọn khu vực…"
                 search-placeholder="Tìm khu vực…"
                 :max-chips="12"
-                control-size="md"
                 @update:model-value="touch('scope_regions')"
               />
               <p
@@ -734,9 +572,9 @@ const submit = (after = 'close') => {
           <!-- Tab: Thời gian -->
           <div
             v-show="activeTabMeta.key === 'time'"
-            class="space-y-4"
+            class="space-y-5"
           >
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
               <div>
                 <label class="label">Ngày bắt đầu</label>
                 <input
@@ -764,7 +602,7 @@ const submit = (after = 'close') => {
                     :size="16"
                     class="text-slate-400"
                   />
-                  <span class="font-semibold text-slate-700">{{ dayCount === null ? '—' : dayCount + ' ngày' }}</span>
+                  <span class="font-medium text-slate-700">{{ dayCountLabel }}</span>
                 </div>
               </div>
             </div>
@@ -782,21 +620,18 @@ const submit = (after = 'close') => {
           <!-- Tab: Nhân sự -->
           <div
             v-show="activeTabMeta.key === 'people'"
-            class="space-y-4"
+            class="space-y-5"
           >
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2">
               <div>
-                <label class="label flex items-center gap-1.5">
-                  Chủ dự án / Quản lý
-                  <FieldTooltip text="Người chịu trách nhiệm chính, theo dõi tiến độ & ngân sách." />
-                </label>
+                <label class="label">Chủ dự án / Quản lý</label>
                 <PersonSelect
                   v-model="form.manager_id"
                   :options="employees"
                 />
                 <p
                   v-if="form.errors.manager_id"
-                  class="mt-1 text-xs text-danger"
+                  class="mt-1.5 text-xs text-danger"
                 >
                   {{ form.errors.manager_id }}
                 </p>
@@ -811,21 +646,14 @@ const submit = (after = 'close') => {
                 />
               </div>
             </div>
-            <label class="flex items-center gap-2 text-sm text-slate-600">
+            <label class="flex items-center gap-2.5 text-sm text-slate-700">
               <input
                 v-model="form.is_active"
                 type="checkbox"
-                class="rounded"
-              > Dự án đang hoạt động
+                class="rounded border-slate-300 text-brand focus:ring-brand/30"
+              >
+              Dự án đang hoạt động
             </label>
-            <p class="flex items-start gap-1.5 rounded-btn bg-slate-50 p-2.5 text-xs text-slate-500">
-              <AppIcon
-                name="info"
-                :size="14"
-                class="mt-0.5 shrink-0 text-slate-400"
-              />
-              Thành viên tham gia được quản lý ở trang chi tiết dự án sau khi tạo.
-            </p>
           </div>
 
           <div class="mt-6 flex items-center justify-between border-t border-slate-100 pt-4">

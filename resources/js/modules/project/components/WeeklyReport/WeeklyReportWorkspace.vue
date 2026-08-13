@@ -38,6 +38,8 @@ const regenerationAvailable = computed(() => report.value?.regeneration_availabl
 const canEdit = computed(() => report.value?.can?.update && !report.value?.is_locked);
 
 const showEmpty = computed(() => !report.value);
+/** Tab Tổng quan: empty thuần, không toolbar chọn ngày / tạo báo cáo. */
+const overviewEmpty = computed(() => props.embedded && showEmpty.value);
 
 function onExport(format) {
     if (!report.value) return;
@@ -53,12 +55,21 @@ function onExport(format) {
       ? 'overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm dark:border-slate-700/80 dark:bg-slate-950'
       : 'h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950'"
   >
-    <div class="shrink-0 border-b border-slate-200/80 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
-      <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+    <div
+      v-if="!overviewEmpty"
+      class="shrink-0 border-b border-slate-200/80 bg-white px-4 py-2.5 dark:border-slate-800 dark:bg-slate-900"
+    >
+      <div class="flex w-full min-w-0 flex-wrap items-center gap-3 lg:flex-nowrap">
         <WeeklyReportTimelineNav
           :period-start="periodStart"
           :period-end="periodEnd"
           @update-period="selectPeriod"
+        />
+
+        <div
+          v-if="!showEmpty"
+          class="hidden h-6 w-px shrink-0 bg-slate-200 lg:block dark:bg-slate-700"
+          aria-hidden="true"
         />
 
         <WeeklyReportHeader
@@ -67,7 +78,7 @@ function onExport(format) {
           :can-generate="canGenerate"
           :regeneration-available="regenerationAvailable"
           :processing="processing"
-          @regenerate="regenerate({ preserve: true })"
+          @regenerate="regenerate({ preserve: false })"
           @export="onExport"
           @submit="submit"
           @approve="approve"
@@ -86,6 +97,7 @@ function onExport(format) {
         :period-end="periodEnd"
         :can-generate="canGenerate"
         :processing="processing"
+        :read-only="overviewEmpty"
         @generate="() => generateForPeriod()"
       />
 

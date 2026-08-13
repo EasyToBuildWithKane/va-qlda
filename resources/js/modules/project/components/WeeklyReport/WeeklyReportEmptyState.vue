@@ -7,6 +7,8 @@ const props = defineProps({
     periodEnd: { type: String, default: '' },
     canGenerate: { type: Boolean, default: false },
     processing: { type: Boolean, default: false },
+    /** Tab Tổng quan: chỉ empty, không hướng dẫn chọn ngày / tạo báo cáo. */
+    readOnly: { type: Boolean, default: false },
 });
 
 const emit = defineEmits(['generate']);
@@ -34,29 +36,33 @@ const rangeLabel = computed(() => {
       />
     </span>
     <h3 class="mt-4 font-display text-base font-semibold text-slate-800 dark:text-slate-100">
-      Chưa có báo cáo {{ rangeLabel }}
+      {{ readOnly ? 'Chưa có báo cáo tuần' : `Chưa có báo cáo ${rangeLabel}` }}
     </h3>
     <p class="mt-1.5 max-w-sm text-sm text-slate-500">
-      Chọn ngày bắt đầu và ngày kết thúc phía trên, rồi tạo báo cáo cho kỳ đó.
+      {{ readOnly
+        ? 'Báo cáo tuần sẽ hiển thị tại đây khi được tạo.'
+        : 'Chọn ngày bắt đầu và ngày kết thúc phía trên, rồi tạo báo cáo cho kỳ đó.' }}
     </p>
-    <button
-      v-if="canGenerate"
-      type="button"
-      :disabled="processing || !periodStart || !periodEnd"
-      class="btn-primary mt-5 inline-flex items-center gap-2 text-sm disabled:opacity-60"
-      @click="emit('generate')"
-    >
-      <AppIcon
-        name="sparkles"
-        :size="16"
-      />
-      {{ processing ? 'Đang tổng hợp…' : 'Tạo báo cáo' }}
-    </button>
-    <p
-      v-else
-      class="mt-5 text-sm italic text-slate-400"
-    >
-      Bạn không có quyền tạo báo cáo cho dự án này.
-    </p>
+    <template v-if="!readOnly">
+      <button
+        v-if="canGenerate"
+        type="button"
+        :disabled="processing || !periodStart || !periodEnd"
+        class="btn-primary mt-5 inline-flex items-center gap-2 text-sm disabled:opacity-60"
+        @click="emit('generate')"
+      >
+        <AppIcon
+          name="sparkles"
+          :size="16"
+        />
+        {{ processing ? 'Đang tổng hợp…' : 'Tạo báo cáo' }}
+      </button>
+      <p
+        v-else
+        class="mt-5 text-sm italic text-slate-400"
+      >
+        Bạn không có quyền tạo báo cáo cho dự án này.
+      </p>
+    </template>
   </div>
 </template>

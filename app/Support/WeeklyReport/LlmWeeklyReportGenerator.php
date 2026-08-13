@@ -44,6 +44,7 @@ class LlmWeeklyReportGenerator implements WeeklyReportGenerator
                 meta: array_merge($draft->meta, [
                     'engine' => 'heuristic_fallback',
                     'llm_error' => true,
+                    'llm_error_message' => mb_substr($e->getMessage(), 0, 180),
                 ]),
                 sections: $draft->sections,
             );

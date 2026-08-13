@@ -337,6 +337,7 @@ class SystemSettingTest extends TestCase
                 'api_key' => 'AIza-test-key',
                 'model' => 'gemini-2.0-flash',
                 'base_url' => '',
+                'system_prompt' => 'Viết theo kết quả nghiệp vụ.',
             ])
             ->assertRedirect();
 
@@ -344,6 +345,7 @@ class SystemSettingTest extends TestCase
         $this->assertSame('gemini', $this->repo()->get('ai.provider'));
         $this->assertSame('AIza-test-key', $this->repo()->get('ai.api_key'));
         $this->assertSame('gemini-2.0-flash', $this->repo()->get('ai.model'));
+        $this->assertSame('Viết theo kết quả nghiệp vụ.', $this->repo()->get('ai.system_prompt'));
     }
 
     public function test_ai_api_key_is_masked_in_payload(): void

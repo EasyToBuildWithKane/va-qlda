@@ -1,7 +1,6 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 
 const props = defineProps({
     report: { type: Object, required: true },
@@ -20,11 +19,21 @@ const STEPS = [
     { key: 'approved', label: 'Đã duyệt', color: 'emerald' },
 ];
 
+const DOT_CLASS = {
+    slate: 'bg-slate-400',
+    sky: 'bg-sky-500',
+    violet: 'bg-violet-500',
+    amber: 'bg-amber-500',
+    emerald: 'bg-emerald-500',
+    rose: 'bg-rose-500',
+};
+
 const statusValue = computed(() => props.report.status?.value);
 const statusMeta = computed(() => {
     if (statusValue.value === 'rejected') return { label: 'Bị trả lại', color: 'rose' };
     return STEPS.find((s) => s.key === statusValue.value) ?? { label: 'Nháp', color: 'slate' };
 });
+const statusDotClass = computed(() => DOT_CLASS[statusMeta.value.color] ?? DOT_CLASS.slate);
 
 const can = computed(() => props.report.can ?? {});
 const canSubmit = computed(() => can.value.submit && ['draft', 'generated', 'edited', 'rejected'].includes(statusValue.value));
@@ -55,13 +64,17 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onRejectClickOut
   <component
     :is="inline ? 'div' : 'section'"
     :class="inline
-      ? 'flex min-w-0 shrink-0 items-center gap-2'
-      : 'flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900'"
+      ? 'flex min-w-0 shrink-0 items-center gap-2.5'
+      : 'flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-slate-900'"
   >
-    <Badge
-      :label="statusMeta.label"
-      :color="statusMeta.color"
-    />
+    <span class="inline-flex items-center gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-200">
+      <span
+        class="h-1.5 w-1.5 shrink-0 rounded-full"
+        :class="statusDotClass"
+        aria-hidden="true"
+      />
+      {{ statusMeta.label }}
+    </span>
 
     <button
       v-if="canSubmit"
@@ -83,7 +96,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onRejectClickOut
         <button
           type="button"
           :disabled="processing"
-          class="inline-flex h-10 items-center gap-1.5 rounded-lg border border-rose-200 bg-white px-3 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60 dark:border-rose-900 dark:bg-slate-900"
+          class="inline-flex h-10 items-center gap-1.5 rounded-btn border border-rose-200 bg-white px-3 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-60 dark:border-rose-900 dark:bg-slate-900"
           @click="rejecting = !rejecting"
         >
           <AppIcon
@@ -115,7 +128,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onRejectClickOut
       <button
         type="button"
         :disabled="processing"
-        class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
+        class="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-btn bg-emerald-600 px-3 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-60"
         @click="emit('approve')"
       >
         <AppIcon

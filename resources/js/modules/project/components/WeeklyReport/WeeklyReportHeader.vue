@@ -35,10 +35,22 @@ const updated = computed(() => {
     if (!iso) return null;
     return new Date(iso).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' });
 });
+
+const engine = computed(() => props.report.meta?.engine ?? 'heuristic');
+const engineLabel = computed(() => {
+    if (engine.value === 'llm') return 'AI đã tổng hợp';
+    if (engine.value === 'heuristic_fallback') return 'AI lỗi — bản nội bộ';
+    return 'Tổng hợp nội bộ';
+});
+const engineClass = computed(() => {
+    if (engine.value === 'llm') return 'text-emerald-600';
+    if (engine.value === 'heuristic_fallback') return 'text-amber-600';
+    return 'text-slate-500';
+});
 </script>
 
 <template>
-  <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex-nowrap">
+  <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2 lg:flex-nowrap">
     <WeeklyReportApprovalBar
       inline
       :report="report"
@@ -48,14 +60,24 @@ const updated = computed(() => {
       @reject="emit('reject', $event)"
     />
 
-    <span
-      v-if="updated"
-      class="shrink-0 whitespace-nowrap text-xs text-slate-500"
-    >Cập nhật {{ updated }}</span>
-    <span
-      v-if="report.approved_by"
-      class="shrink-0 whitespace-nowrap text-xs text-emerald-600"
-    >Duyệt bởi {{ report.approved_by }}</span>
+    <div
+      v-if="updated || report.approved_by || engine"
+      class="hidden min-w-0 items-center gap-2 text-[11px] tabular-nums sm:flex"
+    >
+      <span
+        class="shrink-0 whitespace-nowrap"
+        :class="engineClass"
+        :title="report.meta?.llm_error_message || undefined"
+      >{{ engineLabel }}</span>
+      <span
+        v-if="updated"
+        class="shrink-0 whitespace-nowrap text-slate-400"
+      >Cập nhật {{ updated }}</span>
+      <span
+        v-if="report.approved_by"
+        class="shrink-0 whitespace-nowrap text-emerald-600"
+      >Duyệt bởi {{ report.approved_by }}</span>
+    </div>
 
     <div class="ml-auto flex shrink-0 items-center gap-2">
       <div
@@ -104,7 +126,7 @@ const updated = computed(() => {
         :class="regenerationAvailable
           ? 'bg-amber-500 text-white hover:bg-amber-600'
           : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
-        :title="regenerationAvailable ? 'Dữ liệu kỳ đã đổi — tạo lại báo cáo' : 'Tạo lại báo cáo'"
+        :title="regenerationAvailable ? 'Dữ liệu kỳ đã đổi — tạo lại toàn bộ báo cáo' : 'Tạo lại toàn bộ báo cáo theo prompt AI hiện tại'"
         @click="emit('regenerate')"
       >
         <AppIcon

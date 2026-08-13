@@ -248,7 +248,53 @@ class WeeklyReportEngineTest extends TestCase
                 && str_contains($payload, 'Module A')
                 && str_contains($payload, 'completed_this_week')
                 && str_contains($payload, 'Nguyễn Văn A')
-                && str_contains($payload, 'contributors');
+                && str_contains($payload, 'contributors')
+                && str_contains($payload, 'CẤM liệt kê')
+                && ! str_contains($payload, '"draft"')
+                && str_contains($payload, 'ĐẦU RA BẮT BUỘC');
+        });
+    }
+
+    public function test_llm_appends_json_contract_to_custom_system_prompt(): void
+    {
+        config([
+            'weekly_report.llm.enabled' => true,
+            'weekly_report.llm.provider' => 'openai',
+            'weekly_report.llm.api_key' => 'sk-test',
+            'weekly_report.llm.model' => 'gpt-4o-mini',
+            'weekly_report.llm.base_url' => '',
+            'weekly_report.llm.system_prompt' => 'Viết theo kết quả nghiệp vụ, không liệt kê task.',
+        ]);
+
+        Http::fake([
+            'api.openai.com/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode([
+                            'executive' => 'Tóm tắt tùy chỉnh.',
+                            'insight' => 'Nhận định.',
+                            'sections' => [
+                                'result' => 'Kết quả',
+                                'current' => 'Hiện tại',
+                                'next' => 'Kế hoạch',
+                                'risk' => 'Rủi ro',
+                                'feedback' => 'Phản hồi',
+                                'activity' => 'Hoạt động',
+                            ],
+                        ], JSON_UNESCAPED_UNICODE),
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $report = app(WeeklyReportGenerator::class)->generate($this->context());
+
+        $this->assertSame('Tóm tắt tùy chỉnh.', $report->executiveSummary);
+        Http::assertSent(function ($request) {
+            $payload = json_encode($request->data(), JSON_UNESCAPED_UNICODE);
+
+            return str_contains($payload, 'Viết theo kết quả nghiệp vụ, không liệt kê task.')
+                && str_contains($payload, 'ĐẦU RA BẮT BUỘC');
         });
     }
 

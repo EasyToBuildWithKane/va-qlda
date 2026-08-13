@@ -183,6 +183,10 @@ final class SettingsSchema
             ['group' => 'ai', 'name' => 'base_url', 'type' => 'string', 'label' => 'Base URL (tuỳ chọn)',
                 'help' => 'NVIDIA mặc định https://integrate.api.nvidia.com/v1. Bắt buộc với «Tương thích OpenAI». Để trống = URL mặc định của nhà cung cấp.',
                 'config' => 'weekly_report.llm.base_url', 'default' => null, 'rules' => ['nullable', 'string', 'max:255']],
+            ['group' => 'ai', 'name' => 'system_prompt', 'type' => 'textarea', 'label' => 'Prompt tùy chỉnh báo cáo tuần',
+                'help' => 'Để trống = dùng prompt mặc định (tổng hợp kết quả nghiệp vụ cho cấp quản lý, không liệt kê task). Dán prompt riêng nếu muốn đổi giọng/nguyên tắc. Hệ thống luôn ép đầu ra JSON để gắn vào 3 thẻ báo cáo.',
+                'config' => 'weekly_report.llm.system_prompt', 'default' => '',
+                'rules' => ['nullable', 'string', 'max:20000']],
 
             // ── menu (Tùy chỉnh menu) ────────────────────────────────
             // Stores the group keys hidden system-wide from the sidebar. The UI

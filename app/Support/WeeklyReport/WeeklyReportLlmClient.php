@@ -8,11 +8,17 @@ use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
- * Gọi LLM (OpenAI / Anthropic / Gemini / OpenAI-compatible) để viết lại
- * văn bản báo cáo tuần. Không bịa tên task — chỉ diễn đạt lại draft heuristic.
+ * Gọi LLM (OpenAI / Anthropic / Gemini / OpenAI-compatible) để tổng hợp
+ * báo cáo tuần theo kết quả nghiệp vụ — không liệt kê lại task kỹ thuật.
  */
 class WeeklyReportLlmClient
 {
+    public const JSON_OUTPUT_CONTRACT = <<<'PROMPT'
+## ĐẦU RA BẮT BUỘC
+Trả về DUY NHẤT một JSON object (không markdown, không giải thích, không heading ngoài JSON):
+{"executive":"string","insight":"string","outcomes":[{"title":"string","value":"string"}],"sections":{"result":"string","current":"string","next":"string","risk":"string","feedback":"string","activity":"string"}}
+PROMPT;
+
     public function isConfigured(): bool
     {
         return (bool) config('weekly_report.llm.enabled')
@@ -186,10 +192,13 @@ class WeeklyReportLlmClient
     private function systemPrompt(): string
     {
         $custom = trim((string) config('weekly_report.llm.system_prompt', ''));
-        if ($custom !== '') {
-            return $custom;
-        }
+        $body = $custom !== '' ? $custom : $this->defaultWritingPrompt();
 
+        return rtrim($body)."\n\n".self::JSON_OUTPUT_CONTRACT;
+    }
+
+    private function defaultWritingPrompt(): string
+    {
         return <<<'PROMPT'
 Bạn là **Team Leader/PM chuyên tổng hợp báo cáo công việc phần mềm cho cấp quản lý** (tiếng Việt, súc tích, có số liệu).
 
@@ -236,9 +245,6 @@ API → Kết nối/xử lý dữ liệu | Backend → Phần xử lý hệ th�
 **sections.feedback** — Phản hồi/ghi chú từ người dùng hoặc khách hàng nếu có trong dữ liệu, bằng ngôn ngữ quản lý.
 
 **sections.activity** — Hoạt động nhóm nổi bật trong kỳ (họp, demo, bàn giao, review…) nếu có.
-
-Trả về DUY NHẤT một JSON object (không markdown, không giải thích):
-{"executive":"string","insight":"string","outcomes":[{"title":"string","value":"string"}],"sections":{"result":"string","current":"string","next":"string","risk":"string","feedback":"string","activity":"string"}}
 PROMPT;
     }
 
@@ -252,15 +258,30 @@ PROMPT;
             'kpi' => $draft->kpi,
             'tasks' => WeeklyReportTaskFacts::digest($context),
             'contributors' => WeeklyReportTaskFacts::periodContributors($context),
-            'draft' => [
-                'executive' => $draft->executiveSummary,
-                'insight' => $draft->aiSummary,
-                'sections' => $draft->sections,
-                'outcomes' => $draft->meta['outcomes'] ?? [],
-            ],
+            'blockers' => $context->blockers
+                ->take(8)
+                ->map(fn ($b) => [
+                    'title' => (string) $b->title,
+                    'severity' => $b->severity?->value ?? $b->severity,
+                    'owner' => $b->relationLoaded('owner') ? $b->owner?->full_name : null,
+                ])
+                ->values()
+                ->all(),
+            'feedbacks' => $context->feedbacks
+                ->take(8)
+                ->map(fn ($f) => [
+                    'title' => (string) $f->title,
+                    'category' => $f->category?->value ?? $f->category,
+                    'rating' => $f->rating,
+                ])
+                ->values()
+                ->all(),
         ];
 
-        return "Đọc nội dung task (mô tả, ghi chú) và thành viên làm việc, rồi tổng hợp kết quả kỳ (theo ngày, không theo Sprint):\n"
+        return 'Dữ liệu thô kỳ báo cáo (KPI + việc làm + thành viên). '
+            .'Hãy ĐỌC rồi TỔNG HỢP thành kết quả nghiệp vụ cho cấp quản lý. '
+            .'CẤM liệt kê lại tiêu đề task / API / schema / tên kỹ thuật. '
+            ."CẤM copy nguyên văn mô tả task. Gom các việc cùng nghiệp vụ thành 1 kết quả.\n"
             .json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 

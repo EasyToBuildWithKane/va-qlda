@@ -174,7 +174,7 @@ Kanban Index: nhóm theo `type` (kéo-thả cập nhật `PATCH …/type`). Th�
 
 | Route | Page | Ghi chú |
 |---|---|---|
-| `GET /projects/create` | `Create.vue` | `ProjectForm`, mã gợi ý; phòng phụ trách + **phòng liên đới** (tích nhiều); phòng ban từ HRM (mirror local) + mặc định PCN |
+| `GET /projects/create` | `Create.vue` | `ProjectForm`, mã gợi ý; phòng phụ trách + **phòng liên đới** (ô chọn, hiện thẻ tag); phòng ban từ HRM (mirror local) + mặc định PCN |
 | `POST /projects` | — | `StoreProjectRequest` → `CreateProjectUseCase`; flash «Đã tạo dự án»; `after=continue` → edit |
 | `GET /projects/{id}/edit` | `Edit.vue` | Cần `update` |
 | `PUT /projects/{id}` | — | `UpdateProjectUseCase` |
@@ -228,7 +228,7 @@ Tab strip full-width: mobile 3 cột (icon trên, nhãn dưới, chữ không `t
 
 | Tab | Key | Component chính |
 |---|---|---|
-| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
+| Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ; chưa có báo cáo → empty, không chọn ngày / tạo)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
 | Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive browse; breadcrumb nav; lavender folder cards; chuột phải + bulk chọn; tìm trong thư mục; kéo thả upload/chuyển `parent_id`; preview Word (cuộn liên tục, fit khung) / Excel client-side; cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` + `useProjectCalendar` — Tháng / Tuần / Ngày (timeGrid) / Danh sách; tìm + lọc status/sprint/assignee; KPI chip lọc nhanh; hover card (avatar, tiến độ); cột **Chưa lên lịch**; bấm/kéo ô → tạo task (preset ngày); kéo event → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |

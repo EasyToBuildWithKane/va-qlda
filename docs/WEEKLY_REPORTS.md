@@ -5,8 +5,9 @@ tự tổng hợp công việc **theo khoảng ngày trên toàn dự án** (m�
 phạm vi Sprint đang chạy. Người dùng kiểm tra → chỉnh sửa → gửi duyệt → duyệt.
 
 Trên tab **Tổng quan** (`?tab=overview`), cùng `WeeklyReportWorkspace` được nhúng **full width ngay dưới
-khối «Hồ sơ dự án»** (`embedded`) — chọn khoảng ngày / tạo / lưu giữ `tab=overview` (prop `activeTab` +
-`tab` trên request redirect).
+khối «Hồ sơ dự án»** (`embedded`) — thao tác lưu / duyệt giữ `tab=overview` (prop `activeTab` +
+`tab` trên request redirect). **Chưa có báo cáo** (`?wr` trống hoặc kỳ không có bản ghi): empty thuần
+(không khoảng ngày, không nút Tạo báo cáo). Tạo báo cáo chỉ trên tab **Báo cáo tuần**.
 
 UI tab: **một hàng toolbar** (desktop `lg:flex-nowrap`) — Từ ngày · Đến ngày · trạng thái · Gửi duyệt / Duyệt · Cập nhật · Xuất · Tạo lại — rồi 3 thẻ (kết quả / hiện tại / tiếp theo) → rủi ro → lịch sử phiên bản.
 Tóm tắt điều hành, nhận định và KPI vẫn được engine sinh và đưa vào file xuất PDF/DOCX, không hiện trên tab.
@@ -21,6 +22,13 @@ Hệ thống **luôn** tính KPI / rủi ro / phân loại phản hồi bằng e
 **viết lại bằng LLM** khi Super Admin bật AI và lưu API key tại **`/settings/ai`**.
 
 Thiếu key, tắt AI, hoặc API lỗi → giữ bản heuristic (không chặn tạo báo cáo).
+Thanh công cụ hiện nhãn **AI đã tổng hợp** / **Tổng hợp nội bộ** / **AI lỗi — bản nội bộ**.
+
+Prompt viết báo cáo chỉnh tại **`/settings/ai`** (ô «Prompt tùy chỉnh báo cáo tuần»). Để trống = prompt mặc định: tổng hợp **kết quả nghiệp vụ** cho cấp quản lý, không liệt kê task kỹ thuật. Prompt tùy chỉnh vẫn bị ép đầu ra JSON để gắn vào 3 thẻ.
+
+LLM **không** nhận bản draft heuristic (tránh copy danh sách task). Chỉ nhận KPI + dữ liệu thô (mô tả, ghi chú, thành viên, vướng mắc, phản hồi).
+
+Nút **Tạo lại** ghi đè toàn bộ thẻ (không giữ bản đã sửa) để prompt mới có hiệu lực.
 
 ```
 App\Support\WeeklyReport\Contracts\WeeklyReportGenerator
