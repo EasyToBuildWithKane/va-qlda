@@ -27,6 +27,10 @@ return [
         'base_url' => env('WEEKLY_REPORT_LLM_BASE_URL'),
 
         'timeout' => (int) env('WEEKLY_REPORT_LLM_TIMEOUT', 40),
+
+        // Ghi đè system prompt mặc định. Bỏ trống = dùng prompt tích hợp.
+        // Giá trị phải là chuỗi plain text (không JSON encode).
+        'system_prompt' => env('WEEKLY_REPORT_LLM_SYSTEM_PROMPT', ''),
     ],
 
 ];

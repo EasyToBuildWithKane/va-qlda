@@ -63,7 +63,7 @@ flowchart LR
 | Controller | Mỏng: `authorize`, gọi Use Case / query, Inertia | `app/Http/Controllers/Project/` |
 | Application | Index/show aggregate, CRUD dự án, duplicate, archive, log work | `app/Application/Project/` |
 | Task mutations | Create, update, patch status, bulk, import | `app/Application/Task/` |
-| Policy | `view` / `manage` / `contribute` + manager/member | `app/Policies/ProjectPolicy.php` |
+| Policy | `view` / `manage` / `contribute` + manager/member + phòng phụ trách/liên đới | `app/Policies/ProjectPolicy.php` |
 | Support | Activity, notification fan-out, email queue | `ProjectActivityLogger`, `NotificationDispatcher`, `TaskEmailService` |
 | Frontend pages | 4 page Inertia | `resources/js/Pages/Project/` |
 | Frontend module | Sprint, Dashboard, Documents, … | `resources/js/modules/project/` |
@@ -80,8 +80,9 @@ flowchart LR
 | `ProjectIndexQuery` | Paginate + filter server + KPI `summary` |
 | `ProjectShowDataLoader` | Eager-load toàn bộ graph show (task nested) |
 | `ProjectMemberRosterMerger` | Gộp roster phòng ban vào members hiển thị |
-| `ProjectSummaryQuery` | KPI strip Index (total/active/completed/overdue) |
+| `ProjectSummaryQuery` | KPI strip Index (total/active/completed/overdue), đã lọc theo quyền xem |
 | `LogWorkUseCase` | Worklog + snapshot rate/cost |
+| `ProjectVisibility` | Lọc danh mục + `view` theo phòng phụ trách / liên đới |
 
 ---
 
@@ -92,7 +93,7 @@ flowchart LR
 | Ability | Điều kiện |
 |---|---|
 | `viewAny` | Mọi account đăng nhập |
-| `view` | Permission `project.view` **hoặc** là `manager_id` **hoặc** có trong `project_member` (active) |
+| `view` | Admin-tier (`super_admin`/`admin`) **hoặc** `manager_id` **hoặc** thành viên `project_member` **hoặc** thuộc **phòng phụ trách** / **phòng liên đới** (`scope_departments`) |
 | `create` | `project.create` |
 | `update` | `project.update` **hoặc** là quản lý dự án |
 | `delete` | `project.delete` (mặc định chỉ admin — xem ma trận) |
@@ -107,12 +108,25 @@ Ma trận RBAC runtime có thể ghi đè default trong `system_settings` (`perm
 |---|---|
 | `admin` | Toàn bộ key admin (gồm `project.*`) |
 | `lead` | view, create, update, manage, contribute |
-| `member` | *Không* grant `project.view` mặc định — vẫn xem được dự án nếu là manager/member (policy) |
-| `viewer` | `project.view` |
+| `member` | *Không* grant `project.view` mặc định — vẫn xem được dự án nếu là manager/member **hoặc** thuộc phòng phụ trách / liên đới |
+| `viewer` | `project.view` (mở danh mục); chi tiết dự án vẫn theo phòng ban / membership, trừ admin-tier |
 
 ### 3.3 Frontend
 
 `ProjectResource` trả `can.update`, `can.delete`, `can.manage`, `can.contribute` — component dùng `project.can?.manage` / `canContribute`.
+
+### 3.4 Quyền xem theo phòng ban
+
+Danh mục `/projects` và `GET /projects/{id}` (policy `view`) **không** còn mở toàn bộ portfolio cho mọi role có `project.view`.
+
+| Ai | Được thấy dự án khi |
+|---|---|
+| `super_admin`, `admin` | Mọi dự án |
+| Chủ dự án / thành viên `project_member` | Đúng dự án đó |
+| Nhân sự thuộc **phòng phụ trách** (`department_id`) | Dự án đó |
+| Nhân sự thuộc **phòng liên đới** (`scope_departments`) | Dự án đó |
+
+`ProjectVisibility` (`app/Support/Project/ProjectVisibility.php`) áp cho Index, KPI strip và Policy. Phòng nhân sự lấy từ pivot `department_member` và mã/tên phòng trên `employees.meta` (HRM).
 
 ---
 
@@ -137,7 +151,7 @@ Pattern datagrid: `DatagridToolbarSearch` (`hide-label`, `inline-actions`), Lọ
 | `type` | `ProjectType` (cột vòng đời Kanban) |
 | `category` | `hardware` \| `software` |
 | `scope` | `ProjectScope` |
-| `department_id` | Phòng ban sở hữu |
+| `department_id` | Phòng ban phụ trách hoặc liên đới |
 | `mine` | `1` — manager hoặc member của user |
 | `per_page` | 5, 10, 15, 20, 50, 100 (mặc định 100) |
 
@@ -160,7 +174,7 @@ Kanban Index: nhóm theo `type` (kéo-thả cập nhật `PATCH …/type`). Th�
 
 | Route | Page | Ghi chú |
 |---|---|---|
-| `GET /projects/create` | `Create.vue` | `ProjectForm`, mã gợi ý; phòng ban từ HRM (mirror local) + mặc định PCN |
+| `GET /projects/create` | `Create.vue` | `ProjectForm`, mã gợi ý; phòng phụ trách + **phòng liên đới** (tích nhiều); phòng ban từ HRM (mirror local) + mặc định PCN |
 | `POST /projects` | — | `StoreProjectRequest` → `CreateProjectUseCase`; flash «Đã tạo dự án»; `after=continue` → edit |
 | `GET /projects/{id}/edit` | `Edit.vue` | Cần `update` |
 | `PUT /projects/{id}` | — | `UpdateProjectUseCase` |
@@ -174,11 +188,11 @@ Kanban Index: nhóm theo `type` (kéo-thả cập nhật `PATCH …/type`). Th�
 | `status` | planning, active, on_hold, completed, cancelled | |
 | `type` | rnd, deployment, operation | Vòng đời — cột Kanban danh mục |
 | `category` | hardware, software | Legacy — không còn field form tạo/sửa |
-| `scope` | headquarters, system, regional, departmental | Kèm `scope_regions[]` (`saigon`/`vungtau`/`cantho`) hoặc `scope_departments[]` khi cần |
+| `scope` | headquarters, system, regional, departmental | Kèm `scope_regions[]` khi khu vực; `scope_departments[]` = **phòng liên đới** (luôn dùng cho quyền xem, không phụ thuộc scope) |
 | `start_date`, `due_date` | | |
 | `budget`, `actual_budget` | | Kế hoạch vs thực tế |
 | `manager_id` | employees | Chủ dự án |
-| `department_id` | departments | Phòng ban sở hữu |
+| `department_id` | departments | Phòng ban **phụ trách** (chủ trì) |
 | `is_active`, `sort_order` | | Sắp xếp danh mục |
 
 ### 5.2 Thao tác đặc biệt
@@ -222,7 +236,7 @@ Tab strip full-width: mobile 3 cột (icon trên, nhãn dưới, chữ không `t
 | Vướng mắc | `blockers` | `ProjectBlockerPanel`, `BlockerDataModal` |
 | QA / Test case | `qa` | `ProjectTestCasePanel`, `TestCaseDataModal` |
 | Phản hồi | `feedback` | `ProjectFeedbackPanel` |
-| Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` — kỳ theo khoảng ngày trên toàn dự án (không kẹp Sprint); AI/heuristic đọc mô tả task + thành viên làm |
+| Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` — kỳ theo khoảng ngày trên toàn dự án (không kẹp Sprint); toolbar một hàng (ngày + trạng thái + Gửi duyệt / Xuất / Tạo lại); AI/heuristic đọc mô tả task + thành viên làm |
 
 `ProjectShowSummaryBar`: 5 KPI (tiến độ, thành viên, công việc, sprint, test case) — emit điều hướng tab.
 

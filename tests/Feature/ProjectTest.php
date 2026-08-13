@@ -34,6 +34,17 @@ class ProjectTest extends TestCase
         return SystemAccount::factory()->role(SystemRole::Viewer)->create();
     }
 
+    private function makeDepartment(string $code, string $name): Department
+    {
+        return Department::create([
+            'code' => $code,
+            'name' => $name,
+            'color' => 'brand',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+    }
+
     // ─── Index ───────────────────────────────────────────────────────────────
 
     public function test_admin_can_list_projects(): void
@@ -140,6 +151,82 @@ class ProjectTest extends TestCase
             'name' => 'Project With Stale Dept',
             'department_id' => $dept->id,
         ]);
+    }
+
+    public function test_store_saves_related_departments_excluding_owner(): void
+    {
+        $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
+        $partner = $this->makeDepartment('HV', 'Phòng Học vụ');
+        $other = $this->makeDepartment('HCNS', 'Hành chính');
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/projects', [
+                'name' => 'Dự án liên đới',
+                'status' => ProjectStatus::Planning->value,
+                'type' => ProjectType::Rnd->value,
+                'scope' => ProjectScope::Headquarters->value,
+                'department_id' => $owner->id,
+                'scope_departments' => [$owner->id, $partner->id, $other->id],
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $project = Project::query()->where('name', 'Dự án liên đới')->first();
+        $this->assertNotNull($project);
+        $this->assertSame($owner->id, $project->department_id);
+        $this->assertEqualsCanonicalizing([$partner->id, $other->id], $project->relatedDepartmentIds());
+    }
+
+    public function test_member_in_related_department_can_view_project(): void
+    {
+        $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
+        $partner = $this->makeDepartment('HV', 'Phòng Học vụ');
+        $outsider = $this->makeDepartment('KT', 'Kế toán');
+
+        $project = Project::factory()->create([
+            'department_id' => $owner->id,
+            'scope_departments' => [$partner->id],
+        ]);
+
+        $relatedAccount = $this->member();
+        $partner->members()->attach($relatedAccount->employee_id, ['is_active' => true]);
+
+        $outsiderAccount = $this->member();
+        $outsider->members()->attach($outsiderAccount->employee_id, ['is_active' => true]);
+
+        $this->actingAs($relatedAccount, 'system')
+            ->get('/projects')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('projects.meta.total', 1));
+
+        $this->actingAs($relatedAccount, 'system')
+            ->get("/projects/{$project->id}")
+            ->assertOk();
+
+        $this->actingAs($outsiderAccount, 'system')
+            ->get('/projects')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('projects.meta.total', 0));
+
+        $this->actingAs($outsiderAccount, 'system')
+            ->get("/projects/{$project->id}")
+            ->assertForbidden();
+    }
+
+    public function test_owner_department_member_can_view_without_being_project_member(): void
+    {
+        $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
+        $project = Project::factory()->create([
+            'department_id' => $owner->id,
+            'scope_departments' => [],
+        ]);
+
+        $account = $this->member();
+        $owner->members()->attach($account->employee_id, ['is_active' => true]);
+
+        $this->actingAs($account, 'system')
+            ->get("/projects/{$project->id}")
+            ->assertOk();
     }
 
     public function test_member_cannot_create_project(): void

@@ -53,12 +53,27 @@ function onExport(format) {
       ? 'overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm dark:border-slate-700/80 dark:bg-slate-950'
       : 'h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950'"
   >
-    <div class="shrink-0 border-b border-slate-200/80 dark:border-slate-800">
-      <WeeklyReportTimelineNav
-        :period-start="periodStart"
-        :period-end="periodEnd"
-        @update-period="selectPeriod"
-      />
+    <div class="shrink-0 border-b border-slate-200/80 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
+      <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+        <WeeklyReportTimelineNav
+          :period-start="periodStart"
+          :period-end="periodEnd"
+          @update-period="selectPeriod"
+        />
+
+        <WeeklyReportHeader
+          v-if="!showEmpty"
+          :report="report"
+          :can-generate="canGenerate"
+          :regeneration-available="regenerationAvailable"
+          :processing="processing"
+          @regenerate="regenerate({ preserve: true })"
+          @export="onExport"
+          @submit="submit"
+          @approve="approve"
+          @reject="reject"
+        />
+      </div>
     </div>
 
     <div
@@ -78,18 +93,6 @@ function onExport(format) {
         v-else
         class="space-y-4"
       >
-        <WeeklyReportHeader
-          :report="report"
-          :can-generate="canGenerate"
-          :regeneration-available="regenerationAvailable"
-          :processing="processing"
-          @regenerate="regenerate({ preserve: true })"
-          @export="onExport"
-          @submit="submit"
-          @approve="approve"
-          @reject="reject"
-        />
-
         <div class="grid gap-4 lg:grid-cols-3">
           <WeeklyReportSectionCard
             v-for="key in ['result', 'current', 'next']"

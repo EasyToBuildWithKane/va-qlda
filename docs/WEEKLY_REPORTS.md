@@ -8,7 +8,7 @@ Trên tab **Tổng quan** (`?tab=overview`), cùng `WeeklyReportWorkspace` đư�
 khối «Hồ sơ dự án»** (`embedded`) — chọn khoảng ngày / tạo / lưu giữ `tab=overview` (prop `activeTab` +
 `tab` trên request redirect).
 
-UI tab: chọn từ ngày–đến ngày → 3 thẻ (kết quả / hiện tại / tiếp theo) → rủi ro → lịch sử phiên bản.
+UI tab: **một hàng toolbar** (desktop `lg:flex-nowrap`) — Từ ngày · Đến ngày · trạng thái · Gửi duyệt / Duyệt · Cập nhật · Xuất · Tạo lại — rồi 3 thẻ (kết quả / hiện tại / tiếp theo) → rủi ro → lịch sử phiên bản.
 Tóm tắt điều hành, nhận định và KPI vẫn được engine sinh và đưa vào file xuất PDF/DOCX, không hiện trên tab.
 
 LLM (và bản heuristic) đọc **mô tả + ghi chú hoàn thành** của task **và thành viên làm**

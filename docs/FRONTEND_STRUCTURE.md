@@ -168,11 +168,11 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 
 | Nhóm | Components |
 |---|---|
-| Core | `ProjectCard` (shell clip-path + viền nét đứt kiểu `kpi-card`, nền trắng phẳng — không gradient), `ProjectDataGrid` (kéo ngang cuộn bảng), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: lane trắng + inset border; wrap thẻ; nhóm theo loại dự án |
+| Core | `ProjectCard`, `ProjectDataGrid`, `ProjectForm`, `ProjectDepartmentAccessPanel` (phòng phụ trách + tích nhiều phòng liên đới), `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: lane trắng + inset border; wrap thẻ; nhóm theo loại dự án |
 | Sprint/ | `SprintWorkspace`, `SprintTaskRows`, `SprintTaskTable` (không cột SLA), `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailGeneralInfo` (Thông tin chung 2 cột trong panel), `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `ProjectBlockerPanel` (tab Vướng mắc — KPI strip nhúng + import/export/reconcile modal), `ProjectFeedbackPanel`, `BlockerDataModal` (3 tab: Nhập/Xuất/Đối soát), `BlockerInlineDetail`, `ActivityFeed`, … |
-| WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` / `overview` embedded. Kỳ theo khoảng ngày (toàn dự án, không kẹp Sprint). `WeeklyReportTimelineNav` (chỉ từ ngày–đến ngày), 3 thẻ nội dung, rủi ro, lịch sử phiên bản |
+| WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` / `overview` embedded. Kỳ theo khoảng ngày (toàn dự án, không kẹp Sprint). Toolbar **một hàng**: `WeeklyReportTimelineNav` (từ–đến ngày) + `WeeklyReportHeader` (trạng thái, Gửi duyệt, Cập nhật, Xuất, Tạo lại). 3 thẻ nội dung, rủi ro, lịch sử phiên bản |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
 | Documents/ | `ProjectDocumentsPanel`, `DocumentContextMenu`, `DocumentFolderCard` (lavender), `DocumentFileCard`, `DocumentFilesTable`, `DocumentPreviewPane` + `useDocumentPreview` — Drive; kéo thả; chuột phải; bulk; tìm trong thư mục; Word preview tờ giấy (letterhead + watermark); đính kèm task hẹp |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |

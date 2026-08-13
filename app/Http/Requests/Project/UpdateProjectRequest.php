@@ -22,16 +22,21 @@ class UpdateProjectRequest extends FormRequest
     {
         $allowed = Region::values();
         $scopeRegions = $this->input('scope_regions');
-        $departments = ProjectDepartmentPayload::normalize(
-            $this->input('department_id'),
-            $this->input('scope_departments'),
-            fallbackOwner: false,
-        );
+        $merge = [];
 
-        $merge = [
-            'department_id' => $departments['department_id'],
-            'scope_departments' => $departments['scope_departments'],
-        ];
+        $hasOwner = $this->exists('department_id');
+        $hasRelated = $this->exists('scope_departments');
+        if ($hasOwner || $hasRelated) {
+            /** @var \App\Models\Project $project */
+            $project = $this->route('project');
+            $departments = ProjectDepartmentPayload::normalize(
+                $hasOwner ? $this->input('department_id') : $project->department_id,
+                $hasRelated ? $this->input('scope_departments') : ($project->scope_departments ?? []),
+                fallbackOwner: false,
+            );
+            $merge['department_id'] = $departments['department_id'];
+            $merge['scope_departments'] = $departments['scope_departments'];
+        }
 
         if (is_array($scopeRegions)) {
             $merge['scope_regions'] = array_values(array_filter(
@@ -40,7 +45,9 @@ class UpdateProjectRequest extends FormRequest
             ));
         }
 
-        $this->merge($merge);
+        if ($merge !== []) {
+            $this->merge($merge);
+        }
     }
 
     /**

@@ -22,17 +22,19 @@ function onEndChange(iso) {
 </script>
 
 <template>
-  <div class="wr-scope">
-    <div
-      class="grid min-w-0 grid-cols-1 gap-2 sm:max-w-md sm:grid-cols-2"
-      role="group"
-      aria-label="Kỳ báo cáo"
-    >
+  <div
+    class="flex w-[min(100%,22.5rem)] shrink-0 items-center gap-2 sm:w-[22.5rem]"
+    role="group"
+    aria-label="Kỳ báo cáo"
+  >
+    <div class="min-w-0 flex-1">
       <FilterDatePicker
         :model-value="periodStart"
         placeholder="Từ ngày"
         @update:model-value="onStartChange"
       />
+    </div>
+    <div class="min-w-0 flex-1">
       <FilterDatePicker
         :model-value="periodEnd"
         placeholder="Đến ngày"
@@ -41,13 +43,3 @@ function onEndChange(iso) {
     </div>
   </div>
 </template>
-
-<style scoped>
-.wr-scope {
-  background: #fff;
-  padding: 0.875rem 1.25rem 1rem;
-}
-.dark .wr-scope {
-  background: #0f172a;
-}
-</style>

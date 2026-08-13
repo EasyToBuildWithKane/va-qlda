@@ -1,6 +1,7 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
+import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import WeeklyReportApprovalBar from './WeeklyReportApprovalBar.vue';
 
 const props = defineProps({
@@ -13,10 +14,21 @@ const props = defineProps({
 const emit = defineEmits(['regenerate', 'export', 'submit', 'approve', 'reject']);
 
 const exportOpen = ref(false);
+const exportWrap = ref(null);
+
 function pick(format) {
     exportOpen.value = false;
     emit('export', format);
 }
+
+function onExportClickOutside(e) {
+    if (exportWrap.value && !exportWrap.value.contains(e.target)) {
+        exportOpen.value = false;
+    }
+}
+
+onMounted(() => document.addEventListener('mousedown', onExportClickOutside));
+onBeforeUnmount(() => document.removeEventListener('mousedown', onExportClickOutside));
 
 const updated = computed(() => {
     const iso = props.report.updated_at;
@@ -26,45 +38,38 @@ const updated = computed(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-3 border-b border-slate-200 pb-4 dark:border-slate-700 lg:flex-row lg:items-start lg:justify-between">
-    <div class="min-w-0 flex-1 space-y-2">
-      <WeeklyReportApprovalBar
-        inline
-        :report="report"
-        :processing="processing"
-        class="min-w-0"
-        @submit="emit('submit')"
-        @approve="emit('approve')"
-        @reject="emit('reject', $event)"
-      />
-      <div
-        v-if="updated || report.approved_by"
-        class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500"
-      >
-        <span v-if="updated">Cập nhật {{ updated }}</span>
-        <span
-          v-if="report.approved_by"
-          class="text-emerald-600"
-        >Duyệt bởi {{ report.approved_by }}</span>
-      </div>
-    </div>
+  <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2 lg:flex-nowrap">
+    <WeeklyReportApprovalBar
+      inline
+      :report="report"
+      :processing="processing"
+      @submit="emit('submit')"
+      @approve="emit('approve')"
+      @reject="emit('reject', $event)"
+    />
 
-    <div class="flex shrink-0 items-center gap-2">
-      <div class="relative">
-        <button
-          type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-sm font-medium text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
+    <span
+      v-if="updated"
+      class="shrink-0 whitespace-nowrap text-xs text-slate-500"
+    >Cập nhật {{ updated }}</span>
+    <span
+      v-if="report.approved_by"
+      class="shrink-0 whitespace-nowrap text-xs text-emerald-600"
+    >Duyệt bởi {{ report.approved_by }}</span>
+
+    <div class="ml-auto flex shrink-0 items-center gap-2">
+      <div
+        ref="exportWrap"
+        class="relative"
+      >
+        <DatagridToolbarActionButton
+          icon="export"
+          title="Xuất báo cáo"
+          :active="exportOpen"
           @click="exportOpen = !exportOpen"
         >
-          <AppIcon
-            name="export"
-            :size="15"
-          /> Xuất
-          <AppIcon
-            name="chevron-down"
-            :size="13"
-          />
-        </button>
+          Xuất
+        </DatagridToolbarActionButton>
         <div
           v-if="exportOpen"
           class="absolute right-0 z-20 mt-1 w-36 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg dark:border-slate-700 dark:bg-slate-900"
@@ -95,17 +100,18 @@ const updated = computed(() => {
         v-if="canGenerate && !report.is_locked"
         type="button"
         :disabled="processing"
-        class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-60"
+        class="inline-flex h-10 items-center gap-1.5 rounded-btn px-3 text-xs font-medium transition disabled:opacity-60"
         :class="regenerationAvailable
           ? 'bg-amber-500 text-white hover:bg-amber-600'
-          : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'"
+          : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300'"
+        :title="regenerationAvailable ? 'Dữ liệu kỳ đã đổi — tạo lại báo cáo' : 'Tạo lại báo cáo'"
         @click="emit('regenerate')"
       >
         <AppIcon
           name="refresh"
           :size="15"
         />
-        {{ regenerationAvailable ? 'Dữ liệu đã đổi — Tạo lại' : 'Tạo lại' }}
+        Tạo lại
       </button>
     </div>
   </div>

@@ -153,13 +153,13 @@ Department ──→ Employee ──→ SystemAccount
 | category | varchar(30) | YES | hardware/software — legacy (không còn field form / chip lọc Index) |
 | scope | varchar(20) | NO | headquarters/regional/departmental |
 | scope_regions | json | YES | Mảng vùng khi scope=regional: `saigon`, `vungtau`, `cantho` |
-| scope_departments | json | YES | Mảng phòng ban (khi scope=departmental) |
+| scope_departments | json | YES | Mảng id **phòng ban liên đới** (phòng phụ trách kết nối; dùng cho quyền xem) |
 | start_date | date | YES | |
 | due_date | date | YES | |
 | budget | decimal(15,2) | YES | Ngân sách kế hoạch |
 | actual_budget | decimal(15,2) | YES | Chi phí thực tế |
 | manager_id | bigint UNSIGNED | YES | FK → employees |
-| department_id | bigint UNSIGNED | YES | FK → departments |
+| department_id | bigint UNSIGNED | YES | FK → departments — phòng ban **phụ trách** |
 | is_active | tinyint(1) | NO | Default: 1 |
 | sort_order | int | NO | Default: 0 |
 | created_at | timestamp | YES | |
