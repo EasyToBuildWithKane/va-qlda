@@ -124,7 +124,9 @@ class WeeklyReportTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->has('weeklyReports.weeks')
+                ->has('weeklyReports.engine.mode')
                 ->where('weeklyReports.sprint.name', 'Sprint 1')
+                ->where('weeklyReports.engine.mode', 'heuristic')
             );
     }
 

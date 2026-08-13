@@ -58,6 +58,10 @@ class UpdateSettingsRequest extends FormRequest
             'from_name' => 'Tên người gửi',
             'notify_on_assign' => 'Email khi giao việc',
             'notify_daily_at' => 'Giờ gửi tổng hợp',
+            'api_key' => 'API key',
+            'provider' => 'Nhà cung cấp',
+            'model' => 'Mô hình',
+            'base_url' => 'Base URL',
         ];
     }
 }

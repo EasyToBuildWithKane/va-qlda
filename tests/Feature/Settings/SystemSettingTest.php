@@ -45,7 +45,7 @@ class SystemSettingTest extends TestCase
             ->assertOk()
             ->assertInertia(fn ($page) => $page
                 ->component('Settings/Index')
-                ->has('groups', 9) // general, auth, telegram, email, clm, permissions, accounts, menu, onboarding
+                ->has('groups', 10) // general, auth, telegram, email, clm, ai, permissions, accounts, menu, onboarding
                 ->has('emailTemplates', 5)
                 ->where('can.manage', true)
             );
@@ -324,6 +324,52 @@ class SystemSettingTest extends TestCase
                 ->has('settings.clm')
                 ->where('settings.clm.0.name', 'alert_enabled')
             );
+    }
+
+    // ─── AI / LLM group ─────────────────────────────────────────────────────
+
+    public function test_super_admin_can_update_ai_settings(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->put('/settings/ai', [
+                'enabled' => true,
+                'provider' => 'gemini',
+                'api_key' => 'AIza-test-key',
+                'model' => 'gemini-2.0-flash',
+                'base_url' => '',
+            ])
+            ->assertRedirect();
+
+        $this->assertTrue($this->repo()->get('ai.enabled'));
+        $this->assertSame('gemini', $this->repo()->get('ai.provider'));
+        $this->assertSame('AIza-test-key', $this->repo()->get('ai.api_key'));
+        $this->assertSame('gemini-2.0-flash', $this->repo()->get('ai.model'));
+    }
+
+    public function test_ai_api_key_is_masked_in_payload(): void
+    {
+        $this->repo()->setMany(['ai.api_key' => 'sk-secret']);
+
+        $this->actingAs($this->superAdmin(), 'system')
+            ->get('/settings/ai')
+            ->assertInertia(function ($page) {
+                $ai = collect($page->toArray()['props']['settings']['ai']);
+                $key = $ai->firstWhere('name', 'api_key');
+
+                $this->assertSame('', $key['value']);
+                $this->assertTrue($key['has_value']);
+            });
+    }
+
+    public function test_ai_provider_rejects_unknown_value(): void
+    {
+        $this->actingAs($this->superAdmin(), 'system')
+            ->put('/settings/ai', [
+                'enabled' => true,
+                'provider' => 'unknown-vendor',
+                'model' => 'gpt-4o-mini',
+            ])
+            ->assertSessionHasErrors('provider');
     }
 
     // ─── Auth: google_allowed_emails (HTTP) ─────────────────────────────────

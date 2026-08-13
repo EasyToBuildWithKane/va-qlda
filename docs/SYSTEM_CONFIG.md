@@ -1,7 +1,7 @@
 # SYSTEM CONFIG — Cấu hình hệ thống
 
 > Module quản trị (**super-admin-only**) cho phép chỉnh cấu hình runtime mà không cần sửa `.env` / deploy lại.
-> Đường dẫn: **`/settings/{group}`** · Nav (chỉ Super Admin): **Cấu hình chung** (gồm Chung · Menu · Đăng nhập · Hợp đồng CLM · Chào mừng nhân viên), **Thông báo hệ thống**, **Phân quyền** (tách khỏi một nhóm «Cấu hình hệ thống»).
+> Đường dẫn: **`/settings/{group}`** · Nav (chỉ Super Admin): **Cấu hình chung** (gồm Chung · Menu · Đăng nhập · Hợp đồng CLM · Trí tuệ nhân tạo · Chào mừng nhân viên), **Thông báo hệ thống**, **Phân quyền** (tách khỏi một nhóm «Cấu hình hệ thống»).
 >
 > ⚠️ Từ bản nâng cấp RBAC: chỉ vai trò **`super_admin`** truy cập `/settings` (gồm tab Phân quyền & Tài khoản). `admin` **không** còn vào được. Chi tiết ma trận phân quyền & vai trò xem **[PERMISSIONS.md](PERMISSIONS.md)**.
 
@@ -40,6 +40,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
                                    ↓
                                config('telegram.*'), config('va.*'),
                                config('task_email.*'), config('ai_accounts.reminder.*'),
+                               config('clm.*'), config('weekly_report.llm.*'),
                                config('va_permissions.role_grants')
                                    ↓
                                Code hiện hữu (TelegramService, routes,
@@ -84,6 +85,11 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | **Hợp đồng (CLM)** | `clm` | `alert_enabled` | bool | `clm.alert_enabled` |
 | | | `renewal_alert_days` | string | `clm.renewal_alert_days` |
 | | | `alert_telegram` | bool | `clm.alert_telegram` |
+| **Trí tuệ nhân tạo** | `ai` | `enabled` | bool | `weekly_report.llm.enabled` |
+| | | `provider` | select | `weekly_report.llm.provider` (`openai` \| `anthropic` \| `gemini` \| `nvidia` \| `openai_compatible`) |
+| | | `api_key` | **secret** | `weekly_report.llm.api_key` |
+| | | `model` | string | `weekly_report.llm.model` |
+| | | `base_url` | string | `weekly_report.llm.base_url` (bắt buộc với OpenAI-compatible) |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
 | **Tùy chỉnh menu** | `menu` | `hidden_groups` | list (nav group keys) | `va.menu_hidden_groups` — ẩn nhóm sidebar toàn hệ thống; đồng bộ module hub qua `WorkspaceNavModuleMap` (xem [WORKSPACE_CONFIG.md](WORKSPACE_CONFIG.md) § Menu sidebar) |
 | **Chào mừng nhân viên** | `onboarding` | `welcome_enabled` | bool | `va.onboarding_welcome_enabled` — màn hình chào mừng lần đầu; UI: `OnboardingTab` + `WelcomePanel`; reset: `POST /settings/onboarding/reset` · `reset-self` |

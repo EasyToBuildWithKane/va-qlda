@@ -19,6 +19,7 @@ use Illuminate\Validation\Rule;
  *   telegram     — bot + notification channels (telegram.*)
  *   email        — task/AI email sending (task_email.*, ai_accounts.reminder.*)
  *   clm          — contract renewal alerts (clm.*)
+ *   ai           — LLM API key for weekly report (weekly_report.llm.*)
  *   permissions  — editable role → permission matrix (va_permissions.role_grants)
  *
  * Setting keys are namespaced "{group}.{name}"; the matrix uses the single key
@@ -27,7 +28,7 @@ use Illuminate\Validation\Rule;
 final class SettingsSchema
 {
     /** Tabs/groups, in display order. */
-    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'permissions', 'accounts', 'menu', 'onboarding'];
+    public const GROUPS = ['general', 'auth', 'telegram', 'email', 'clm', 'ai', 'permissions', 'accounts', 'menu', 'onboarding'];
 
     public const MATRIX_KEY = 'permissions.role_grants';
 
@@ -47,6 +48,7 @@ final class SettingsSchema
             ['key' => 'telegram', 'label' => 'Thông báo Telegram', 'icon' => 'send', 'description' => 'Bot & kênh thông báo'],
             ['key' => 'email', 'label' => 'Email & Thông báo', 'icon' => 'mail', 'description' => 'Cấu hình gửi email và mẫu thông báo'],
             ['key' => 'clm', 'label' => 'Hợp đồng (CLM)', 'icon' => 'budget', 'description' => 'Ngưỡng cảnh báo gia hạn hợp đồng'],
+            ['key' => 'ai', 'label' => 'Trí tuệ nhân tạo', 'icon' => 'sparkles', 'description' => 'API key LLM — tổng hợp báo cáo tuần'],
             ['key' => 'permissions', 'label' => 'Phân quyền', 'icon' => 'members', 'description' => 'Ma trận vai trò × quyền'],
             ['key' => 'accounts', 'label' => 'Tài khoản & Vai trò', 'icon' => 'account', 'description' => 'Gán vai trò cho tài khoản hệ thống'],
             ['key' => 'menu', 'label' => 'Tùy chỉnh menu', 'icon' => 'columns', 'description' => 'Ẩn/hiện nhóm menu toàn hệ thống; đồng bộ module hub workspace. Menu theo PB cấu hình tại shell workspace'],
@@ -156,6 +158,31 @@ final class SettingsSchema
             ['group' => 'clm', 'name' => 'alert_telegram', 'type' => 'bool', 'label' => 'Gửi cảnh báo qua Telegram',
                 'help' => 'Gửi kèm Telegram khi có hợp đồng sắp/đã hết hạn (cần bật Telegram ở tab Thông báo Telegram).',
                 'config' => 'clm.alert_telegram', 'default' => false, 'rules' => ['boolean']],
+
+            // ── ai (LLM báo cáo tuần) ────────────────────────────────
+            ['group' => 'ai', 'name' => 'enabled', 'type' => 'bool', 'label' => 'Bật tổng hợp báo cáo tuần bằng AI',
+                'help' => 'Khi bật và có API key, nút Tạo báo cáo / Tạo lại sẽ nhờ LLM viết lại tóm tắt điều hành. KPI vẫn tính từ dữ liệu Sprint. Tắt hoặc thiếu key → tổng hợp nội bộ (heuristic).',
+                'config' => 'weekly_report.llm.enabled', 'default' => false, 'rules' => ['boolean']],
+            ['group' => 'ai', 'name' => 'provider', 'type' => 'select', 'label' => 'Nhà cung cấp',
+                'help' => 'OpenAI (GPT), Anthropic (Claude), Google Gemini, NVIDIA NIM, hoặc endpoint tương thích OpenAI (OpenRouter, Groq, Azure, Ollama).',
+                'config' => 'weekly_report.llm.provider', 'default' => 'openai',
+                'rules' => ['required', 'string', Rule::in(['openai', 'anthropic', 'gemini', 'nvidia', 'openai_compatible'])],
+                'options' => [
+                    ['value' => 'openai', 'label' => 'OpenAI (GPT)'],
+                    ['value' => 'anthropic', 'label' => 'Anthropic (Claude)'],
+                    ['value' => 'gemini', 'label' => 'Google Gemini'],
+                    ['value' => 'nvidia', 'label' => 'NVIDIA NIM (Nemotron)'],
+                    ['value' => 'openai_compatible', 'label' => 'Tương thích OpenAI (OpenRouter, Groq, Azure…)'],
+                ]],
+            ['group' => 'ai', 'name' => 'api_key', 'type' => 'secret', 'label' => 'API key',
+                'help' => 'Khóa bí mật của nhà cung cấp. Không hiện lại sau khi lưu. Để trống nếu không muốn thay đổi.',
+                'config' => 'weekly_report.llm.api_key', 'default' => null, 'rules' => ['nullable', 'string', 'max:500']],
+            ['group' => 'ai', 'name' => 'model', 'type' => 'string', 'label' => 'Mô hình',
+                'help' => 'Ví dụ: gpt-4o-mini, claude-3-5-haiku-latest, gemini-2.0-flash, nvidia/nemotron-3.5-lightning-30b-a3b. Phải khớp nhà cung cấp đã chọn.',
+                'config' => 'weekly_report.llm.model', 'default' => 'gpt-4o-mini', 'rules' => ['required', 'string', 'max:120']],
+            ['group' => 'ai', 'name' => 'base_url', 'type' => 'string', 'label' => 'Base URL (tuỳ chọn)',
+                'help' => 'NVIDIA mặc định https://integrate.api.nvidia.com/v1. Bắt buộc với «Tương thích OpenAI». Để trống = URL mặc định của nhà cung cấp.',
+                'config' => 'weekly_report.llm.base_url', 'default' => null, 'rules' => ['nullable', 'string', 'max:255']],
 
             // ── menu (Tùy chỉnh menu) ────────────────────────────────
             // Stores the group keys hidden system-wide from the sidebar. The UI

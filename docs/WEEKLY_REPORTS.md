@@ -7,19 +7,23 @@ Trên tab **Tổng quan** (`?tab=overview`), cùng `WeeklyReportWorkspace` đư�
 khối «Hồ sơ dự án»** (`embedded`) — chọn tuần / tạo / lưu giữ `tab=overview` (prop `activeTab` +
 `tab` trên request redirect).
 
-## Engine (không dùng LLM ngoài)
+## Engine (heuristic + LLM tuỳ chọn)
 
-Hệ thống **không** gọi LLM. Phần "AI tổng hợp" là **engine heuristic** (rule-based) đọc trực
-tiếp dữ liệu Sprint. Engine đứng sau interface để có thể nâng cấp lên LLM thật mà không sửa
-controller/service:
+Hệ thống **luôn** tính KPI / rủi ro / phân loại phản hồi bằng engine heuristic (rule-based)
+đọc trực tiếp dữ liệu Sprint. Phần văn bản (tóm tắt điều hành, nhận định, 6 thẻ) được
+**viết lại bằng LLM** khi Super Admin bật AI và lưu API key tại **`/settings/ai`**.
+
+Thiếu key, tắt AI, hoặc API lỗi → giữ bản heuristic (không chặn tạo báo cáo).
 
 ```
-App\Support\WeeklyReport\Contracts\WeeklyReportGenerator   ← interface
-  └─ HeuristicWeeklyReportGenerator (binding mặc định trong AppServiceProvider)
+App\Support\WeeklyReport\Contracts\WeeklyReportGenerator
+  └─ LlmWeeklyReportGenerator          ← binding mặc định (AppServiceProvider)
+       ├─ HeuristicWeeklyReportGenerator  (KPI + draft tiếng Việt)
+       └─ WeeklyReportLlmClient           (OpenAI / Anthropic / Gemini / NVIDIA NIM / OpenAI-compatible)
 ```
 
-Để cắm Claude API thật sau này: tạo `LlmWeeklyReportGenerator implements WeeklyReportGenerator`
-rồi đổi `bind()` trong `AppServiceProvider`.
+Cấu hình overlay `config('weekly_report.llm.*')` — secret `api_key` không gửi ra client.
+Xem [`SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md) tab **Trí tuệ nhân tạo**.
 
 | Lớp engine (`app/Support/WeeklyReport/`) | Vai trò |
 |---|---|
@@ -30,6 +34,8 @@ rồi đổi `bind()` trong `AppServiceProvider`.
 | `WeeklyReportFeedbackClassifier` | Phân loại phản hồi: Tích cực/Góp ý/Phàn nàn/Lỗi/Yêu cầu thay đổi |
 | `WeeklyReportDataHasher` | Hash dữ liệu → phát hiện "dữ liệu Sprint đã đổi" |
 | `SprintWeekResolver` | Dẫn xuất tuần (bucket 7 ngày T2–CN) từ ngày Sprint |
+| `WeeklyReportLlmClient` | Gọi LLM viết lại draft; không bịa tên task / số liệu |
+| `LlmWeeklyReportGenerator` | Ghép heuristic + LLM; fallback khi API lỗi |
 
 ## Tuần được tính thế nào?
 
@@ -114,4 +120,4 @@ brand `#9A0036`) + `phpoffice/phpword` (DOCX). Dữ liệu chuẩn hoá bởi `W
 ## Seed / kiểm thử
 
 - `php artisan db:seed --class=WeeklyReportSeeder` — tạo báo cáo demo cho dự án đầu tiên có Sprint.
-- Tests: `tests/Feature/WeeklyReportTest.php`, `tests/Unit/WeeklyReportEngineTest.php`.
+- Tests: `tests/Feature/WeeklyReportTest.php`, `tests/Unit/WeeklyReportEngineTest.php` (gồm LLM fake HTTP + fallback).

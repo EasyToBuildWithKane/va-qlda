@@ -113,6 +113,15 @@ const activeMeta = computed(() => groupMeta(active.value));
           :fields="settings.clm ?? []"
           :can-manage="can.manage"
         />
+        <FieldsTab
+          v-show="active === 'ai'"
+          group="ai"
+          :save-hotkeys-enabled="active === 'ai'"
+          :title="groupMeta('ai').label"
+          :description="groupMeta('ai').description"
+          :fields="settings.ai ?? []"
+          :can-manage="can.manage"
+        />
         <PermissionsTab
           v-show="active === 'permissions'"
           :permissions="permissions"

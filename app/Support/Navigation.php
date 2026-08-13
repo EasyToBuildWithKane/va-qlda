@@ -601,6 +601,13 @@ class Navigation
                         'roles' => ['admin'],
                     ],
                     [
+                        'label' => 'Trí tuệ nhân tạo',
+                        'icon' => 'sparkles',
+                        'href' => '/settings/ai',
+                        'status' => 'live',
+                        'roles' => ['admin'],
+                    ],
+                    [
                         'label' => 'Chào mừng nhân viên',
                         'icon' => 'sparkles',
                         'href' => '/settings/onboarding',

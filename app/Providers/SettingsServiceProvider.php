@@ -9,7 +9,7 @@ use Illuminate\Support\ServiceProvider;
 
 /**
  * Overlays admin-saved settings onto config() at boot, so existing code that
- * reads config('telegram.*'), config('va.*') or config('va_permissions.*')
+ * reads config('telegram.*'), config('va.*'), config('weekly_report.llm.*') or config('va_permissions.*')
  * transparently picks up runtime overrides — no call sites change.
  *
  * Registered right after AppServiceProvider in config/app.php so it boots

@@ -64,6 +64,13 @@ class SettingsImportFromEnv extends Command
         'clm.alert_enabled' => 'clm.alert_enabled',
         'clm.renewal_alert_days' => 'clm.renewal_alert_days',
         'clm.alert_telegram' => 'clm.alert_telegram',
+
+        // ai (LLM báo cáo tuần)
+        'ai.enabled' => 'weekly_report.llm.enabled',
+        'ai.provider' => 'weekly_report.llm.provider',
+        'ai.api_key' => 'weekly_report.llm.api_key',
+        'ai.model' => 'weekly_report.llm.model',
+        'ai.base_url' => 'weekly_report.llm.base_url',
     ];
 
     public function handle(SettingsRepository $settings): int

@@ -1,13 +1,17 @@
 <script setup>
+import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 
-defineProps({
+const props = defineProps({
     weekNumber: { type: [Number, null], default: null },
     canGenerate: { type: Boolean, default: false },
     processing: { type: Boolean, default: false },
+    engine: { type: Object, default: () => ({ mode: 'heuristic' }) },
 });
 
 const emit = defineEmits(['generate']);
+
+const llmEnabled = computed(() => props.engine?.mode === 'llm');
 </script>
 
 <template>
@@ -22,8 +26,14 @@ const emit = defineEmits(['generate']);
       Chưa có báo cáo cho {{ weekNumber ? `tuần ${weekNumber}` : 'tuần này' }}
     </h3>
     <p class="mt-1 max-w-md text-sm text-slate-500">
-      Hệ thống sẽ tự tổng hợp Tasks, Worklog, Vướng mắc và Phản hồi của Sprint thành báo cáo quản trị.
-      Bạn chỉ cần kiểm tra, chỉnh sửa và gửi duyệt.
+      <template v-if="llmEnabled">
+        Hệ thống sẽ nhờ AI viết tóm tắt điều hành từ Tasks, Worklog, Vướng mắc và Phản hồi của Sprint.
+        Bạn chỉ cần kiểm tra, chỉnh sửa và gửi duyệt.
+      </template>
+      <template v-else>
+        Hệ thống sẽ tự tổng hợp Tasks, Worklog, Vướng mắc và Phản hồi của Sprint thành báo cáo quản trị.
+        Super Admin có thể gắn API key AI tại Cấu hình hệ thống để viết lại tóm tắt.
+      </template>
     </p>
     <button
       v-if="canGenerate"
@@ -36,7 +46,7 @@ const emit = defineEmits(['generate']);
         name="sparkles"
         :size="16"
       />
-      {{ processing ? 'Đang tổng hợp…' : 'Tạo báo cáo tự động' }}
+      {{ processing ? 'Đang tổng hợp…' : (llmEnabled ? 'Tạo báo cáo bằng AI' : 'Tạo báo cáo tự động') }}
     </button>
     <p
       v-else

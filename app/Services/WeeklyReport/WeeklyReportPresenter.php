@@ -69,6 +69,7 @@ class WeeklyReportPresenter
             'sprint' => $sprint ? ['id' => $sprint->id, 'name' => $sprint->name] : null,
             'current_week' => $current['week_number'],
             'weeks' => $weekRows,
+            'engine' => $this->enginePayload(),
         ];
     }
 
@@ -124,5 +125,22 @@ class WeeklyReportPresenter
         );
 
         return $report->data_hash !== $this->hasher->hash($context);
+    }
+
+    /**
+     * Trạng thái engine (không lộ API key) — UI badge «Tổng hợp bằng AI».
+     *
+     * @return array{mode: string, provider: string|null, model: string|null}
+     */
+    private function enginePayload(): array
+    {
+        $configured = (bool) config('weekly_report.llm.enabled')
+            && filled(config('weekly_report.llm.api_key'));
+
+        return [
+            'mode' => $configured ? 'llm' : 'heuristic',
+            'provider' => $configured ? (string) config('weekly_report.llm.provider', 'openai') : null,
+            'model' => $configured ? (string) config('weekly_report.llm.model') : null,
+        ];
     }
 }

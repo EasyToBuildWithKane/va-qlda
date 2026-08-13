@@ -43,7 +43,7 @@ VA Workspace
 ├── [FEEDBACK]      Góp ý & đề xuất từ nhân viên (FB-0001)
 ├── [COMMENT]       Thảo luận đa hình (Task, Blocker, Feedback)
 ├── [DEPARTMENT]    Phòng ban (model + mutate API; Index UI gỡ — chờ HRM)
-├── [SYSTEM CONFIG] Cấu hình (super_admin): Cấu hình chung (gồm CLM) · Thông báo hệ thống · Phân quyền → docs/SYSTEM_CONFIG.md
+├── [SYSTEM CONFIG] Cấu hình (super_admin): Cấu hình chung (gồm CLM, AI) · Thông báo hệ thống · Phân quyền → docs/SYSTEM_CONFIG.md
 ├── [EVALUATION CONFIG] Cấu hình tiêu chí đánh giá (chung + theo PB, super_admin) → docs/EVALUATION_CONFIG.md
 ├── [CONGNGHE]      Trung tâm Công Nghệ — landing, đề xuất phần mềm, quản trị nội dung → docs/CONGNGHE_CONTENT.md
 ├── [PROFILE]       Hồ sơ cá nhân (/profile)

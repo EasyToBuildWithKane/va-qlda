@@ -170,7 +170,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Sprint/ | `SprintWorkspace`, `SprintTaskRows`, `SprintTaskTable` (không cột SLA), `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailGeneralInfo` (Thông tin chung 2 cột trong panel), `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `ProjectBlockerPanel` (tab Vướng mắc — KPI strip nhúng + import/export/reconcile modal), `ProjectFeedbackPanel`, `BlockerDataModal` (3 tab: Nhập/Xuất/Đối soát), `BlockerInlineDetail`, `ActivityFeed`, … |
-| WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án |
+| WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án. `WeeklyReportTimelineNav` (thanh phạm vi Sprint / tuần + badge AI), `WeeklyReportExecutiveCard` (tóm tắt điều hành + nhận định) |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
 | Documents/ | `ProjectDocumentsPanel`, `DocumentContextMenu`, `DocumentFolderCard` (lavender), `DocumentFileCard`, `DocumentFilesTable`, `DocumentPreviewPane` + `useDocumentPreview` — Drive; kéo thả; chuột phải; bulk; tìm trong thư mục; Word preview cuộn liên tục (không pager); đính kèm task hẹp |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |

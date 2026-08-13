@@ -3,6 +3,7 @@ import { computed, toRef } from 'vue';
 import { useWeeklyReport } from '@/composables/useWeeklyReport';
 import WeeklyReportTimelineNav from './WeeklyReportTimelineNav.vue';
 import WeeklyReportHeader from './WeeklyReportHeader.vue';
+import WeeklyReportExecutiveCard from './WeeklyReportExecutiveCard.vue';
 import WeeklyReportKpiStrip from './WeeklyReportKpiStrip.vue';
 import WeeklyReportSectionCard from './WeeklyReportSectionCard.vue';
 import WeeklyReportRiskCard from './WeeklyReportRiskCard.vue';
@@ -39,6 +40,8 @@ function sectionByKey(key) {
 
 const regenerationAvailable = computed(() => report.value?.regeneration_available ?? false);
 const canEdit = computed(() => report.value?.can?.update && !report.value?.is_locked);
+const engine = computed(() => props.overview?.engine ?? { mode: 'heuristic' });
+const reportEngine = computed(() => report.value?.meta?.engine ?? engine.value.mode);
 
 const showEmpty = computed(() => !report.value);
 const emptyWeekNumber = computed(() => pendingWeek.value ?? currentWeekNumber.value);
@@ -57,7 +60,7 @@ function onExport(format) {
       ? 'overflow-hidden rounded-2xl border border-slate-200/80 bg-slate-50 shadow-sm dark:border-slate-700/80 dark:bg-slate-950'
       : 'h-full min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-950'"
   >
-    <div class="shrink-0 border-b border-slate-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900 sm:px-5">
+    <div class="shrink-0 border-b border-slate-200/80 dark:border-slate-800">
       <WeeklyReportTimelineNav
         :sprint="sprint"
         :weeks="weeks"
@@ -65,6 +68,7 @@ function onExport(format) {
         :active-report-id="report?.id ?? null"
         :pending-week="pendingWeek"
         :hide-sprint-scope="embedded"
+        :engine="engine"
         @select="selectWeek"
       />
     </div>
@@ -78,6 +82,7 @@ function onExport(format) {
         :week-number="emptyWeekNumber"
         :can-generate="canGenerate"
         :processing="processing"
+        :engine="engine"
         @generate="generateForWeek"
       />
 
@@ -95,6 +100,17 @@ function onExport(format) {
           @submit="submit"
           @approve="approve"
           @reject="reject"
+        />
+
+        <WeeklyReportExecutiveCard
+          :executive-summary="report.executive_summary"
+          :ai-summary="report.ai_summary"
+          :model-value="draft.executive_summary"
+          :editing="editing"
+          :can-edit="canEdit"
+          :engine="reportEngine"
+          @update:model-value="(v) => (draft.executive_summary = v)"
+          @edit="startEdit"
         />
 
         <WeeklyReportKpiStrip :kpi="report.kpi" />

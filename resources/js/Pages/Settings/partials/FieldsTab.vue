@@ -237,6 +237,29 @@ const secretPlaceholder = (f) => (f.has_value ? '•••••••• (đã 
         </FormField>
 
         <FormField
+          v-else-if="f.type === 'select'"
+          :id="f.key"
+          :label="f.label"
+          :hint="hideFieldHints ? null : f.help"
+          :error="form.errors[f.name]"
+        >
+          <select
+            :id="f.key"
+            v-model="form[f.name]"
+            class="input w-full"
+            :disabled="!canManage"
+          >
+            <option
+              v-for="opt in (f.options ?? [])"
+              :key="opt.value"
+              :value="opt.value"
+            >
+              {{ opt.label }}
+            </option>
+          </select>
+        </FormField>
+
+        <FormField
           v-else
           :id="f.key"
           :label="f.label"
