@@ -24,7 +24,7 @@ import TestCaseDataModal from '@/modules/testcase/components/TestCaseDataModal.v
 const FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
     { key: 'priority', label: 'Mức độ ưu tiên', default: false },
-    { key: 'suite', label: 'Bộ test', default: false },
+    { key: 'suite', label: 'Nhóm kiểm thử', default: false },
     { key: 'last_result', label: 'Kết quả cuối', default: false },
     { key: 'owner', label: 'Người phụ trách', default: false },
 ];
@@ -34,7 +34,7 @@ const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 const TABLE_COLUMNS_DEF = [
     { key: 'code', label: 'Mã' },
     { key: 'title', label: 'Tiêu đề' },
-    { key: 'suite', label: 'Bộ test', default: false },
+    { key: 'suite', label: 'Nhóm kiểm thử', default: false },
     { key: 'priority', label: 'Ưu tiên' },
     { key: 'status', label: 'Trạng thái' },
     { key: 'last_result', label: 'Kết quả' },
@@ -449,7 +449,7 @@ const suiteOptions = computed(() => props.testSuites.map((s) => ({ value: s.id, 
               :class="FILTER_CONTROL_CLASS"
             >
               <option value="">
-                Bộ test
+                Nhóm kiểm thử
               </option>
               <option
                 v-for="s in suiteOptions"
@@ -544,7 +544,7 @@ const suiteOptions = computed(() => props.testSuites.map((s) => ({ value: s.id, 
                 v-if="isColVisible('suite')"
                 class="px-4 py-3"
               >
-                Bộ test
+                Nhóm kiểm thử
               </th>
               <th
                 v-if="isColVisible('priority')"
@@ -596,7 +596,7 @@ const suiteOptions = computed(() => props.testSuites.map((s) => ({ value: s.id, 
                     v-if="isColVisible('code')"
                     class="px-4 py-3"
                   >
-                    <span class="font-mono text-[11px] text-slate-500">{{ tc.code ?? '—' }}</span>
+                    <span class="font-mono text-[11px] text-slate-500">{{ displayOrEmpty(tc.code, 'Chưa có mã') }}</span>
                   </td>
                   <td
                     v-if="isColVisible('title')"
@@ -616,7 +616,7 @@ const suiteOptions = computed(() => props.testSuites.map((s) => ({ value: s.id, 
                     v-if="isColVisible('suite')"
                     class="px-4 py-3 text-xs text-slate-500"
                   >
-                    {{ displayOrEmpty(tc.suite?.name) }}
+                    {{ displayOrEmpty(tc.suite?.name, 'Chưa nhóm') }}
                   </td>
                   <td
                     v-if="isColVisible('priority')"

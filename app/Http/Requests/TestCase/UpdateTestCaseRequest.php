@@ -26,7 +26,12 @@ class UpdateTestCaseRequest extends FormRequest
         $testCase = $this->route('testCase');
 
         return [
-            'suite_id' => ['nullable', 'integer', Rule::exists('test_suites', 'id')->where('project_id', $testCase->project_id)],
+            'project_id' => ['sometimes', 'integer', 'exists:projects,id'],
+            'suite_id' => ['nullable', 'integer', Rule::exists('test_suites', 'id')->where(
+                'project_id',
+                $this->input('project_id', $testCase->project_id),
+            )],
+            'suite_name' => ['nullable', 'string', 'max:255'],
             'task_id' => ['nullable', 'integer', 'exists:tasks,id'],
             'blocker_id' => ['nullable', 'integer', 'exists:blockers,id'],
             'title' => ['required', 'string', 'max:255'],

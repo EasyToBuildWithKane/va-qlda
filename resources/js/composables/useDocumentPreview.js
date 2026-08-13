@@ -15,7 +15,6 @@ const DOCX_RENDER_OPTIONS = {
     ignoreHeight: false,
     ignoreFonts: false,
     breakPages: true,
-    // true = mặc định thư viện; false dễ cắt header/floating thành «mảnh» trắng trên nền xám
     ignoreLastRenderedPageBreak: true,
     experimental: false,
     useBase64URL: true,
@@ -29,116 +28,75 @@ const DOCX_RENDER_OPTIONS = {
 };
 
 /**
- * CSS bổ sung trong iframe (không Tailwind).
- * Giữ display:flex + overflow:hidden của section.docx như thư viện.
- * Sau khi wrap slot/scale, selector `.docx-wrapper>section.docx` không còn khớp
- * → phải gắn background trắng trực tiếp lên section.
+ * Canvas trong iframe — cuộn liên tục như Google Docs.
+ * Không bọc/scale từng trang (tránh lệch header / footer / watermark).
+ * Fit chiều ngang bằng transform cả khối `.docx-fit-inner`.
  */
 const DOCX_IFRAME_BASE_STYLES = `
 html, body {
   margin: 0;
   padding: 0;
-  background: #f1f5f9;
+  background: #e8edf3;
   color: #0f172a;
 }
 body {
   min-height: 100%;
   box-sizing: border-box;
-  padding: 12px 8px 20px;
 }
-.docx-shell {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0;
-  min-height: 100%;
-  width: 100%;
+.docx-fit-host {
+  display: block;
+  margin: 0 auto;
+  overflow: hidden;
 }
-/* Ghi đè wrapper xám mặc định của docx-preview */
+.docx-fit-inner {
+  transform-origin: top left;
+  will-change: transform;
+}
 .docx-wrapper {
   background: transparent !important;
-  padding: 0 !important;
+  padding: 20px 12px 28px !important;
+  box-sizing: border-box;
   display: flex !important;
   flex-flow: column nowrap !important;
   align-items: center !important;
   gap: 0;
-  width: 100%;
-  box-sizing: border-box;
+  width: max-content;
+  max-width: none;
 }
-/* Slot = đúng kích thước sau scale; clip layout chưa scale của .docx-page-scale */
-.docx-page-slot {
-  display: block;
-  box-sizing: border-box;
-  margin: 0 auto 16px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-.docx-page-slot.docx-page-hidden {
-  display: none !important;
-}
-.docx-page-scale {
-  transform-origin: top left;
-  will-change: transform;
-}
-section.docx {
+.docx-wrapper > section.docx {
   background: #fff !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12), 0 8px 24px rgba(15, 23, 42, 0.08);
-  margin: 0 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1), 0 10px 28px rgba(15, 23, 42, 0.08);
+  margin: 0 0 20px !important;
   box-sizing: border-box !important;
+  /* Giữ flex thư viện — header / article / footer / watermark đúng lớp */
   display: flex !important;
   flex-flow: column nowrap !important;
   position: relative !important;
-  /* Khớp thư viện — clip header/drawing theo khung trang (tránh mảnh trắng nổi) */
   overflow: hidden !important;
+}
+.docx-wrapper > section.docx:last-child {
+  margin-bottom: 0 !important;
 }
 section.docx > article {
   margin-bottom: auto;
   z-index: 1;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto;
-  overflow-y: visible;
+  position: relative;
 }
 section.docx > header,
 section.docx > footer {
   z-index: 1;
-  max-width: 100%;
   position: relative;
 }
-/* Bảng trong thân trang: không phá letterhead */
-section.docx > article table {
+.docx table {
   border-collapse: collapse;
-  max-width: 100%;
-  table-layout: auto;
 }
-section.docx > article table td,
-section.docx > article table th {
-  vertical-align: top;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-  hyphens: auto;
-}
-section.docx > article table p {
-  margin: 0;
-  min-height: 1em;
-}
-/* Chỉ co ảnh trong article — không đụng logo/header/footer */
-section.docx > article img {
-  max-width: 100% !important;
-  height: auto !important;
-  object-fit: contain;
-}
-section.docx > article svg {
+.docx img {
   max-width: 100%;
   height: auto;
 }
 .docx p {
   margin: 0pt;
   min-height: 1em;
-}
-.docx span {
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
 }
 `;
 
@@ -204,7 +162,7 @@ function ensureDocxIframeDocument(iframe) {
     if (!doc) return null;
 
     doc.open();
-    doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div class="docx-shell"></div></body></html>');
+    doc.write('<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body><div class="docx-fit-host"><div class="docx-fit-inner"></div></div></body></html>');
     doc.close();
 
     const style = doc.createElement('style');
@@ -242,15 +200,8 @@ export function useDocumentPreview(selectedFileRef) {
     const xlsxRows = ref([]);
     const xlsxPage = ref(1);
     const xlsxPageSize = XLSX_PAGE_SIZE;
-    const pageCount = ref(0);
-    const currentPage = ref(1);
-    /** 'fit' | '100' | '75' */
-    const docxZoom = ref('fit');
-    /** 'single' | 'continuous' */
-    const docxViewMode = ref('single');
 
     let abort = null;
-    let docxPageSlots = [];
     let docxResizeObserver = null;
     let docxFitRaf = 0;
 
@@ -279,7 +230,7 @@ export function useDocumentPreview(selectedFileRef) {
     const clearDocxIframe = () => {
         const iframe = docxIframe.value;
         if (!iframe?.contentDocument?.body) return;
-        iframe.contentDocument.body.innerHTML = '<div class="docx-shell"></div>';
+        iframe.contentDocument.body.innerHTML = '<div class="docx-fit-host"><div class="docx-fit-inner"></div></div>';
     };
 
     const detachDocxResizeObserver = () => {
@@ -293,137 +244,53 @@ export function useDocumentPreview(selectedFileRef) {
         }
     };
 
-    const applyDocxScale = () => {
+    const applyDocxFit = () => {
         const iframe = docxIframe.value;
         const doc = iframe?.contentDocument;
-        if (!doc || !docxPageSlots.length) return;
+        const host = doc?.querySelector('.docx-fit-host');
+        const inner = doc?.querySelector('.docx-fit-inner');
+        if (!iframe || !host || !inner) return;
 
-        const gutter = 24;
-        const available = Math.max(120, (iframe.clientWidth || 0) - gutter);
+        const section = inner.querySelector('section.docx');
+        const pageWidth = parseCssLengthPx(section?.style?.width)
+            || section?.offsetWidth
+            || inner.scrollWidth
+            || 794;
 
-        docxPageSlots.forEach((slot) => {
-            const scaleEl = slot.querySelector('.docx-page-scale');
-            const section = scaleEl?.querySelector('section.docx') || slot.querySelector('section.docx');
-            if (!scaleEl || !section) return;
+        const gutter = 32;
+        const available = Math.max(160, (iframe.clientWidth || 0) - gutter);
+        let scale = Math.min(1, available / pageWidth);
+        if (!Number.isFinite(scale) || scale <= 0) scale = 1;
+        scale = Math.max(0.4, Math.min(1, scale));
 
-            // Ưu tiên kích thước trang khai báo (width/minHeight) — ổn định hơn offset sau reflow ảnh
-            const pageWidth = parseCssLengthPx(section.style.width)
-                || section.offsetWidth
-                || section.scrollWidth
-                || 794;
-            const pageHeight = parseCssLengthPx(section.style.minHeight)
-                || section.offsetHeight
-                || section.scrollHeight
-                || 1123;
+        // Reset trước khi đo chiều cao thật
+        inner.style.transform = 'none';
+        host.style.width = 'auto';
+        host.style.height = 'auto';
 
-            let scale = 1;
-            if (docxZoom.value === 'fit') {
-                scale = Math.min(1, available / pageWidth);
-            } else if (docxZoom.value === '75') {
-                scale = 0.75;
-            } else {
-                scale = 1;
-            }
+        const naturalWidth = Math.max(pageWidth, inner.scrollWidth || 0);
+        const naturalHeight = inner.scrollHeight || 0;
 
-            if (!Number.isFinite(scale) || scale <= 0) scale = 1;
-            scale = Math.max(0.35, Math.min(1.25, scale));
-
-            // top-left + slot đúng size sau scale — tránh clip ngang khi flex-center trang full-width trong khung hẹp
-            scaleEl.style.width = `${pageWidth}px`;
-            scaleEl.style.height = `${pageHeight}px`;
-            scaleEl.style.transformOrigin = 'top left';
-            scaleEl.style.transform = `scale(${scale})`;
-
-            slot.style.width = `${Math.ceil(pageWidth * scale)}px`;
-            slot.style.height = `${Math.ceil(pageHeight * scale)}px`;
-            slot.style.overflow = 'hidden';
-        });
+        inner.style.transformOrigin = 'top left';
+        inner.style.transform = `scale(${scale})`;
+        host.style.width = `${Math.ceil(naturalWidth * scale)}px`;
+        host.style.height = `${Math.ceil(naturalHeight * scale)}px`;
+        host.style.margin = '0 auto';
     };
 
-    const scheduleDocxScale = () => {
+    const scheduleDocxFit = () => {
         if (docxFitRaf) cancelAnimationFrame(docxFitRaf);
         docxFitRaf = requestAnimationFrame(() => {
             docxFitRaf = 0;
-            applyDocxScale();
+            applyDocxFit();
         });
-    };
-
-    const wrapDocxPages = (doc, sections) => {
-        const slots = [];
-        sections.forEach((section) => {
-            const parent = section.parentElement;
-            if (!parent) return;
-
-            const slot = doc.createElement('div');
-            slot.className = 'docx-page-slot';
-            const scale = doc.createElement('div');
-            scale.className = 'docx-page-scale';
-
-            parent.insertBefore(slot, section);
-            scale.appendChild(section);
-            slot.appendChild(scale);
-            slots.push(slot);
-        });
-        return slots;
-    };
-
-    const applyDocxPageVisibility = () => {
-        if (!docxPageSlots.length) {
-            pageCount.value = 0;
-            return;
-        }
-        pageCount.value = docxPageSlots.length;
-        if (currentPage.value < 1) currentPage.value = 1;
-        if (currentPage.value > pageCount.value) currentPage.value = pageCount.value;
-
-        const continuous = docxViewMode.value === 'continuous';
-        docxPageSlots.forEach((slot, index) => {
-            const visible = continuous || index + 1 === currentPage.value;
-            slot.classList.toggle('docx-page-hidden', !visible);
-        });
-
-        scheduleDocxScale();
-
-        const iframe = docxIframe.value;
-        if (iframe?.contentWindow && !continuous) {
-            iframe.contentWindow.scrollTo(0, 0);
-        }
-    };
-
-    const goToPage = (page) => {
-        if (kind.value !== 'docx' || pageCount.value < 1) return;
-        if (docxViewMode.value === 'continuous') {
-            const next = Math.min(Math.max(1, Number(page) || 1), pageCount.value);
-            currentPage.value = next;
-            const slot = docxPageSlots[next - 1];
-            slot?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-            return;
-        }
-        const next = Math.min(Math.max(1, Number(page) || 1), pageCount.value);
-        currentPage.value = next;
-        applyDocxPageVisibility();
-    };
-
-    const nextPage = () => goToPage(currentPage.value + 1);
-    const prevPage = () => goToPage(currentPage.value - 1);
-
-    const setDocxZoom = (mode) => {
-        if (!['fit', '100', '75'].includes(mode)) return;
-        docxZoom.value = mode;
-        scheduleDocxScale();
-    };
-
-    const setDocxViewMode = (mode) => {
-        if (!['single', 'continuous'].includes(mode)) return;
-        docxViewMode.value = mode;
-        applyDocxPageVisibility();
     };
 
     const attachDocxResizeObserver = () => {
         detachDocxResizeObserver();
         const iframe = docxIframe.value;
         if (!iframe || typeof ResizeObserver === 'undefined') return;
-        docxResizeObserver = new ResizeObserver(() => scheduleDocxScale());
+        docxResizeObserver = new ResizeObserver(() => scheduleDocxFit());
         docxResizeObserver.observe(iframe);
     };
 
@@ -457,9 +324,6 @@ export function useDocumentPreview(selectedFileRef) {
         xlsxWorkbook.value = null;
         xlsxRows.value = [];
         xlsxPage.value = 1;
-        pageCount.value = 0;
-        currentPage.value = 1;
-        docxPageSlots = [];
         kind.value = 'none';
         detachDocxResizeObserver();
         clearDocxIframe();
@@ -479,45 +343,21 @@ export function useDocumentPreview(selectedFileRef) {
             return;
         }
 
-        const shell = doc.querySelector('.docx-shell') || doc.body;
-        shell.innerHTML = '';
-
-        await renderAsync(buffer, shell, doc.head, DOCX_RENDER_OPTIONS);
-
-        let sections = Array.from(doc.querySelectorAll('section.docx'));
-        if (!sections.length) {
-            const wrapper = shell.querySelector('.docx-wrapper') || shell;
-            const fallback = doc.createElement('section');
-            fallback.className = 'docx';
-            while (wrapper.firstChild) {
-                fallback.appendChild(wrapper.firstChild);
-            }
-            wrapper.appendChild(fallback);
-            sections = [fallback];
+        const inner = doc.querySelector('.docx-fit-inner');
+        if (!inner) {
+            docxBuffer.value = buffer;
+            return;
         }
+        inner.innerHTML = '';
 
-        docxPageSlots = wrapDocxPages(doc, sections);
-        // Củng cố nền trang sau wrap (selector thư viện `.docx-wrapper>section` không còn khớp)
-        docxPageSlots.forEach((slot) => {
-            const section = slot.querySelector('section.docx');
-            if (!section) return;
-            section.style.backgroundColor = '#ffffff';
-            if (!section.style.minHeight) {
-                section.style.minHeight = '1123px';
-            }
-            if (!section.style.width) {
-                section.style.width = '794px';
-            }
-        });
-        currentPage.value = 1;
-        applyDocxPageVisibility();
+        await renderAsync(buffer, inner, doc.head, DOCX_RENDER_OPTIONS);
+
+        // Không wrap từng trang — để thư viện giữ header/footer/watermark
         attachDocxResizeObserver();
-
         await waitForDocxImages(doc);
-        scheduleDocxScale();
-        // Scale lại sau layout ổn định
-        setTimeout(scheduleDocxScale, 50);
-        setTimeout(scheduleDocxScale, 250);
+        scheduleDocxFit();
+        setTimeout(scheduleDocxFit, 50);
+        setTimeout(scheduleDocxFit, 250);
     };
 
     const buildXlsxTableHtml = (rows, page) => {
@@ -747,15 +587,6 @@ export function useDocumentPreview(selectedFileRef) {
         switchSheet,
         reload,
         detectPreviewKind,
-        pageCount,
-        currentPage,
-        goToPage,
-        nextPage,
-        prevPage,
-        docxZoom,
-        setDocxZoom,
-        docxViewMode,
-        setDocxViewMode,
         xlsxPage,
         xlsxPageCount,
         xlsxRowRange,

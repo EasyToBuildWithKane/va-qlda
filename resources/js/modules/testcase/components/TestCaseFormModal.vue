@@ -3,8 +3,8 @@ import { computed, watch } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
 import Modal from '@/Components/Ui/Modal.vue';
+import AutocompleteInput from '@/shared/ui/form/AutocompleteInput.vue';
 import { useToast } from '@/shared/composables/useToast';
-import { displayOrEmpty } from '@/shared/utils/emptyDisplay';
 
 const props = defineProps({
     show: { type: Boolean, default: false },
@@ -12,6 +12,7 @@ const props = defineProps({
     projectId: { type: Number, default: null },
     projectCode: { type: String, default: '' },
     projectName: { type: String, default: '' },
+    projects: { type: Array, default: () => [] },
     testSuites: { type: Array, default: () => [] },
     employees: { type: Array, default: () => [] },
     priorityOptions: { type: Array, default: () => [] },
@@ -22,10 +23,12 @@ const emit = defineEmits(['close', 'saved']);
 const toast = useToast();
 
 const isEditing = computed(() => Boolean(props.testCase?.id));
+const lockProject = computed(() => Boolean(props.projectId));
 
 const form = useForm({
     project_id: null,
     suite_id: null,
+    suite_name: '',
     title: '',
     preconditions: '',
     steps: [],
@@ -35,9 +38,32 @@ const form = useForm({
     owner_id: null,
 });
 
+const projectOptions = computed(() => (props.projects ?? []).map((p) => ({
+    id: p.id ?? p.value,
+    name: p.name ?? p.label,
+    code: p.code ?? '',
+})));
+
+const employeeOptions = computed(() => (props.employees ?? []).map((e) => ({
+    id: e.id ?? e.value,
+    name: e.name ?? e.label,
+})));
+
+const suitesForProject = computed(() => {
+    const pid = Number(form.project_id);
+    if (!pid) return [];
+    return (props.testSuites ?? []).filter((s) => Number(s.project_id) === pid);
+});
+
+const lockedProjectLabel = computed(() => {
+    if (props.projectName && props.projectCode) return `${props.projectCode} · ${props.projectName}`;
+    return props.projectName || props.projectCode || '';
+});
+
 function resetForm(tc) {
     form.project_id = tc?.project_id ?? props.projectId ?? null;
-    form.suite_id = tc?.suite_id ?? null;
+    form.suite_id = tc?.suite_id ?? tc?.suite?.id ?? null;
+    form.suite_name = '';
     form.title = tc?.title ?? '';
     form.preconditions = tc?.preconditions ?? '';
     form.steps = tc?.steps ? JSON.parse(JSON.stringify(tc.steps)) : [];
@@ -51,6 +77,25 @@ function resetForm(tc) {
 watch(() => props.show, (v) => {
     if (v) resetForm(props.testCase);
 }, { immediate: true });
+
+function onProjectChange(id) {
+    const prev = form.project_id;
+    form.project_id = id;
+    if (String(prev ?? '') !== String(id ?? '')) {
+        form.suite_id = null;
+        form.suite_name = '';
+    }
+}
+
+function onSuiteChange(id) {
+    form.suite_id = id;
+    if (id) form.suite_name = '';
+}
+
+function onSuiteCreate(name) {
+    form.suite_id = null;
+    form.suite_name = name || '';
+}
 
 function addStep() {
     form.steps.push({ step: '', expected: '' });
@@ -84,43 +129,54 @@ function submit() {
         onError: () => toast.error('Có lỗi xảy ra. Vui lòng kiểm tra lại.'),
     });
 }
-
-const suiteOptions = computed(() => [
-    { id: null, name: 'Không thuộc bộ nào' },
-    ...props.testSuites,
-]);
 </script>
 
 <template>
   <Modal
     :show="show"
-    :title="isEditing ? 'Sửa test case' : 'Thêm test case mới'"
-    max-width="3xl"
+    :title="isEditing ? 'Sửa test case' : 'Thêm test case'"
+    max-width="max-w-xl"
+    fit-viewport
+    :dirty="form.isDirty"
+    close-confirm-title="Huỷ thao tác?"
+    close-confirm-message="Nội dung chưa lưu sẽ bị mất."
     @close="emit('close')"
   >
-    <template #header-icon>
-      <span class="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-brand/10 text-brand">
-        <AppIcon
-          name="check-circle"
-          :size="16"
-        />
-      </span>
-    </template>
-
     <form
-      class="space-y-5 p-5"
+      class="flex min-h-0 flex-1 flex-col overflow-hidden"
       @submit.prevent="submit"
     >
-      <!-- Project / Suite -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div v-if="!projectId">
-          <label class="label">Dự án <span class="text-rose-500">*</span></label>
-          <input
-            v-model.number="form.project_id"
-            type="number"
-            class="input w-full"
-            placeholder="ID dự án"
-          >
+      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain pr-0.5 [-webkit-overflow-scrolling:touch]">
+        <!-- Project -->
+        <div v-if="lockProject">
+          <p class="label mb-1">
+            Dự án
+          </p>
+          <div class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+            <AppIcon
+              name="folder"
+              :size="14"
+              class="shrink-0 text-brand"
+            />
+            <span class="min-w-0 truncate font-medium text-slate-800">{{ lockedProjectLabel }}</span>
+          </div>
+        </div>
+        <div v-else>
+          <label
+            class="label mb-1"
+            for="tc-project"
+          >Dự án <span class="text-rose-500">*</span></label>
+          <AutocompleteInput
+            id="tc-project"
+            :model-value="form.project_id"
+            :options="projectOptions"
+            placeholder="Gõ tên hoặc mã dự án…"
+            empty-text="Không tìm thấy dự án."
+            :search-keys="['name', 'code']"
+            subtitle-key="code"
+            :panel-z-index="160"
+            @update:model-value="onProjectChange"
+          />
           <p
             v-if="form.errors.project_id"
             class="mt-1 text-xs text-rose-600"
@@ -129,231 +185,257 @@ const suiteOptions = computed(() => [
           </p>
         </div>
 
+        <!-- Title -->
         <div>
-          <label class="label">Bộ test (Suite)</label>
-          <select
-            v-model="form.suite_id"
+          <label
+            class="label mb-1"
+            for="tc-title"
+          >Tiêu đề <span class="text-rose-500">*</span></label>
+          <input
+            id="tc-title"
+            v-model="form.title"
+            type="text"
             class="input w-full"
+            placeholder="Ví dụ: Đăng nhập thành công với tài khoản hợp lệ"
+            maxlength="255"
           >
-            <option
-              v-for="s in suiteOptions"
-              :key="s.id"
-              :value="s.id"
-            >
-              {{ s.name }}
-            </option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Title -->
-      <div>
-        <label class="label">Tiêu đề <span class="text-rose-500">*</span></label>
-        <input
-          v-model="form.title"
-          type="text"
-          class="input w-full"
-          placeholder="Mô tả ngắn gọn test case…"
-          maxlength="255"
-          autofocus
-        >
-        <p
-          v-if="form.errors.title"
-          class="mt-1 text-xs text-rose-600"
-        >
-          {{ form.errors.title }}
-        </p>
-      </div>
-
-      <!-- Priority + Status + Owner -->
-      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div>
-          <label class="label">Mức độ ưu tiên <span class="text-rose-500">*</span></label>
-          <select
-            v-model="form.priority"
-            class="input w-full"
-          >
-            <option
-              v-for="opt in priorityOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
           <p
-            v-if="form.errors.priority"
+            v-if="form.errors.title"
             class="mt-1 text-xs text-rose-600"
           >
-            {{ form.errors.priority }}
+            {{ form.errors.title }}
           </p>
         </div>
 
+        <!-- Suite — optional grouping (plain language, not "test suite") -->
         <div>
-          <label class="label">Trạng thái</label>
-          <select
-            v-model="form.status"
-            class="input w-full"
+          <label
+            class="label mb-1"
+            for="tc-suite"
           >
-            <option value="">
-              Nháp (mặc định)
-            </option>
-            <option
-              v-for="opt in statusOptions"
-              :key="opt.value"
-              :value="opt.value"
-            >
-              {{ opt.label }}
-            </option>
-          </select>
+            Nhóm kiểm thử
+            <span class="font-normal text-slate-400">(không bắt buộc)</span>
+          </label>
+          <AutocompleteInput
+            id="tc-suite"
+            :model-value="form.suite_id"
+            :options="suitesForProject"
+            :disabled="!form.project_id"
+            :created-label="form.suite_name"
+            placeholder="Ví dụ: Đăng nhập, Thanh toán…"
+            empty-text="Chưa có nhóm. Gõ tên rồi chọn «Tạo nhóm»."
+            creatable
+            create-label="Tạo nhóm «{query}»"
+            :panel-z-index="160"
+            @update:model-value="onSuiteChange"
+            @create="onSuiteCreate"
+          />
+          <p class="mt-1 text-[11px] leading-relaxed text-slate-400">
+            {{ form.project_id
+              ? 'Dùng để gom các test case cùng một tính năng hoặc màn hình. Có thể bỏ trống.'
+              : 'Chọn dự án trước — rồi gắn hoặc tạo nhóm nếu cần.' }}
+          </p>
         </div>
 
-        <div>
-          <label class="label">Người phụ trách</label>
-          <select
-            v-model="form.owner_id"
-            class="input w-full"
-          >
-            <option :value="null">
-              {{ displayOrEmpty(null, 'Chưa gán') }}
-            </option>
-            <option
-              v-for="emp in employees"
-              :key="emp.id ?? emp.value"
-              :value="emp.id ?? emp.value"
+        <!-- Priority + Status + Owner -->
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <label
+              class="label mb-1"
+              for="tc-priority"
+            >Ưu tiên <span class="text-rose-500">*</span></label>
+            <select
+              id="tc-priority"
+              v-model="form.priority"
+              class="input w-full"
             >
-              {{ emp.name ?? emp.label }}
-            </option>
-          </select>
-        </div>
-      </div>
+              <option
+                v-for="opt in priorityOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+            <p
+              v-if="form.errors.priority"
+              class="mt-1 text-xs text-rose-600"
+            >
+              {{ form.errors.priority }}
+            </p>
+          </div>
 
-      <!-- Preconditions -->
-      <div>
-        <label class="label">Điều kiện tiên quyết</label>
-        <textarea
-          v-model="form.preconditions"
-          class="input w-full resize-y"
-          rows="2"
-          placeholder="Điều kiện cần có trước khi thực hiện test…"
-          maxlength="10000"
-        />
-      </div>
+          <div>
+            <label
+              class="label mb-1"
+              for="tc-status"
+            >Trạng thái</label>
+            <select
+              id="tc-status"
+              v-model="form.status"
+              class="input w-full"
+            >
+              <option
+                v-for="opt in statusOptions"
+                :key="opt.value"
+                :value="opt.value"
+              >
+                {{ opt.label }}
+              </option>
+            </select>
+          </div>
 
-      <!-- Steps -->
-      <div>
-        <div class="mb-2 flex items-center justify-between">
-          <label class="label mb-0">Các bước kiểm thử</label>
-          <button
-            type="button"
-            class="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2.5 py-1 text-xs font-medium text-brand hover:bg-brand/20"
-            @click="addStep"
-          >
-            <AppIcon
-              name="plus"
-              :size="12"
+          <div>
+            <label
+              class="label mb-1"
+              for="tc-owner"
+            >Người phụ trách</label>
+            <AutocompleteInput
+              id="tc-owner"
+              :model-value="form.owner_id"
+              :options="employeeOptions"
+              placeholder="Gõ tên để tìm…"
+              empty-text="Không tìm thấy nhân sự."
+              clearable
+              :panel-z-index="160"
+              @update:model-value="(v) => { form.owner_id = v; }"
             />
-            Thêm bước
-          </button>
-        </div>
-
-        <div
-          v-if="!form.steps.length"
-          class="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-400"
-        >
-          Chưa có bước nào. Bấm «Thêm bước» để bắt đầu.
-        </div>
-
-        <div class="space-y-3">
-          <div
-            v-for="(step, idx) in form.steps"
-            :key="idx"
-            class="flex gap-2 rounded-xl border border-slate-200 bg-slate-50/50 p-3"
-          >
-            <div class="flex shrink-0 flex-col items-center gap-1 pt-1">
-              <span class="flex h-6 w-6 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">{{ idx + 1 }}</span>
-              <button
-                type="button"
-                class="rounded p-0.5 text-slate-300 hover:text-slate-500"
-                :disabled="idx === 0"
-                @click="moveStep(idx, -1)"
-              >
-                <AppIcon
-                  name="chevron-up"
-                  :size="12"
-                />
-              </button>
-              <button
-                type="button"
-                class="rounded p-0.5 text-slate-300 hover:text-slate-500"
-                :disabled="idx === form.steps.length - 1"
-                @click="moveStep(idx, 1)"
-              >
-                <AppIcon
-                  name="chevron-down"
-                  :size="12"
-                />
-              </button>
-            </div>
-
-            <div class="flex min-w-0 flex-1 flex-col gap-2">
-              <div>
-                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Thao tác</label>
-                <textarea
-                  v-model="step.step"
-                  class="input w-full resize-none"
-                  rows="2"
-                  placeholder="Mô tả thao tác thực hiện…"
-                  maxlength="2000"
-                />
-                <p
-                  v-if="form.errors[`steps.${idx}.step`]"
-                  class="mt-1 text-xs text-rose-600"
-                >
-                  {{ form.errors[`steps.${idx}.step`] }}
-                </p>
-              </div>
-              <div>
-                <label class="mb-1 block text-[11px] font-semibold text-slate-500">Kết quả mong đợi bước này</label>
-                <input
-                  v-model="step.expected"
-                  type="text"
-                  class="input w-full"
-                  placeholder="Kết quả mong đợi sau bước…"
-                  maxlength="2000"
-                >
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="self-start rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
-              @click="removeStep(idx)"
-            >
-              <AppIcon
-                name="trash"
-                :size="14"
-              />
-            </button>
           </div>
         </div>
+
+        <!-- Preconditions -->
+        <div>
+          <label
+            class="label mb-1"
+            for="tc-preconditions"
+          >Điều kiện tiên quyết</label>
+          <textarea
+            id="tc-preconditions"
+            v-model="form.preconditions"
+            class="input w-full resize-y"
+            rows="2"
+            placeholder="Cần có trước khi chạy, ví dụ: đã đăng nhập, dữ liệu mẫu sẵn…"
+            maxlength="10000"
+          />
+        </div>
+
+        <!-- Steps -->
+        <div>
+          <div class="mb-1.5 flex items-center justify-between gap-2">
+            <label class="label mb-0">Các bước kiểm thử</label>
+            <button
+              type="button"
+              class="inline-flex items-center gap-1 rounded-md bg-brand/10 px-2 py-1 text-xs font-medium text-brand hover:bg-brand/20"
+              @click="addStep"
+            >
+              <AppIcon
+                name="plus"
+                :size="12"
+              />
+              Thêm bước
+            </button>
+          </div>
+
+          <div
+            v-if="!form.steps.length"
+            class="rounded-lg border border-dashed border-slate-200 px-3 py-3 text-center text-xs text-slate-400"
+          >
+            Tuỳ chọn — bấm «Thêm bước» nếu cần mô tả từng thao tác.
+          </div>
+
+          <div class="space-y-2">
+            <div
+              v-for="(step, idx) in form.steps"
+              :key="idx"
+              class="flex gap-2 rounded-lg border border-slate-200 bg-slate-50/50 p-2"
+            >
+              <div class="flex shrink-0 flex-col items-center gap-0.5 pt-0.5">
+                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-brand/10 text-[10px] font-bold text-brand">{{ idx + 1 }}</span>
+                <button
+                  type="button"
+                  class="rounded p-0.5 text-slate-300 hover:text-slate-500"
+                  :disabled="idx === 0"
+                  @click="moveStep(idx, -1)"
+                >
+                  <AppIcon
+                    name="chevron-up"
+                    :size="12"
+                  />
+                </button>
+                <button
+                  type="button"
+                  class="rounded p-0.5 text-slate-300 hover:text-slate-500"
+                  :disabled="idx === form.steps.length - 1"
+                  @click="moveStep(idx, 1)"
+                >
+                  <AppIcon
+                    name="chevron-down"
+                    :size="12"
+                  />
+                </button>
+              </div>
+
+              <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                <div>
+                  <label class="mb-0.5 block text-[11px] font-semibold text-slate-500">Thao tác</label>
+                  <textarea
+                    v-model="step.step"
+                    class="input w-full resize-none"
+                    rows="2"
+                    placeholder="Mô tả thao tác thực hiện…"
+                    maxlength="2000"
+                  />
+                  <p
+                    v-if="form.errors[`steps.${idx}.step`]"
+                    class="mt-1 text-xs text-rose-600"
+                  >
+                    {{ form.errors[`steps.${idx}.step`] }}
+                  </p>
+                </div>
+                <div>
+                  <label class="mb-0.5 block text-[11px] font-semibold text-slate-500">Kết quả mong đợi bước này</label>
+                  <input
+                    v-model="step.expected"
+                    type="text"
+                    class="input w-full"
+                    placeholder="Kết quả sau bước…"
+                    maxlength="2000"
+                  >
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="self-start rounded p-1 text-slate-300 hover:bg-rose-50 hover:text-rose-500"
+                @click="removeStep(idx)"
+              >
+                <AppIcon
+                  name="trash"
+                  :size="14"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Expected result overall -->
+        <div>
+          <label
+            class="label mb-1"
+            for="tc-expected"
+          >Kết quả mong đợi (tổng thể)</label>
+          <textarea
+            id="tc-expected"
+            v-model="form.expected_result"
+            class="input w-full resize-y"
+            rows="2"
+            placeholder="Kết quả đạt yêu cầu khi hoàn thành toàn bộ test case…"
+            maxlength="10000"
+          />
+        </div>
       </div>
 
-      <!-- Expected result overall -->
-      <div>
-        <label class="label">Kết quả mong đợi (tổng thể)</label>
-        <textarea
-          v-model="form.expected_result"
-          class="input w-full resize-y"
-          rows="2"
-          placeholder="Mô tả kết quả đạt yêu cầu khi hoàn thành toàn bộ test case…"
-          maxlength="10000"
-        />
-      </div>
-    </form>
-
-    <template #footer>
-      <div class="flex items-center justify-end gap-2 px-5 py-4">
+      <div class="mt-2.5 flex shrink-0 justify-end gap-2 border-t border-slate-100 pt-2.5">
         <button
           type="button"
           class="btn-ghost h-9 px-4 text-sm"
@@ -363,18 +445,17 @@ const suiteOptions = computed(() => [
           Hủy
         </button>
         <button
-          type="button"
+          type="submit"
           class="btn-primary h-9 gap-1.5 px-4 text-sm"
           :disabled="form.processing"
-          @click="submit"
         >
           <AppIcon
             name="save"
             :size="14"
           />
-          {{ isEditing ? 'Lưu thay đổi' : 'Thêm test case' }}
+          {{ form.processing ? 'Đang lưu…' : (isEditing ? 'Lưu thay đổi' : 'Thêm test case') }}
         </button>
       </div>
-    </template>
+    </form>
   </Modal>
 </template>

@@ -143,6 +143,26 @@ class TestCaseTest extends BaseTestCase
         ]);
     }
 
+    public function test_admin_can_create_test_case_with_new_suite_name(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/test-cases', $this->casePayload($project->id, ['suite_name' => 'Đăng nhập']))
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('test_suites', [
+            'project_id' => $project->id,
+            'name' => 'Đăng nhập',
+        ]);
+
+        $suiteId = TestSuite::query()->where('project_id', $project->id)->where('name', 'Đăng nhập')->value('id');
+        $this->assertDatabaseHas('test_cases', [
+            'project_id' => $project->id,
+            'suite_id' => $suiteId,
+        ]);
+    }
+
     // ─── Update ───────────────────────────────────────────────────────────────
 
     public function test_admin_can_update_test_case(): void

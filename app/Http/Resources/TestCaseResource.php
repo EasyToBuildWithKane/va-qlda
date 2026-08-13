@@ -25,6 +25,12 @@ class TestCaseResource extends JsonResource
             'id' => $this->id,
             'code' => $this->code ?? ('TC-'.str_pad((string) $this->id, 3, '0', STR_PAD_LEFT)),
             'project_id' => $this->project_id,
+            'project' => $this->whenLoaded('project', fn () => $this->project ? [
+                'id' => $this->project->id,
+                'name' => $this->project->name,
+                'code' => $this->project->code,
+                'color' => $this->project->color,
+            ] : null),
             'suite_id' => $this->suite_id,
             'suite' => $this->whenLoaded('suite', fn () => $this->suite ? [
                 'id' => $this->suite->id,
@@ -42,6 +48,7 @@ class TestCaseResource extends JsonResource
             'expected_result' => $this->expected_result,
             'priority' => $this->enum($this->priority),
             'status' => $this->enum($this->status),
+            'owner_id' => $this->owner_id,
             'owner' => $this->whenLoaded('owner', fn () => $this->person($this->owner)),
             'last_result' => $this->last_result
                 ? $this->enum(TestCaseRunResult::tryFrom($this->last_result))

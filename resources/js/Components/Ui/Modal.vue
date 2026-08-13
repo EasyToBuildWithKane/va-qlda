@@ -46,7 +46,7 @@ defineExpose({ tryClose });
         v-if="show"
         class="fixed inset-0 z-50 flex justify-center bg-slate-900/50 p-3 sm:p-4"
         :class="fitViewport
-          ? 'items-center overflow-hidden py-3 sm:py-4'
+          ? 'items-center overflow-hidden py-2.5 sm:py-3'
           : 'items-start overflow-y-auto py-10'"
         @click.self="tryClose"
         @keydown.esc="tryClose"
@@ -56,13 +56,13 @@ defineExpose({ tryClose });
           :class="[
             maxWidth,
             fitViewport
-              ? 'flex max-h-[calc(100dvh-1.5rem)] flex-col overflow-hidden p-4 sm:max-h-[calc(100dvh-2rem)] sm:p-5'
+              ? 'flex max-h-[calc(100dvh-1.25rem)] flex-col overflow-hidden p-3.5 sm:max-h-[calc(100dvh-1.5rem)] sm:p-4'
               : 'p-6',
           ]"
         >
           <div
             class="flex items-start justify-between gap-3"
-            :class="fitViewport ? 'mb-3 shrink-0' : 'mb-4'"
+            :class="fitViewport ? 'mb-2.5 shrink-0' : 'mb-4'"
           >
             <h2
               class="min-w-0 flex-1 break-words font-display font-semibold leading-snug text-slate-800"

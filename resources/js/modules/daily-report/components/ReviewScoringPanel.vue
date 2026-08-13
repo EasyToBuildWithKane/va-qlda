@@ -25,10 +25,10 @@ const props = defineProps({
 const emit = defineEmits(['scored', 'rejected']);
 
 const DIMENSIONS = [
-    { key: 'task_completion', label: 'Hoàn thành', hint: 'Mức độ hoàn thành mục tiêu và khối lượng công việc đặt ra trong ngày.' },
-    { key: 'skill_score', label: 'Kỹ năng', hint: 'Kỹ năng chuyên môn và cách xử lý công việc thể hiện trong báo cáo.' },
-    { key: 'attitude_score', label: 'Thái độ', hint: 'Tinh thần trách nhiệm, chủ động, hợp tác và đúng hạn.' },
-    { key: 'expertise_score', label: 'Chuyên môn', hint: 'Chiều sâu chuyên môn và chất lượng giải pháp đưa ra.' },
+    { key: 'task_completion', label: 'Hoàn thành' },
+    { key: 'skill_score', label: 'Kỹ năng' },
+    { key: 'attitude_score', label: 'Thái độ' },
+    { key: 'expertise_score', label: 'Chuyên môn' },
 ];
 
 const form = useForm({
@@ -67,13 +67,6 @@ const gradeInfo = computed(() => {
     if (t >= 6.5) return { label: 'B', cls: 'bg-sky-500 text-white' };
     if (t >= 5) return { label: 'C', cls: 'bg-amber-400 text-white' };
     return { label: 'D', cls: 'bg-slate-400 text-white' };
-});
-
-const rubricHint = computed(() => {
-    if (props.rubric?.source === 'department' && props.rubric?.department_code) {
-        return `Theo cấu hình PB ${props.rubric.department_code}`;
-    }
-    return 'Mặc định hệ thống';
 });
 
 function submit({ onSuccess, onFinish, ...restOptions } = {}) {
@@ -123,14 +116,9 @@ defineExpose({ submit, reject, form, total, gradeInfo, scorePayload });
 <template>
   <div class="space-y-4">
     <div class="sticky top-0 z-10 -mx-1 flex items-center justify-between gap-3 rounded-lg bg-white/95 px-1 py-2 backdrop-blur">
-      <div class="min-w-0">
-        <h3 class="font-display text-sm font-semibold text-slate-800">
-          Chấm điểm
-        </h3>
-        <p class="truncate text-[11px] text-slate-400">
-          {{ rubricHint }} · 4 tiêu chí + Kaizen tối đa +{{ kaizenBonusMax }}
-        </p>
-      </div>
+      <h3 class="min-w-0 font-display text-sm font-semibold text-slate-800">
+        Chấm điểm
+      </h3>
       <div class="flex shrink-0 items-center gap-2">
         <span class="font-display text-2xl font-bold tabular-nums text-brand">{{ total.toFixed(2) }}</span>
         <span

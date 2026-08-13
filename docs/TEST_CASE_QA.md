@@ -6,7 +6,9 @@
 
 ## 1. Tổng quan
 
-Module QA / Test case cho phép nhóm dự án xây dựng và thực thi bộ kiểm thử phần mềm. Mỗi test case có thể thuộc một bộ test (TestSuite), được giao cho một người phụ trách, có danh sách các bước kiểm thử, và theo dõi kết quả qua `TestCaseRun`.
+Module QA / Test case cho phép nhóm dự án xây dựng và thực thi bộ kiểm thử phần mềm. Mỗi test case có thể thuộc một **nhóm kiểm thử** (TestSuite — gom theo tính năng/màn hình, ví dụ «Đăng nhập»), được giao cho một người phụ trách, có danh sách các bước kiểm thử, và theo dõi kết quả qua `TestCaseRun`.
+
+Form tạo/sửa trên `/test-cases`: ô **Dự án** (và người phụ trách) là input autocomplete; **Nhóm kiểm thử** tuỳ chọn — gom case theo tính năng/màn hình (ví dụ «Đăng nhập»), gõ để tìm hoặc tạo mới qua `suite_name`. Không dùng thuật ngữ «test suite / bộ test» trên UI. Modal `fit-viewport` (`max-w-xl`), padding gọn để vừa viewport.
 
 **Luồng chính:**
 
@@ -22,7 +24,7 @@ Tạo TestCase (draft) → Chuyển Ready → Thực thi (pass/fail/blocked/skip
 | Model | Bảng | Mô tả |
 |---|---|---|
 | `TestCase` | `va_prd_test_cases` | Trường hợp kiểm thử — có `code`, `steps` (JSON), `last_result`, `last_run_at` |
-| `TestSuite` | `va_prd_test_suites` | Bộ test (nhóm nhiều TestCase theo tính năng/module) |
+| `TestSuite` | `va_prd_test_suites` | Nhóm kiểm thử — gom nhiều TestCase theo tính năng/màn hình (tuỳ chọn) |
 | `TestCaseRun` | `va_prd_test_case_runs` | Lịch sử thực thi: kết quả, actual_result, note, người thực thi |
 
 ---
@@ -37,9 +39,9 @@ Tạo TestCase (draft) → Chuyển Ready → Thực thi (pass/fail/blocked/skip
 | `DELETE` | `/test-cases/{testCase}` | `test-cases.destroy` | Xóa |
 | `POST` | `/test-cases/import` | `test-cases.import` | Nhập hàng loạt từ Excel (bulk, max 200) |
 | `POST` | `/test-cases/{testCase}/execute` | `test-cases.execute` | Ghi nhận kết quả thực thi |
-| `POST` | `/test-cases/suites` | `test-cases.suites.store` | Tạo bộ test |
-| `PUT` | `/test-cases/suites/{suite}` | `test-cases.suites.update` | Cập nhật bộ test |
-| `DELETE` | `/test-cases/suites/{suite}` | `test-cases.suites.destroy` | Xóa bộ test |
+| `POST` | `/test-cases/suites` | `test-cases.suites.store` | Tạo nhóm kiểm thử |
+| `PUT` | `/test-cases/suites/{suite}` | `test-cases.suites.update` | Cập nhật nhóm kiểm thử |
+| `DELETE` | `/test-cases/suites/{suite}` | `test-cases.suites.destroy` | Xóa nhóm kiểm thử |
 
 ---
 
@@ -84,6 +86,7 @@ summary: { total, ready, pass, fail, not_run }
 options: {
   projects: [],
   employees: [],
+  testSuites: TestSuiteResource[],
   status: TestCaseStatus::options(),
   priority: TestCasePriority::options(),
   runResult: TestCaseRunResult::options(),

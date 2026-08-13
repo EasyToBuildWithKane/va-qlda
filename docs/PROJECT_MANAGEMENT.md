@@ -215,7 +215,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Tab | Key | Component chính |
 |---|---|---|
 | Tổng quan | `overview` | `ProjectShowSummaryBar`, `ProjectOverviewCard` (hồ sơ + mốc + PM), `ActivityFeed`, **`WeeklyReportWorkspace` (embedded, full width dưới hồ sơ)**, `WorkloadTable` (thành viên + workload; nút **Thêm thành viên** / Sửa → `MemberFormModal` khi `can.manage`) — **không** nhúng Test case (tab riêng) |
-| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive browse; breadcrumb nav; lavender folder cards; chuột phải + bulk chọn; tìm trong thư mục; kéo thả upload/chuyển `parent_id`; preview Word/Excel client-side; cột đính kèm task hẹp |
+| Tài liệu | `documents` | `ProjectDocumentsPanel` — Drive browse; breadcrumb nav; lavender folder cards; chuột phải + bulk chọn; tìm trong thư mục; kéo thả upload/chuyển `parent_id`; preview Word (cuộn liên tục, fit khung) / Excel client-side; cột đính kèm task hẹp |
 | Lịch dự án | `timeline` | `ProjectCalendar` + `useProjectCalendar` — Tháng / Tuần / Ngày (timeGrid) / Danh sách; tìm + lọc status/sprint/assignee; KPI chip lọc nhanh; hover card (avatar, tiến độ); cột **Chưa lên lịch**; bấm/kéo ô → tạo task (preset ngày); kéo event → `PUT tasks` |
 | Kanban | `board` | `TaskBoard` — `PATCH tasks.status` |
 | Sprint | `sprints` | `SprintWorkspace` — list/calendar, `SprintDataModal` |
@@ -316,7 +316,7 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** toolbar (`Tải lên` · `Thêm` ▾); breadcrumb là nav chính; thẻ folder lavender + file meta tách ngày/size; layout hai panel (trái tài liệu dự án, phải đính kèm task). Empty: nhãn ngắn + CTA Tải lên khi có quyền. Preview full-screen; chi tiết drawer.
+**UI tab Tài liệu:** toolbar (`Tải lên` · `Thêm` ▾); breadcrumb là nav chính; thẻ folder lavender + file meta tách ngày/size; layout hai panel (trái tài liệu dự án, phải đính kèm task). Empty: nhãn ngắn + CTA Tải lên khi có quyền. Preview full-screen (`DocumentPreviewPane`): Word = iframe `docx-preview` cuộn liên tục (giống link Google), không pager trang; Excel vẫn phân trang dòng; chi tiết drawer.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 
@@ -336,7 +336,7 @@ Tab **QA / Test case** — model `TestCase`, model `TestSuite`. Props từ contr
 
 **Tính năng:**
 - KPI strip `TestCaseSummaryBar.vue` (5 thẻ: tổng · sẵn sàng · đạt · không đạt · chưa chạy) — lọc nhanh.
-- Datagrid client-filter: tìm · trạng thái · ưu tiên · bộ test · kết quả · người phụ trách.
+- Datagrid client-filter: tìm · trạng thái · ưu tiên · nhóm kiểm thử · kết quả · người phụ trách.
 - Expand dòng: xem preconditions, steps, expected_result.
 - Nút **Dữ liệu** → `TestCaseDataModal.vue` (3 tab: Nhập / Xuất / Đối soát).
 - `TestCaseFormModal.vue` — tạo/sửa (steps editor dạng list `{step, expected}`).

@@ -8,6 +8,7 @@ use App\Http\Requests\TestCase\ImportTestCaseRequest;
 use App\Http\Requests\TestCase\StoreTestCaseRequest;
 use App\Http\Requests\TestCase\UpdateTestCaseRequest;
 use App\Http\Resources\TestCaseResource;
+use App\Http\Resources\TestSuiteResource;
 use App\Models\Blocker;
 use App\Models\TestCase;
 use App\Models\TestCaseRun;
@@ -35,7 +36,7 @@ class TestCaseController extends Controller
         $account = $request->user();
 
         $query = TestCase::query()
-            ->with(['suite', 'owner', 'lastRunBy', 'task'])
+            ->with(['suite', 'owner', 'lastRunBy', 'task', 'project'])
             ->orderBy('project_id')
             ->orderBy('suite_id')
             ->orderBy('id');
@@ -96,6 +97,9 @@ class TestCaseController extends Controller
             'options' => [
                 'projects' => Options::projects(),
                 'employees' => Options::employees(),
+                'testSuites' => TestSuiteResource::collection(
+                    TestSuite::query()->orderBy('sort_order')->orderBy('name')->get()
+                )->resolve(),
                 'status' => TestCaseStatus::options(),
                 'priority' => TestCasePriority::options(),
                 'runResult' => TestCaseRunResult::options(),
@@ -109,11 +113,17 @@ class TestCaseController extends Controller
     public function store(StoreTestCaseRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $suiteName = $data['suite_name'] ?? null;
+        unset($data['suite_name']);
 
-        $testCase = TestCase::create([
-            ...$data,
-            'status' => $data['status'] ?? TestCaseStatus::Draft->value,
-        ]);
+        $data['suite_id'] = $this->resolveSuiteId(
+            (int) $data['project_id'],
+            isset($data['suite_id']) ? (int) $data['suite_id'] : null,
+            $suiteName,
+        );
+        $data['status'] = $data['status'] ?? TestCaseStatus::Draft->value;
+
+        $testCase = TestCase::create($data);
 
         return back()->with([
             'success' => 'Đã thêm test case.',
@@ -123,7 +133,18 @@ class TestCaseController extends Controller
 
     public function update(UpdateTestCaseRequest $request, TestCase $testCase): RedirectResponse
     {
-        $testCase->update($request->validated());
+        $data = $request->validated();
+        $suiteName = $data['suite_name'] ?? null;
+        unset($data['suite_name']);
+
+        $projectId = (int) ($data['project_id'] ?? $testCase->project_id);
+        $data['suite_id'] = $this->resolveSuiteId(
+            $projectId,
+            array_key_exists('suite_id', $data) ? ($data['suite_id'] !== null ? (int) $data['suite_id'] : null) : $testCase->suite_id,
+            $suiteName,
+        );
+
+        $testCase->update($data);
 
         return back()->with('success', 'Đã cập nhật test case.');
     }
@@ -227,13 +248,13 @@ class TestCaseController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer'],
         ], [
-            'name.required' => 'Tên bộ test không được để trống.',
+            'name.required' => 'Tên nhóm kiểm thử không được để trống.',
         ]);
 
         $suite = TestSuite::create($data);
 
         return back()->with([
-            'success' => 'Đã thêm bộ test.',
+            'success' => 'Đã thêm nhóm kiểm thử.',
             'created_suite_id' => $suite->id,
         ]);
     }
@@ -246,12 +267,12 @@ class TestCaseController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'sort_order' => ['nullable', 'integer'],
         ], [
-            'name.required' => 'Tên bộ test không được để trống.',
+            'name.required' => 'Tên nhóm kiểm thử không được để trống.',
         ]);
 
         $suite->update($data);
 
-        return back()->with('success', 'Đã cập nhật bộ test.');
+        return back()->with('success', 'Đã cập nhật nhóm kiểm thử.');
     }
 
     public function suiteDestroy(Request $request, TestSuite $suite): RedirectResponse
@@ -260,6 +281,38 @@ class TestCaseController extends Controller
 
         $suite->delete();
 
-        return back()->with('success', 'Đã xoá bộ test.');
+        return back()->with('success', 'Đã xoá nhóm kiểm thử.');
+    }
+
+    private function resolveSuiteId(int $projectId, ?int $suiteId, ?string $suiteName): ?int
+    {
+        if ($suiteId) {
+            $belongs = TestSuite::query()
+                ->where('id', $suiteId)
+                ->where('project_id', $projectId)
+                ->exists();
+
+            return $belongs ? $suiteId : null;
+        }
+
+        $name = trim((string) $suiteName);
+        if ($name === '') {
+            return null;
+        }
+
+        $existing = TestSuite::query()
+            ->where('project_id', $projectId)
+            ->where('name', $name)
+            ->first();
+
+        if ($existing) {
+            return $existing->id;
+        }
+
+        return TestSuite::create([
+            'project_id' => $projectId,
+            'name' => $name,
+            'sort_order' => 0,
+        ])->id;
     }
 }

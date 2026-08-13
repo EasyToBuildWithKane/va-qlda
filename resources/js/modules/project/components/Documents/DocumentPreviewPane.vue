@@ -32,14 +32,6 @@ const {
     setDocxIframe,
     switchSheet,
     reload,
-    pageCount,
-    currentPage,
-    nextPage,
-    prevPage,
-    docxZoom,
-    setDocxZoom,
-    docxViewMode,
-    setDocxViewMode,
     xlsxPage,
     xlsxPageCount,
     xlsxRowLabel,
@@ -118,10 +110,6 @@ const googleEmbedUrl = computed(() => {
         return raw.includes('rm=') ? raw : `${raw}${raw.includes('?') ? '&' : '?'}rm=minimal`;
     }
 });
-
-const showDocxPager = computed(() =>
-    kind.value === 'docx' && !loading.value && !error.value && pageCount.value >= 1,
-);
 
 const showXlsxPager = computed(() =>
     kind.value === 'xlsx' && !loading.value && !error.value && xlsxPageCount.value >= 1,
@@ -252,101 +240,13 @@ defineExpose({ reload, textContent, kind });
 
       <div
         v-else-if="kind === 'docx'"
-        class="flex min-h-0 flex-1 flex-col overflow-hidden bg-slate-100 dark:bg-slate-900"
+        class="doc-preview-docx min-h-0 flex-1"
       >
         <iframe
           :ref="setDocxIframe"
-          class="doc-preview-docx__iframe min-h-0 flex-1"
+          class="doc-preview-docx__iframe"
           title="Xem trước Word"
         />
-        <div
-          v-if="showDocxPager"
-          class="doc-preview-pager doc-preview-pager--docx"
-        >
-          <div class="doc-preview-pager__group">
-            <button
-              type="button"
-              class="doc-preview-pager__btn"
-              :disabled="currentPage <= 1"
-              @click="prevPage"
-            >
-              <AppIcon
-                name="chevron-left"
-                :size="14"
-              />
-              Trước
-            </button>
-            <span class="doc-preview-pager__label tabular-nums">
-              Trang {{ currentPage }} / {{ pageCount }}
-            </span>
-            <button
-              type="button"
-              class="doc-preview-pager__btn"
-              :disabled="currentPage >= pageCount"
-              @click="nextPage"
-            >
-              Sau
-              <AppIcon
-                name="chevron-right"
-                :size="14"
-              />
-            </button>
-          </div>
-          <div class="doc-preview-pager__group">
-            <div
-              class="doc-preview-segment"
-              role="group"
-              aria-label="Chế độ xem trang"
-            >
-              <button
-                type="button"
-                class="doc-preview-segment__btn"
-                :class="{ 'doc-preview-segment__btn--active': docxViewMode === 'single' }"
-                @click="setDocxViewMode('single')"
-              >
-                Từng trang
-              </button>
-              <button
-                type="button"
-                class="doc-preview-segment__btn"
-                :class="{ 'doc-preview-segment__btn--active': docxViewMode === 'continuous' }"
-                @click="setDocxViewMode('continuous')"
-              >
-                Cuộn liên tục
-              </button>
-            </div>
-            <div
-              class="doc-preview-segment"
-              role="group"
-              aria-label="Tỷ lệ xem"
-            >
-              <button
-                type="button"
-                class="doc-preview-segment__btn"
-                :class="{ 'doc-preview-segment__btn--active': docxZoom === 'fit' }"
-                @click="setDocxZoom('fit')"
-              >
-                Vừa khung
-              </button>
-              <button
-                type="button"
-                class="doc-preview-segment__btn"
-                :class="{ 'doc-preview-segment__btn--active': docxZoom === '100' }"
-                @click="setDocxZoom('100')"
-              >
-                100%
-              </button>
-              <button
-                type="button"
-                class="doc-preview-segment__btn"
-                :class="{ 'doc-preview-segment__btn--active': docxZoom === '75' }"
-                @click="setDocxZoom('75')"
-              >
-                75%
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div
@@ -465,15 +365,7 @@ defineExpose({ reload, textContent, kind });
     background: #fff;
 }
 
-.doc-preview-docx__iframe {
-    display: block;
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    border: 0;
-    background: #f1f5f9;
-}
-
+.doc-preview-docx,
 .doc-preview-google {
     position: relative;
     flex: 1 1 auto;
@@ -481,9 +373,10 @@ defineExpose({ reload, textContent, kind });
     min-height: 0;
     width: 100%;
     overflow: hidden;
-    background: #fff;
+    background: #e8edf3;
 }
 
+.doc-preview-docx__iframe,
 .doc-preview-google__iframe {
     position: absolute;
     top: 0;
@@ -491,9 +384,18 @@ defineExpose({ reload, textContent, kind });
     width: 100%;
     height: calc(100% + 2px);
     border: 0;
+    background: #e8edf3;
+}
+
+.doc-preview-google {
     background: #fff;
 }
 
+.doc-preview-google__iframe {
+    background: #fff;
+}
+
+:global(.dark) .doc-preview-docx,
 :global(.dark) .doc-preview-google {
     background: rgb(15 23 42);
 }
@@ -507,74 +409,6 @@ defineExpose({ reload, textContent, kind });
     border-top: 1px solid rgb(226 232 240);
     background: rgb(248 250 252);
     padding: 0.5rem 0.75rem;
-}
-
-.doc-preview-pager--docx {
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 0.5rem 0.75rem;
-}
-
-.doc-preview-pager__group {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.doc-preview-segment {
-    display: inline-flex;
-    align-items: stretch;
-    overflow: hidden;
-    border-radius: 0.375rem;
-    border: 1px solid rgb(226 232 240);
-    background: #fff;
-}
-
-.doc-preview-segment__btn {
-    border: 0;
-    border-right: 1px solid rgb(226 232 240);
-    background: transparent;
-    padding: 0.375rem 0.5rem;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    color: rgb(71 85 105);
-    transition: background 0.15s, color 0.15s;
-}
-
-.doc-preview-segment__btn:last-child {
-    border-right: 0;
-}
-
-.doc-preview-segment__btn:hover {
-    background: rgb(248 250 252);
-    color: rgb(15 23 42);
-}
-
-.doc-preview-segment__btn--active {
-    background: rgb(154 0 54 / 0.08);
-    color: #9a0036;
-}
-
-:global(.dark) .doc-preview-segment {
-    border-color: rgb(51 65 85);
-    background: rgb(30 41 59);
-}
-
-:global(.dark) .doc-preview-segment__btn {
-    border-right-color: rgb(51 65 85);
-    color: rgb(203 213 225);
-}
-
-:global(.dark) .doc-preview-segment__btn:hover {
-    background: rgb(51 65 85);
-    color: #fff;
-}
-
-:global(.dark) .doc-preview-segment__btn--active {
-    background: rgb(154 0 54 / 0.25);
-    color: #fda4af;
 }
 
 :global(.dark) .doc-preview-pager {

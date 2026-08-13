@@ -154,6 +154,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | `Badge.vue`, `Avatar.vue`, `ProgressBar.vue` | Status / user / progress |
 | `MoneyInput.vue`, `MultiChips.vue`, `RadioCard.vue`, `FieldTooltip.vue` | Form helpers |
 | `SearchSelect.vue`, `SearchMultiSelect.vue` | Dropdown tìm-kiếm 1 chọn / nhiều chọn (teleport, viewport-aware) |
+| `form/AutocompleteInput.vue` | Ô nhập gõ-để-tìm (combobox), hỗ trợ tạo mới (`creatable`) |
 | `CommentThread.vue` | Thread bình luận (Task/Bug/Blocker) |
 | `EmptyState.vue`, `LoadingSpinner.vue`, `SkeletonLoader.vue` | Empty / loading |
 | `DatagridToolbarSearch.vue`, `FilterVisibilityDropdown.vue`, `ColumnVisibilityDropdown.vue` | Toolbar bảng (tìm kiếm, bật lọc/cột) |
@@ -171,7 +172,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `ProjectBlockerPanel` (tab Vướng mắc — KPI strip nhúng + import/export/reconcile modal), `ProjectFeedbackPanel`, `BlockerDataModal` (3 tab: Nhập/Xuất/Đối soát), `BlockerInlineDetail`, `ActivityFeed`, … |
 | WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án |
 | Timeline/ | `ProjectTimelineView`, `ProjectTimelineBurndown`, … |
-| Documents/ | `ProjectDocumentsPanel`, `DocumentContextMenu`, `DocumentFolderCard` (lavender), `DocumentFileCard`, `DocumentFilesTable`, `DocumentPreviewPane` + `useDocumentPreview` — Drive; kéo thả; chuột phải; bulk; tìm trong thư mục; đính kèm task hẹp |
+| Documents/ | `ProjectDocumentsPanel`, `DocumentContextMenu`, `DocumentFolderCard` (lavender), `DocumentFileCard`, `DocumentFilesTable`, `DocumentPreviewPane` + `useDocumentPreview` — Drive; kéo thả; chuột phải; bulk; tìm trong thư mục; Word preview cuộn liên tục (không pager); đính kèm task hẹp |
 | Modals | `TaskFormModal`, `SprintFormModal`, `BlockerFormModal`, … |
 
 ### 6.4 Credential module — `modules/credential/`

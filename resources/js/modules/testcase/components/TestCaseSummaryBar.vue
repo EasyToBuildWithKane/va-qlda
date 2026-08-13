@@ -28,7 +28,7 @@ const cards = computed(() => {
             value: s.total ?? 0,
             tone: 'brand',
             icon: 'check-circle',
-            sub: 'test case trong dự án',
+            sub: 'test case trên toàn hệ thống',
             interactive: false,
         },
         {

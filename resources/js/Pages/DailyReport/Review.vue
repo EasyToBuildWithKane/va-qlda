@@ -609,9 +609,6 @@ onUnmounted(() => {
             <p class="text-sm font-medium text-slate-500">
               Chọn báo cáo để bắt đầu đánh giá
             </p>
-            <p class="mt-1 text-xs text-slate-400">
-              Dùng phím ↑ ↓ hoặc J K để di chuyển nhanh
-            </p>
           </div>
         </div>
 
@@ -691,7 +688,7 @@ onUnmounted(() => {
                   <button
                     type="button"
                     :disabled="!prevReport"
-                    title="Báo cáo trước (↑ / K)"
+                    title="Báo cáo trước"
                     class="btn-ghost h-7 w-7 rounded-md p-0 disabled:pointer-events-none disabled:opacity-30"
                     @click="prevReport && selectReport(prevReport)"
                   >
@@ -703,7 +700,7 @@ onUnmounted(() => {
                   <button
                     type="button"
                     :disabled="!nextReport"
-                    title="Báo cáo tiếp (↓ / J)"
+                    title="Báo cáo tiếp"
                     class="btn-ghost h-7 w-7 rounded-md p-0 disabled:pointer-events-none disabled:opacity-30"
                     @click="nextReport && selectReport(nextReport)"
                   >
@@ -975,12 +972,9 @@ onUnmounted(() => {
                 <p class="text-sm font-medium text-slate-600">
                   Xem lịch sử đầy đủ
                 </p>
-                <p class="mt-1 text-xs leading-relaxed text-slate-400">
-                  Bao gồm lịch sử điểm số, timeline duyệt và các lần rút lại trước đây.
-                </p>
                 <Link
                   :href="`/daily-reports/${selectedReport.id}`"
-                  class="btn-ghost mx-auto mt-5 gap-1.5 text-sm"
+                  class="btn-ghost mx-auto mt-4 gap-1.5 text-sm"
                   target="_blank"
                   rel="noopener"
                 >
@@ -1029,9 +1023,6 @@ onUnmounted(() => {
                 </template>
               </button>
             </div>
-            <p class="mt-1.5 text-right text-[10px] text-slate-400">
-              Phím tắt: ↑ ↓ hoặc J K · Điểm mặc định 8/10
-            </p>
           </div>
 
           <div

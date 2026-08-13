@@ -55,7 +55,7 @@ const S = {
 };
 
 const HEADERS = [
-    'STT', 'Mã', 'Tiêu đề', 'Bộ test', 'Mức độ ưu tiên', 'Trạng thái',
+    'STT', 'Mã', 'Tiêu đề', 'Nhóm kiểm thử', 'Mức độ ưu tiên', 'Trạng thái',
     'Kết quả cuối', 'Người phụ trách', 'Điều kiện tiên quyết', 'Kết quả mong đợi', 'Cập nhật',
 ];
 
