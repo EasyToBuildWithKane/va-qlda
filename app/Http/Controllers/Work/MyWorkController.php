@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\OrgTeamMember;
 use App\Models\Task;
 use App\Support\Enums\TaskPriority;
+use App\Support\Enums\TaskSource;
 use App\Support\Enums\TaskStatus;
 use App\Support\Options;
 use App\Support\Performance\EmployeeOrgUnitResolver;
@@ -109,6 +110,7 @@ class MyWorkController extends Controller
             'options' => [
                 'priorities' => TaskPriority::options(),
                 'statuses' => TaskStatus::options(),
+                'sources' => TaskSource::options(),
             ],
             'teamSummary' => $teamSummary,
             'teamScope' => $teamScope,
@@ -168,6 +170,10 @@ class MyWorkController extends Controller
             'project_id' => $request->query('project_id'),
             'priority' => $request->query('priority'),
             'status' => $request->query('status'),
+            'source' => $request->query('source'),
+            'milestone' => $request->query('milestone'),
+            'due_from' => $request->query('due_from'),
+            'due_to' => $request->query('due_to'),
         ];
 
         return $dropNull

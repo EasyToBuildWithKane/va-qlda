@@ -52,10 +52,7 @@ class MyWorkTaskResource extends JsonResource
             'is_milestone' => (bool) $this->is_milestone,
             'source' => $source ? [
                 'value' => $source->value,
-                'label' => match ($source) {
-                    TaskSource::Sprint => 'Từ sprint',
-                    TaskSource::Daily => 'Từ báo cáo ngày',
-                },
+                'label' => $source->label(),
             ] : null,
             'start_date' => $this->start_date?->toDateString(),
             'work_started_at' => $this->work_started_at?->toIso8601String(),

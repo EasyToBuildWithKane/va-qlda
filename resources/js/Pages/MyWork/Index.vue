@@ -9,12 +9,18 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import ColumnVisibilityDropdown from '@/shared/ui/ColumnVisibilityDropdown.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
+import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import MyWorkSummaryBar from './partials/MyWorkSummaryBar.vue';
 import MyWorkTeamSummaryBar from './partials/MyWorkTeamSummaryBar.vue';
 import MyWorkTaskCard from './partials/MyWorkTaskCard.vue';
+import MyWorkTaskTable from './partials/MyWorkTaskTable.vue';
 import MyWorkDailyReportSection from './partials/MyWorkDailyReportSection.vue';
+import { MY_WORK_TABLE_COLUMNS, TEAM_ROSTER_COLUMNS } from './config/columns';
+import { projectLabel, sortTasks } from './utils/taskDisplay';
 import TeamScopeSwitcher from './partials/TeamScopeSwitcher.vue';
 import TeamScopeBanner from './partials/TeamScopeBanner.vue';
 import TeamRoster from './partials/TeamRoster.vue';
@@ -36,7 +42,7 @@ const props = defineProps({
     buckets: { type: Object, default: null },
     dailyReportToday: { type: Object, default: null },
     filters: { type: Object, default: () => ({}) },
-    options: { type: Object, default: () => ({ priorities: [], statuses: [] }) },
+    options: { type: Object, default: () => ({ priorities: [], statuses: [], sources: [] }) },
     team: { type: Object, default: () => ({ canTeamView: false, canActTeam: false, members: [] }) },
 });
 
@@ -118,6 +124,9 @@ const MY_WORK_FILTER_CONTROLS = [
     { key: 'project_id', label: 'Dự án', default: false },
     { key: 'priority', label: 'Ưu tiên', default: false },
     { key: 'status', label: 'Trạng thái', default: false },
+    { key: 'source', label: 'Nguồn', default: false },
+    { key: 'milestone', label: 'Mốc', default: false },
+    { key: 'date_range', label: 'Hạn hoàn thành', default: false },
 ];
 
 const TEAM_FILTER_CONTROLS = [
@@ -135,7 +144,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(MY_WORK_FILTER_CONTROLS, 'va-workspace.my-work.visible-filters.v1');
+} = useVisibleFilterControls(MY_WORK_FILTER_CONTROLS, 'va-workspace.my-work.visible-filters.v2');
 
 const {
     visibleFilters: teamVisibleFilters,
@@ -147,13 +156,41 @@ const {
     FILTER_CONTROLS: TEAM_FILTER_CONTROLS_LIST,
 } = useVisibleFilterControls(TEAM_FILTER_CONTROLS, 'va-workspace.my-work.team-visible-filters.v1');
 
+const colDdRef = ref(null);
+const teamColDdRef = ref(null);
+
+const {
+    visibleCols,
+    showColDd,
+    persistVisibleColumns,
+    openColPanel,
+    isColVisible,
+    TABLE_COLUMNS,
+} = useVisibleColumns(MY_WORK_TABLE_COLUMNS, 'va-workspace.my-work.columns.v1');
+
+const {
+    visibleCols: teamVisibleCols,
+    showColDd: showTeamColDd,
+    persistVisibleColumns: persistTeamColumns,
+    openColPanel: openTeamColPanel,
+    isColVisible: isTeamColVisible,
+    TABLE_COLUMNS: TEAM_TABLE_COLUMNS,
+} = useVisibleColumns(TEAM_ROSTER_COLUMNS, 'va-workspace.my-work.team-columns.v1');
+
 function onToolbarClickOutside(e) {
     if (e.target.closest?.('[data-filter-visibility-panel]')) return;
+    if (e.target.closest?.('[data-column-visibility-panel]')) return;
     if (filterPanelDdRef.value && !filterPanelDdRef.value.contains(e.target)) {
         showFilterPanelDd.value = false;
     }
     if (teamFilterPanelDdRef.value && !teamFilterPanelDdRef.value.contains(e.target)) {
         showTeamFilterPanelDd.value = false;
+    }
+    if (colDdRef.value && !colDdRef.value.contains(e.target)) {
+        showColDd.value = false;
+    }
+    if (teamColDdRef.value && !teamColDdRef.value.contains(e.target)) {
+        showTeamColDd.value = false;
     }
 }
 onMounted(() => document.addEventListener('mousedown', onToolbarClickOutside));
@@ -181,6 +218,108 @@ const bucketMeta = [
 
 const openState = reactive({ daily_report: true, overdue: true, today: true, upcoming: true, no_due: false });
 const bucketOf = (key) => props.buckets?.[key] ?? [];
+
+const VIEW_KEY = 'va-workspace.my-work.view.v1';
+const GROUP_KEY = 'va-workspace.my-work.group.v1';
+const VALID_VIEWS = ['cards', 'list'];
+const VALID_GROUPS = ['bucket', 'project', 'flat'];
+
+function readStored(key, allowed, fallback) {
+    if (typeof localStorage === 'undefined') return fallback;
+    const saved = localStorage.getItem(key);
+    return allowed.includes(saved) ? saved : fallback;
+}
+
+const viewMode = ref(readStored(VIEW_KEY, VALID_VIEWS, 'cards'));
+const groupMode = ref(readStored(GROUP_KEY, VALID_GROUPS, 'bucket'));
+const sortState = reactive({ key: '', dir: 'asc' });
+
+watch(viewMode, (v) => {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(VIEW_KEY, v);
+});
+watch(groupMode, (v) => {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(GROUP_KEY, v);
+});
+
+const VIEW_TABS = [
+    { key: 'cards', label: 'Thẻ', icon: 'cards', title: 'Lưới thẻ công việc' },
+    { key: 'list', label: 'Bảng', icon: 'table', title: 'Danh sách dạng bảng' },
+];
+
+const GROUP_TABS = [
+    { key: 'bucket', label: 'Theo hạn', icon: 'calendar-clock', title: 'Nhóm Quá hạn / Hôm nay / Sắp tới' },
+    { key: 'project', label: 'Theo dự án', icon: 'folder', title: 'Nhóm theo dự án' },
+    { key: 'flat', label: 'Tất cả', icon: 'list', title: 'Một danh sách không nhóm' },
+];
+
+function toggleSort(key) {
+    if (sortState.key === key) {
+        sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
+        return;
+    }
+    sortState.key = key;
+    sortState.dir = 'asc';
+}
+
+function toggleGroup(key) {
+    openState[key] = !(openState[key] !== false);
+}
+
+const taskGroups = computed(() => {
+    const sorted = (list) => sortTasks(list, sortState.key, sortState.dir);
+
+    if (groupMode.value === 'flat') {
+        const tasks = visibleBuckets.value.flatMap((b) => bucketOf(b.key));
+        return [{
+            key: 'all',
+            label: 'Tất cả việc',
+            icon: 'list',
+            alwaysShow: true,
+            tasks: sorted(tasks),
+        }];
+    }
+
+    if (groupMode.value === 'project') {
+        const map = new Map();
+        visibleBuckets.value.forEach((b) => {
+            bucketOf(b.key).forEach((t) => {
+                const id = t.project?.id ?? 0;
+                if (!map.has(id)) {
+                    map.set(id, {
+                        key: `p${id}`,
+                        label: projectLabel(t) || 'Chưa gán dự án',
+                        color: t.project?.color || '#94a3b8',
+                        icon: 'folder',
+                        alwaysShow: false,
+                        tasks: [],
+                    });
+                }
+                map.get(id).tasks.push(t);
+            });
+        });
+        return [...map.values()]
+            .map((g) => ({ ...g, tasks: sorted(g.tasks) }))
+            .sort((a, b) => a.label.localeCompare(b.label, 'vi'));
+    }
+
+    return visibleBuckets.value.map((b) => ({
+        ...b,
+        tasks: sorted(bucketOf(b.key)),
+    }));
+});
+
+const allGroupsExpanded = computed(() =>
+    taskGroups.value
+        .filter((g) => g.tasks.length > 0 || g.alwaysShow)
+        .every((g) => openState[g.key] !== false),
+);
+
+function toggleAllGroups() {
+    const next = !allGroupsExpanded.value;
+    taskGroups.value.forEach((g) => {
+        openState[g.key] = next;
+    });
+}
 
 const bucketHighlight = ref('');
 
@@ -217,6 +356,10 @@ const filters = reactive({
     project_id: props.filters.project_id ?? '',
     priority: props.filters.priority ?? '',
     status: props.filters.status ?? '',
+    source: props.filters.source ?? '',
+    milestone: props.filters.milestone ?? '',
+    due_from: props.filters.due_from ?? '',
+    due_to: props.filters.due_to ?? '',
 });
 
 const projectOptions = computed(() => {
@@ -241,16 +384,24 @@ function debouncedApply() {
     timer = setTimeout(apply, 350);
 }
 watch(() => filters.q, debouncedApply);
-watch(() => [filters.project_id, filters.priority, filters.status], apply);
+watch(
+    () => [filters.project_id, filters.priority, filters.status, filters.source, filters.milestone, filters.due_from, filters.due_to],
+    apply,
+);
 
 const hasActiveFilters = computed(
-    () => filters.q || filters.project_id || filters.priority || filters.status,
+    () => filters.q || filters.project_id || filters.priority || filters.status
+        || filters.source || filters.milestone || filters.due_from || filters.due_to,
 );
 function resetFilters() {
     filters.q = '';
     filters.project_id = '';
     filters.priority = '';
     filters.status = '';
+    filters.source = '';
+    filters.milestone = '';
+    filters.due_from = '';
+    filters.due_to = '';
 }
 
 const TEAM_VIEW_KEY = 'va-workspace.my-work.team-view.v1';
@@ -431,7 +582,7 @@ function onScope(scope) {
                   icon="filter"
                   :active="showTeamFilterPanelDd"
                   :title="`Hiển thị bộ lọc (${teamEnabledFilterCount}/${TEAM_FILTER_CONTROLS_LIST.length})`"
-                  @click="openTeamFilterPanel()"
+                  @click="openTeamFilterPanel(() => { showTeamColDd = false; })"
                 >
                   Lọc
                 </DatagridToolbarActionButton>
@@ -442,6 +593,29 @@ function onScope(scope) {
                   :controls="TEAM_FILTER_CONTROLS_LIST"
                   input-id-prefix="my-work-team-filter-vis"
                   @persist="persistTeamVisibleFilters"
+                />
+              </div>
+              <div
+                v-if="teamView === 'member'"
+                ref="teamColDdRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="columns"
+                  :active="showTeamColDd"
+                  title="Cột hiển thị"
+                  @click="openTeamColPanel(() => { showTeamFilterPanelDd = false; })"
+                >
+                  Cột
+                </DatagridToolbarActionButton>
+                <ColumnVisibilityDropdown
+                  v-model="teamVisibleCols"
+                  :show="showTeamColDd"
+                  :columns="TEAM_TABLE_COLUMNS"
+                  :anchor-ref="teamColDdRef"
+                  :fixed-labels="['Thành viên', 'Thao tác']"
+                  input-id-prefix="my-work-team-col-vis"
+                  @persist="persistTeamColumns"
                 />
               </div>
               <button
@@ -456,19 +630,14 @@ function onScope(scope) {
                 />
                 Xoá lọc
               </button>
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-10 items-center gap-1.5 px-2.5 text-xs font-medium"
+              <DatagridToolbarActionButton
+                icon="download"
                 :disabled="(team.members ?? []).length === 0"
                 title="Xuất Excel tải việc theo thành viên"
                 @click="exportTeam"
               >
-                <AppIcon
-                  name="download"
-                  :size="14"
-                />
-                Xuất Excel
-              </button>
+                Xuất
+              </DatagridToolbarActionButton>
             </div>
             <DatagridSegmentedControl
               v-model="teamView"
@@ -527,6 +696,7 @@ function onScope(scope) {
           v-else
           :members="filteredTeamMembers"
           :team-open-total="teamSummary?.open ?? 0"
+          :is-col-visible="isTeamColVisible"
           @select="(id) => goTo({ member: id })"
           @quick-view="onQuickView"
         />
@@ -551,7 +721,7 @@ function onScope(scope) {
                 v-model="filters.q"
                 input-id="my-work-search"
                 input-name="q"
-                placeholder="Tìm theo tên việc…"
+                placeholder="Tên việc, mã hoặc dự án…"
                 stretch
                 inline-actions
                 hide-label
@@ -567,7 +737,7 @@ function onScope(scope) {
                   icon="filter"
                   :active="showFilterPanelDd"
                   :title="`Hiển thị bộ lọc (${enabledFilterControlCount}/${FILTER_CONTROLS.length})`"
-                  @click="openFilterPanel()"
+                  @click="openFilterPanel(() => { showColDd = false; })"
                 >
                   Lọc
                 </DatagridToolbarActionButton>
@@ -578,6 +748,28 @@ function onScope(scope) {
                   :controls="FILTER_CONTROLS"
                   input-id-prefix="my-work-filter-vis"
                   @persist="persistVisibleFilters"
+                />
+              </div>
+              <div
+                ref="colDdRef"
+                class="relative shrink-0"
+              >
+                <DatagridToolbarActionButton
+                  icon="columns"
+                  :active="showColDd"
+                  title="Cột hiển thị (chế độ bảng)"
+                  @click="openColPanel(() => { showFilterPanelDd = false; })"
+                >
+                  Cột
+                </DatagridToolbarActionButton>
+                <ColumnVisibilityDropdown
+                  v-model="visibleCols"
+                  :show="showColDd"
+                  :columns="TABLE_COLUMNS"
+                  :anchor-ref="colDdRef"
+                  :fixed-labels="['Công việc', 'Thao tác']"
+                  input-id-prefix="my-work-col-vis"
+                  @persist="persistVisibleColumns"
                 />
               </div>
               <button
@@ -592,19 +784,36 @@ function onScope(scope) {
                 />
                 Xoá lọc
               </button>
-              <button
-                type="button"
-                class="btn-ghost inline-flex h-10 items-center gap-1.5 px-2.5 text-xs font-medium"
+              <DatagridToolbarActionButton
+                icon="download"
                 :disabled="totalTasks === 0"
                 title="Xuất Excel danh sách việc"
                 @click="exportSelf"
               >
-                <AppIcon
-                  name="download"
-                  :size="14"
-                />
-                Xuất Excel
-              </button>
+                Xuất
+              </DatagridToolbarActionButton>
+            </div>
+            <div class="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
+              <DatagridToolbarActionButton
+                v-if="taskGroups.length"
+                icon="chevron-down"
+                :title="allGroupsExpanded ? 'Thu gọn mọi nhóm' : 'Mở mọi nhóm'"
+                @click="toggleAllGroups"
+              >
+                {{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}
+              </DatagridToolbarActionButton>
+              <DatagridSegmentedControl
+                v-model="groupMode"
+                aria-label="Cách nhóm danh sách việc"
+                :items="GROUP_TABS"
+                icon-only-below-sm
+              />
+              <DatagridSegmentedControl
+                v-model="viewMode"
+                aria-label="Chế độ hiển thị"
+                :items="VIEW_TABS"
+                icon-only-below-sm
+              />
             </div>
           </div>
 
@@ -618,6 +827,7 @@ function onScope(scope) {
               <select
                 v-model="filters.project_id"
                 :class="FILTER_CONTROL_CLASS"
+                aria-label="Dự án"
               >
                 <option value="">
                   Dự án
@@ -637,6 +847,7 @@ function onScope(scope) {
               <select
                 v-model="filters.priority"
                 :class="FILTER_CONTROL_CLASS"
+                aria-label="Ưu tiên"
               >
                 <option value="">
                   Ưu tiên
@@ -656,6 +867,7 @@ function onScope(scope) {
               <select
                 v-model="filters.status"
                 :class="FILTER_CONTROL_CLASS"
+                aria-label="Trạng thái"
               >
                 <option value="">
                   Trạng thái
@@ -669,6 +881,70 @@ function onScope(scope) {
                 </option>
               </select>
             </DatagridFilterField>
+            <DatagridFilterField
+              v-if="visibleFilters.source"
+            >
+              <select
+                v-model="filters.source"
+                :class="FILTER_CONTROL_CLASS"
+                aria-label="Nguồn"
+              >
+                <option value="">
+                  Nguồn
+                </option>
+                <option
+                  v-for="opt in options.sources"
+                  :key="opt.value"
+                  :value="opt.value"
+                >
+                  {{ opt.label }}
+                </option>
+              </select>
+            </DatagridFilterField>
+            <DatagridFilterField
+              v-if="visibleFilters.milestone"
+              class="flex items-center"
+            >
+              <label class="flex h-10 w-full cursor-pointer items-center gap-2 rounded-btn border border-slate-200 px-3 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-300">
+                <input
+                  v-model="filters.milestone"
+                  true-value="1"
+                  false-value=""
+                  type="checkbox"
+                  class="rounded border-slate-300 text-brand focus:ring-brand/30"
+                >
+                Chỉ việc mốc
+              </label>
+            </DatagridFilterField>
+            <div
+              v-if="visibleFilters.date_range"
+              class="min-w-0 w-full sm:col-span-2 xl:col-span-2"
+            >
+              <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3">
+                <FilterDatePicker
+                  v-model="filters.due_from"
+                  placeholder="Hạn từ ngày"
+                  :max-date="filters.due_to || null"
+                />
+                <FilterDatePicker
+                  v-model="filters.due_to"
+                  placeholder="Hạn đến ngày"
+                  :min-date="filters.due_from || null"
+                />
+              </div>
+            </div>
+            <div
+              v-if="hasActiveFilters"
+              class="col-span-full flex justify-end"
+            >
+              <button
+                type="button"
+                class="text-xs font-medium text-brand"
+                @click="resetFilters"
+              >
+                Đặt lại bộ lọc
+              </button>
+            </div>
           </div>
         </div>
 
@@ -697,66 +973,99 @@ function onScope(scope) {
           </div>
 
           <template v-else>
+            <p
+              v-if="totalTasks > 0"
+              class="mb-3 text-xs text-slate-500"
+            >
+              {{ totalTasks }} việc
+              <span v-if="hasActiveFilters"> khớp bộ lọc</span>
+              <span v-if="viewMode === 'list'"> · bấm tiêu đề cột để sắp xếp</span>
+            </p>
+
             <MyWorkDailyReportSection
               v-if="dailyReportToday"
               v-model:open="openState.daily_report"
               :daily="dailyReportToday"
             />
 
-            <section
-              v-for="b in visibleBuckets"
-              v-show="bucketOf(b.key).length > 0 || b.alwaysShow"
-              :key="b.key"
-              class="mb-4 last:mb-0"
-            >
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 py-1.5 text-left"
-                @click="openState[b.key] = !openState[b.key]"
-              >
-                <AppIcon
-                  :name="openState[b.key] ? 'chevron-down' : 'chevron-right'"
-                  :size="15"
-                  class="text-slate-400"
-                />
-                <AppIcon
-                  :name="b.icon"
-                  :size="15"
-                  :class="b.key === 'overdue' ? 'text-rose-500' : 'text-slate-400'"
-                />
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ b.label }}</span>
-                <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-800">
-                  {{ bucketOf(b.key).length }}
-                </span>
-              </button>
+            <MyWorkTaskTable
+              v-if="viewMode === 'list'"
+              :groups="taskGroups"
+              :open-state="openState"
+              :is-col-visible="isColVisible"
+              :mode="mode"
+              :status-options="options.statuses"
+              :sort-key="sortState.key"
+              :sort-dir="sortState.dir"
+              @toggle-group="toggleGroup"
+              @sort="toggleSort"
+              @change-status="changeStatus"
+              @log-work="logWork"
+              @open="openTaskDetail"
+            />
 
-              <div
-                v-show="openState[b.key]"
-                class="mt-2"
+            <template v-else>
+              <section
+                v-for="group in taskGroups"
+                v-show="group.tasks.length > 0 || group.alwaysShow"
+                :key="group.key"
+                class="mb-4 last:mb-0"
               >
-                <p
-                  v-if="bucketOf(b.key).length === 0"
-                  class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-400 dark:bg-slate-800/50"
+                <button
+                  type="button"
+                  class="flex w-full items-center gap-2 py-1.5 text-left"
+                  @click="toggleGroup(group.key)"
                 >
-                  Không có việc nào.
-                </p>
-                <div
-                  v-else
-                  class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                >
-                  <MyWorkTaskCard
-                    v-for="task in bucketOf(b.key)"
-                    :key="task.id"
-                    :task="task"
-                    :mode="mode"
-                    :status-options="options.statuses"
-                    @change-status="changeStatus"
-                    @log-work="logWork"
-                    @open="openTaskDetail"
+                  <AppIcon
+                    :name="openState[group.key] !== false ? 'chevron-down' : 'chevron-right'"
+                    :size="15"
+                    class="text-slate-400"
                   />
+                  <span
+                    v-if="group.color"
+                    class="h-2.5 w-2.5 shrink-0 rounded-full"
+                    :style="{ backgroundColor: group.color }"
+                  />
+                  <AppIcon
+                    v-else
+                    :name="group.icon || 'task'"
+                    :size="15"
+                    :class="group.key === 'overdue' ? 'text-rose-500' : 'text-slate-400'"
+                  />
+                  <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ group.label }}</span>
+                  <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-800">
+                    {{ group.tasks.length }}
+                  </span>
+                </button>
+
+                <div
+                  v-show="openState[group.key] !== false"
+                  class="mt-2"
+                >
+                  <p
+                    v-if="group.tasks.length === 0"
+                    class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-400 dark:bg-slate-800/50"
+                  >
+                    Không có việc nào.
+                  </p>
+                  <div
+                    v-else
+                    class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                  >
+                    <MyWorkTaskCard
+                      v-for="task in group.tasks"
+                      :key="task.id"
+                      :task="task"
+                      :mode="mode"
+                      :status-options="options.statuses"
+                      @change-status="changeStatus"
+                      @log-work="logWork"
+                      @open="openTaskDetail"
+                    />
+                  </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            </template>
           </template>
         </div>
       </div>

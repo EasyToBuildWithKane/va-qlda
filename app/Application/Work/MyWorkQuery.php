@@ -163,6 +163,20 @@ class MyWorkQuery
                     ->where('employee_id', $employeeId),
             ]);
 
+        $this->applyListFilters($query, $filters);
+
+        return $query;
+    }
+
+    /**
+     * Lọc danh sách việc (self/member) — dùng chung cho query chính và task
+     * bổ sung từ báo cáo ngày hôm nay.
+     *
+     * @param  Builder<Task>  $query
+     * @param  array<string, mixed>  $filters
+     */
+    private function applyListFilters(Builder $query, array $filters): void
+    {
         $status = $filters['status'] ?? null;
         if (is_string($status) && in_array($status, TaskStatus::values(), true)) {
             $query->where('status', $status);
@@ -179,12 +193,47 @@ class MyWorkQuery
             $query->where('project_id', (int) $filters['project_id']);
         }
 
-        $term = isset($filters['q']) ? trim((string) $filters['q']) : '';
-        if ($term !== '') {
-            $query->where('title', 'like', '%'.$term.'%');
+        $source = $filters['source'] ?? null;
+        if (is_string($source) && in_array($source, TaskSource::values(), true)) {
+            $query->where('source', $source);
         }
 
-        return $query;
+        if (($filters['milestone'] ?? null) === '1' || ($filters['milestone'] ?? null) === 1) {
+            $query->where('is_milestone', true);
+        }
+
+        $dueFrom = $this->ymd($filters['due_from'] ?? null);
+        $dueTo = $this->ymd($filters['due_to'] ?? null);
+        if ($dueFrom !== null || $dueTo !== null) {
+            $query->whereNotNull('due_date');
+            if ($dueFrom !== null) {
+                $query->whereDate('due_date', '>=', $dueFrom);
+            }
+            if ($dueTo !== null) {
+                $query->whereDate('due_date', '<=', $dueTo);
+            }
+        }
+
+        $term = isset($filters['q']) ? trim((string) $filters['q']) : '';
+        if ($term !== '') {
+            $like = '%'.$term.'%';
+            $query->where(function (Builder $q) use ($like) {
+                $q->where('title', 'like', $like)
+                    ->orWhereHas('project', function (Builder $p) use ($like) {
+                        $p->where('name', 'like', $like)
+                            ->orWhere('code', 'like', $like);
+                    });
+            });
+        }
+    }
+
+    private function ymd(mixed $value): ?string
+    {
+        if (! is_string($value) || ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+
+        return $value;
     }
 
     /**
@@ -272,21 +321,7 @@ class MyWorkQuery
                     ->where('employee_id', $employeeId),
             ]);
 
-        $status = $filters['status'] ?? null;
-        if (is_string($status) && in_array($status, TaskStatus::values(), true)) {
-            $extraQuery->where('status', $status);
-        } else {
-            $extraQuery->where('status', '!=', TaskStatus::Done->value);
-        }
-
-        if (! empty($filters['project_id'])) {
-            $extraQuery->where('project_id', (int) $filters['project_id']);
-        }
-
-        $term = isset($filters['q']) ? trim((string) $filters['q']) : '';
-        if ($term !== '') {
-            $extraQuery->where('title', 'like', '%'.$term.'%');
-        }
+        $this->applyListFilters($extraQuery, $filters);
 
         return $tasks->concat($extraQuery->get())->unique('id')->values();
     }

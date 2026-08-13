@@ -31,6 +31,7 @@ description: >-
 | `docs/REFACTOR_PLAN.md` | Phase 1–5 ✅ complete; follow-up items |
 | `docs/TECHNICAL_DEBT.md` | Open issues (TD-002, TD-010, …) + roadmap |
 | `docs/DAILY_REPORT.md` | Báo cáo ngày — Use Cases, review, task sync, export |
+| `docs/DAILY_REPORT_TODAY.md` | Brief sản phẩm trang `/daily-reports/today` |
 | `docs/PROJECT_MANAGEMENT.md` | Module `/projects` — danh mục, workspace, sprint, task, tài liệu, phân quyền |
 | `docs/DAILY_REPORT_PROJECTS.md` | Liên kết dự án JSON + filter legacy `project_id` |
 | `docs/KNOWLEDGE_BASE.md` | Knowledge Base / blog nội bộ |

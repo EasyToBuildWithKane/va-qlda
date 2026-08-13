@@ -247,4 +247,51 @@ class MyWorkTest extends TestCase
     {
         $this->get('/my-work')->assertRedirect('/login');
     }
+
+    public function test_my_work_filters_by_source_and_searches_project_code(): void
+    {
+        $employee = Employee::factory()->create();
+        $account = $this->accountFor($employee, SystemRole::Member);
+        $alpha = Project::factory()->create(['code' => 'ALP', 'name' => 'Alpha']);
+        $beta = Project::factory()->create(['code' => 'BET', 'name' => 'Beta']);
+
+        $this->taskFor($alpha, $employee, [
+            'title' => 'Việc sprint Alpha',
+            'source' => \App\Support\Enums\TaskSource::Sprint->value,
+        ]);
+        $this->taskFor($beta, $employee, [
+            'title' => 'Việc daily Beta',
+            'source' => \App\Support\Enums\TaskSource::Daily->value,
+        ]);
+
+        $this->actingAs($account, 'system')
+            ->get('/my-work?source=daily')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('filters.source', 'daily')
+                ->where('buckets.today.0.title', 'Việc daily Beta')
+                ->where('buckets.no_due', []));
+
+        $this->actingAs($account, 'system')
+            ->get('/my-work?q=ALP')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('buckets.no_due.0.title', 'Việc sprint Alpha'));
+    }
+
+    public function test_my_work_filters_milestones(): void
+    {
+        $employee = Employee::factory()->create();
+        $account = $this->accountFor($employee, SystemRole::Member);
+        $project = Project::factory()->create();
+        $this->taskFor($project, $employee, ['title' => 'Việc thường']);
+        $this->taskFor($project, $employee, ['title' => 'Mốc bàn giao', 'is_milestone' => true]);
+
+        $this->actingAs($account, 'system')
+            ->get('/my-work?milestone=1')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('buckets.no_due.0.title', 'Mốc bàn giao')
+                ->has('buckets.no_due', 1));
+    }
 }

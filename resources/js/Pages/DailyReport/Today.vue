@@ -584,13 +584,6 @@ const savedTimeLabel = computed(() =>
               aria-labelledby="tab-info"
               class="grid gap-6 p-4 sm:p-6"
             >
-              <div
-                class="rounded-xl border border-slate-100 bg-slate-50/50 px-4 py-3"
-              >
-                <p class="text-xs leading-relaxed text-slate-600">
-                  Bắt đầu bằng tiêu đề và phạm vi công việc — hệ thống có thể gợi ý nội dung từ task bạn chọn ở các tab HORENSO.
-                </p>
-              </div>
               <div>
                 <label class="label flex items-center gap-1.5">
                   Tiêu đề báo cáo

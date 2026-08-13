@@ -3,11 +3,17 @@ import { computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
 import { displayOrEmpty } from '@/shared/utils/emptyDisplay';
+import { TEAM_ROSTER_COLUMNS } from '../config/columns';
 
 const props = defineProps({
     members: { type: Array, default: () => [] },
     teamOpenTotal: { type: Number, default: 0 },
+    isColVisible: { type: Function, default: () => true },
 });
+
+const emptyColspan = computed(
+    () => 2 + TEAM_ROSTER_COLUMNS.filter((c) => props.isColVisible(c.key)).length,
+);
 
 const emit = defineEmits(['select', 'quick-view']);
 
@@ -35,34 +41,64 @@ const sortedMembers = computed(() =>
           <th class="px-5 py-3 font-semibold">
             Thành viên
           </th>
-          <th class="px-3 py-3 font-semibold">
+          <th
+            v-if="isColVisible('org')"
+            class="px-3 py-3 font-semibold"
+          >
             Nhóm tổ chức
           </th>
-          <th class="px-3 py-3 font-semibold">
+          <th
+            v-if="isColVisible('department')"
+            class="px-3 py-3 font-semibold"
+          >
             Phòng ban
           </th>
-          <th class="px-3 py-3 font-semibold">
+          <th
+            v-if="isColVisible('role')"
+            class="px-3 py-3 font-semibold"
+          >
             Vai trò
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('open')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Việc mở
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('overdue')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Quá hạn
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('today')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Hôm nay
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('upcoming')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Sắp tới
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('inProgress')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Đang làm
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('noDue')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Chưa có hạn
           </th>
-          <th class="px-3 py-3 text-right font-semibold tabular-nums">
+          <th
+            v-if="isColVisible('load')"
+            class="px-3 py-3 text-right font-semibold tabular-nums"
+          >
             Tải nhóm
           </th>
           <th class="px-5 py-3 text-right font-semibold">
@@ -73,7 +109,7 @@ const sortedMembers = computed(() =>
       <tbody class="divide-y divide-slate-100">
         <tr v-if="sortedMembers.length === 0">
           <td
-            colspan="12"
+            :colspan="emptyColspan"
             class="px-5 py-12 text-center text-sm text-slate-500"
           >
             <AppIcon
@@ -122,10 +158,16 @@ const sortedMembers = computed(() =>
               </div>
             </div>
           </td>
-          <td class="max-w-[9rem] px-3 py-3 text-[13px] text-slate-600">
+          <td
+            v-if="isColVisible('org')"
+            class="max-w-[9rem] px-3 py-3 text-[13px] text-slate-600"
+          >
             <span class="line-clamp-2">{{ displayOrEmpty(m.org_team_name ?? m.org_unit_name, 'Chưa gán đơn vị') }}</span>
           </td>
-          <td class="max-w-[9rem] px-3 py-3 text-[13px] text-slate-600">
+          <td
+            v-if="isColVisible('department')"
+            class="max-w-[9rem] px-3 py-3 text-[13px] text-slate-600"
+          >
             <span class="line-clamp-2">
               {{
                 (m.departments?.[0]?.name)
@@ -134,36 +176,60 @@ const sortedMembers = computed(() =>
               }}
             </span>
           </td>
-          <td class="max-w-[10rem] px-3 py-3 text-slate-600">
+          <td
+            v-if="isColVisible('role')"
+            class="max-w-[10rem] px-3 py-3 text-slate-600"
+          >
             <span class="line-clamp-2 text-[13px]">
               {{ displayOrEmpty(m.role_title, 'Chưa cập nhật') }}
             </span>
           </td>
-          <td class="px-3 py-3 text-right tabular-nums font-medium text-slate-800">
+          <td
+            v-if="isColVisible('open')"
+            class="px-3 py-3 text-right font-medium tabular-nums text-slate-800"
+          >
             {{ m.open ?? 0 }}
           </td>
-          <td class="px-3 py-3 text-right tabular-nums">
+          <td
+            v-if="isColVisible('overdue')"
+            class="px-3 py-3 text-right tabular-nums"
+          >
             <span
               class="font-medium"
               :class="m.overdue > 0 ? 'text-rose-600' : 'text-slate-400'"
             >{{ m.overdue ?? 0 }}</span>
           </td>
-          <td class="px-3 py-3 text-right tabular-nums">
+          <td
+            v-if="isColVisible('today')"
+            class="px-3 py-3 text-right tabular-nums"
+          >
             <span
               class="font-medium"
               :class="m.dueToday > 0 ? 'text-amber-700' : 'text-slate-400'"
             >{{ m.dueToday ?? 0 }}</span>
           </td>
-          <td class="px-3 py-3 text-right tabular-nums text-slate-600">
+          <td
+            v-if="isColVisible('upcoming')"
+            class="px-3 py-3 text-right tabular-nums text-slate-600"
+          >
             {{ m.upcoming ?? 0 }}
           </td>
-          <td class="px-3 py-3 text-right tabular-nums text-sky-700">
+          <td
+            v-if="isColVisible('inProgress')"
+            class="px-3 py-3 text-right tabular-nums text-sky-700"
+          >
             {{ m.inProgress ?? 0 }}
           </td>
-          <td class="px-3 py-3 text-right tabular-nums text-slate-500">
+          <td
+            v-if="isColVisible('noDue')"
+            class="px-3 py-3 text-right tabular-nums text-slate-500"
+          >
             {{ m.noDue ?? 0 }}
           </td>
-          <td class="px-3 py-3 text-right">
+          <td
+            v-if="isColVisible('load')"
+            class="px-3 py-3 text-right"
+          >
             <div class="inline-flex min-w-[4.5rem] flex-col items-end gap-1">
               <span class="text-xs font-semibold tabular-nums text-slate-600">{{ shareOfOpen(m.open) }}%</span>
               <div class="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
