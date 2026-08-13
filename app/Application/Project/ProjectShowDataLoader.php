@@ -12,7 +12,7 @@ class ProjectShowDataLoader
             'manager',
             'department',
             'testSuites',
-            'testCases' => fn ($q) => $q->with(['suite', 'owner', 'lastRunBy'])->orderBy('suite_id')->orderBy('id'),
+            'testCases' => fn ($q) => $q->with(['suite', 'owner', 'lastRunBy', 'attachments'])->orderBy('suite_id')->orderBy('id'),
             'members' => fn ($q) => $q->wherePivot('is_active', true)->orderByDesc('project_member.joined_at'),
             'sprints' => fn ($q) => $q->withCount('tasks'),
             'epics',

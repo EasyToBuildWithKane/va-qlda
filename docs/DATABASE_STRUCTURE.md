@@ -397,6 +397,7 @@ Department ──→ Employee ──→ SystemAccount
 | preconditions | text | YES | |
 | steps | json | YES | `[{step, expected?}]` |
 | expected_result | text | YES | |
+| reference_links | json | YES | `[{label?, url}]` link tham chiếu (`http`/`https`) |
 | priority | varchar(20) | NO | low/medium/high/critical |
 | status | varchar(20) | NO | draft/ready/deprecated |
 | owner_id | bigint UNSIGNED | YES | FK → employees |
@@ -405,6 +406,20 @@ Department ──→ Employee ──→ SystemAccount
 | last_run_by_id | bigint UNSIGNED | YES | FK → employees |
 | last_actual_result | text | YES | |
 | last_run_note | text | YES | |
+| created_at / updated_at | timestamp | YES | |
+
+### 3.15c2 va_prd_test_case_attachments
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| test_case_id | bigint UNSIGNED | NO | FK → test_cases cascade |
+| uploaded_by_id | bigint UNSIGNED | YES | FK → employees |
+| original_name | varchar(255) | NO | |
+| path | varchar(255) | NO | disk `public` |
+| mime_type | varchar(120) | YES | |
+| size | bigint UNSIGNED | NO | bytes |
+| is_image | boolean | NO | |
 | created_at / updated_at | timestamp | YES | |
 
 ### 3.15d va_prd_test_case_runs
@@ -760,7 +775,7 @@ Project Domain:
 
 Issue Tracking Domain:
     blockers, blocker_attachments, blocker_activities,
-    test_suites, test_cases, test_case_runs,
+    test_suites, test_cases, test_case_attachments, test_case_runs,
     bugs,
     feedbacks
 

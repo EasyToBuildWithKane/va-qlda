@@ -231,13 +231,18 @@ Route prefix: `/test-cases` · Route name prefix: `test-cases.` · Controller: `
 | PUT | `/test-cases/{testCase}` | `test-cases.update` | Sửa test case |
 | DELETE | `/test-cases/{testCase}` | `test-cases.destroy` | Xóa test case |
 | POST | `/test-cases/{testCase}/execute` | `test-cases.execute` | Thực thi kiểm thử (ghi TestCaseRun + cập nhật last_*) |
-| POST | `/test-cases/suites` | `test-cases.suites.store` | Tạo bộ test (TestSuite) |
-| PUT | `/test-cases/suites/{suite}` | `test-cases.suites.update` | Sửa bộ test |
-| DELETE | `/test-cases/suites/{suite}` | `test-cases.suites.destroy` | Xóa bộ test |
+| GET | `/test-cases/{testCase}/attachments/{attachment}/file` | `test-cases.attachments.file` | Tải file đính kèm |
+| POST | `/test-cases/{testCase}/attachments` | `test-cases.attachments.store` | Upload file (max 10/lần, 10MB) |
+| DELETE | `/test-cases/{testCase}/attachments/{attachment}` | `test-cases.attachments.destroy` | Xóa file đính kèm |
+| POST | `/test-cases/suites` | `test-cases.suites.store` | Tạo nhóm kiểm thử (TestSuite) |
+| PUT | `/test-cases/suites/{suite}` | `test-cases.suites.update` | Sửa nhóm kiểm thử |
+| DELETE | `/test-cases/suites/{suite}` | `test-cases.suites.destroy` | Xóa nhóm kiểm thử |
 
 **Query `GET /test-cases`:** `project_id`, `suite_id`, `status`, `priority`, `last_result` (`pass|fail|blocked|skipped|not_run`), `owner_id`, `q`, `per_page`.
 
 **Inertia props:** `testCases` (paginated `TestCaseResource`), `summary` `{total, ready, pass, fail, not_run}`, `options` `{projects, employees, status, priority, runResult}`, `can.create`.
+
+**Flash sau `store`:** `created_test_case_id` (share qua `HandleInertiaRequests`) — frontend upload file đính kèm ngay sau khi tạo. `reference_links[].url` chỉ chấp nhận `http://` / `https://`.
 
 **Execute payload:** `result` (required, enum `TestCaseRunResult`), `actual_result`, `note`, `create_blocker` (bool), `blocker_title` (required nếu `create_blocker=true && result=fail`). Khi `result=fail && create_blocker=true`: tạo `Blocker` liên kết và set `blocker_id` trên TestCase.
 

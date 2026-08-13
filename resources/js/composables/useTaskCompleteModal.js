@@ -1,8 +1,6 @@
 import { ref, computed } from 'vue';
 import { router } from '@inertiajs/vue3';
 import { useToast } from '@/shared/composables/useToast';
-import { resolveHoursTiming, hoursTimingMeta, slaResultMeta } from '@/composables/useTaskCompletion';
-import { getTaskEstimateDeadline } from '@/composables/useTaskTimeliness';
 
 const open = ref(false);
 const targetTask = ref(null);
@@ -23,31 +21,6 @@ export function useTaskCompleteModal() {
         const t = targetTask.value;
         const v = Number(t?.estimate_hours);
         return Number.isFinite(v) && v > 0 ? v : null;
-    });
-
-    const previewTiming = computed(() => {
-        const act = Number(actualHours.value);
-        if (!Number.isFinite(act) || act <= 0) return null;
-        const key = resolveHoursTiming(estimateHours.value, act);
-        return key ? hoursTimingMeta(key) : null;
-    });
-
-    const previewSla = computed(() => {
-        const act = Number(actualHours.value);
-        if (!Number.isFinite(act) || act <= 0) return null;
-        const est = estimateHours.value;
-        if (est && act > est + 0.05) {
-            return slaResultMeta('exceeded');
-        }
-        const t = targetTask.value;
-        const deadline = getTaskEstimateDeadline(t);
-        if (deadline && new Date() > deadline) {
-            return slaResultMeta('exceeded');
-        }
-        if (est || deadline) {
-            return slaResultMeta('met');
-        }
-        return null;
     });
 
     const dirty = computed(() => actualHours.value !== '' || completionNote.value.trim() !== '');
@@ -121,8 +94,6 @@ export function useTaskCompleteModal() {
         completionNote,
         submitting,
         estimateHours,
-        previewTiming,
-        previewSla,
         dirty,
         requestComplete,
         close,

@@ -98,7 +98,7 @@ export function useSprintReconcile(sprintsSource, tasksSource) {
                 result.push({
                     level: 'info',
                     code: 'estimate_sla_unknown',
-                    message: `Task #${t.id} có giờ ước tính nhưng chưa có ngày bắt đầu — SLA giờ có thể không chính xác`,
+                    message: `Task #${t.id} có giờ ước tính nhưng chưa có ngày bắt đầu`,
                     taskId: t.id,
                 });
             }

@@ -2,7 +2,6 @@
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
 import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
-import { getTaskSlaToneClass } from '@/composables/useTaskTimeliness';
 
 const props = defineProps({
     /** Mặc định từ task đang hoàn thành (my-work đa dự án); sprint/board truyền projectId. */
@@ -16,8 +15,6 @@ const {
     completionNote,
     submitting,
     estimateHours,
-    previewTiming,
-    previewSla,
     dirty,
     close,
     submit,
@@ -86,26 +83,6 @@ const onSubmit = () => {
           class="input w-full resize-y text-sm"
           placeholder="Tuỳ chọn — tóm tắt kết quả"
         />
-      </div>
-
-      <div
-        v-if="previewTiming || previewSla"
-        class="flex flex-wrap gap-2"
-      >
-        <span
-          v-if="previewTiming"
-          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-          :class="getTaskSlaToneClass(previewTiming.color === 'emerald' ? 'ok' : previewTiming.color === 'amber' ? 'warn' : 'danger')"
-        >
-          {{ previewTiming.label }}
-        </span>
-        <span
-          v-if="previewSla"
-          class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold"
-          :class="getTaskSlaToneClass(previewSla.color === 'emerald' ? 'ok' : 'danger')"
-        >
-          {{ previewSla.label }}
-        </span>
       </div>
     </div>
 

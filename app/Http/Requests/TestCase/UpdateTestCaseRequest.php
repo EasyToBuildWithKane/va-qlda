@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\TestCase;
 
+use App\Http\Requests\TestCase\Concerns\CleansReferenceLinks;
 use App\Support\Enums\TestCasePriority;
 use App\Support\Enums\TestCaseStatus;
 use Illuminate\Foundation\Http\FormRequest;
@@ -9,12 +10,23 @@ use Illuminate\Validation\Rule;
 
 class UpdateTestCaseRequest extends FormRequest
 {
+    use CleansReferenceLinks;
+
     public function authorize(): bool
     {
         /** @var \App\Models\TestCase $testCase */
         $testCase = $this->route('testCase');
 
         return $this->user()->can('update', $testCase);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->exists('reference_links')) {
+            $this->merge([
+                'reference_links' => $this->cleanedReferenceLinks(),
+            ]);
+        }
     }
 
     /**
@@ -40,6 +52,7 @@ class UpdateTestCaseRequest extends FormRequest
             'steps.*.step' => ['required', 'string', 'max:2000'],
             'steps.*.expected' => ['nullable', 'string', 'max:2000'],
             'expected_result' => ['nullable', 'string', 'max:10000'],
+            ...$this->referenceLinkRules(),
             'priority' => ['required', Rule::in(TestCasePriority::values())],
             'status' => ['nullable', Rule::in(TestCaseStatus::values())],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],
@@ -55,6 +68,7 @@ class UpdateTestCaseRequest extends FormRequest
             'title.required' => 'Tiêu đề test case không được để trống.',
             'priority.required' => 'Mức độ ưu tiên không hợp lệ.',
             'steps.*.step.required' => 'Nội dung bước kiểm thử không được để trống.',
+            ...$this->referenceLinkMessages(),
         ];
     }
 }

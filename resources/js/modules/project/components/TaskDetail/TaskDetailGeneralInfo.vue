@@ -246,15 +246,6 @@ function formatAnyDate(value) {
 
           <div>
             <p class="text-[11px] font-medium text-slate-400">
-              Cách tính tiến độ công việc
-            </p>
-            <p class="mt-1 text-sm text-slate-800 dark:text-slate-100">
-              Theo trạng thái công việc
-            </p>
-          </div>
-
-          <div>
-            <p class="text-[11px] font-medium text-slate-400">
               Thời gian dự kiến
             </p>
             <p

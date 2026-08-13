@@ -6,6 +6,7 @@ use App\Models\Blocker;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\TestCase;
+use App\Models\TestCaseAttachment;
 use App\Models\TestCaseRun;
 use App\Models\TestSuite;
 use App\Support\Enums\SystemRole;
@@ -13,6 +14,8 @@ use App\Support\Enums\TestCasePriority;
 use App\Support\Enums\TestCaseRunResult;
 use App\Support\Enums\TestCaseStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase as BaseTestCase;
 
 class TestCaseTest extends BaseTestCase
@@ -163,6 +166,64 @@ class TestCaseTest extends BaseTestCase
         ]);
     }
 
+    public function test_admin_can_create_test_case_with_reference_links(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/test-cases', $this->casePayload($project->id, [
+                'reference_links' => [
+                    ['label' => 'Figma', 'url' => 'https://figma.com/file/demo'],
+                    ['label' => '', 'url' => ''],
+                ],
+            ]))
+            ->assertRedirect();
+
+        $tc = TestCase::query()->where('project_id', $project->id)->where('title', 'Test case thử nghiệm')->first();
+        $this->assertNotNull($tc);
+        $this->assertSame([
+            ['label' => 'Figma', 'url' => 'https://figma.com/file/demo'],
+        ], $tc->reference_links);
+    }
+
+    public function test_create_shares_created_test_case_id_on_inertia_flash(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->from('/test-cases')
+            ->post('/test-cases', $this->casePayload($project->id))
+            ->assertRedirect('/test-cases');
+
+        $tc = TestCase::query()->where('project_id', $project->id)->where('title', 'Test case thử nghiệm')->first();
+        $this->assertNotNull($tc);
+
+        $this->get('/test-cases')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('flash.created_test_case_id', $tc->id));
+    }
+
+    public function test_rejects_non_http_reference_link(): void
+    {
+        $project = Project::factory()->create();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/test-cases', $this->casePayload($project->id, [
+                'reference_links' => [
+                    ['label' => 'Bad', 'url' => 'javascript:alert(1)'],
+                ],
+            ]))
+            ->assertSessionHasErrors('reference_links.0.url');
+
+        $this->actingAs($this->admin(), 'system')
+            ->post('/test-cases', $this->casePayload($project->id, [
+                'reference_links' => [
+                    ['label' => 'Ftp', 'url' => 'ftp://example.com/file'],
+                ],
+            ]))
+            ->assertSessionHasErrors('reference_links.0.url');
+    }
+
     // ─── Update ───────────────────────────────────────────────────────────────
 
     public function test_admin_can_update_test_case(): void
@@ -228,6 +289,114 @@ class TestCaseTest extends BaseTestCase
         $this->actingAs($this->member(), 'system')
             ->delete("/test-cases/{$tc->id}")
             ->assertForbidden();
+    }
+
+    // ─── Attachments ──────────────────────────────────────────────────────────
+
+    public function test_admin_can_upload_and_download_test_case_attachment(): void
+    {
+        Storage::fake('public');
+        $project = Project::factory()->create();
+        $tc = $this->createTestCase($project);
+        $file = UploadedFile::fake()->image('shot.png');
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/test-cases/{$tc->id}/attachments", [
+                'files' => [$file],
+            ])
+            ->assertRedirect();
+
+        $attachment = TestCaseAttachment::query()->where('test_case_id', $tc->id)->first();
+        $this->assertNotNull($attachment);
+        $this->assertSame('shot.png', $attachment->original_name);
+        $this->assertTrue($attachment->is_image);
+        Storage::disk('public')->assertExists($attachment->path);
+
+        $this->actingAs($this->admin(), 'system')
+            ->get("/test-cases/{$tc->id}/attachments/{$attachment->id}/file")
+            ->assertOk();
+    }
+
+    public function test_cannot_download_attachment_via_other_test_case(): void
+    {
+        Storage::fake('public');
+        $project = Project::factory()->create();
+        $owner = $this->createTestCase($project);
+        $other = $this->createTestCase($project, ['title' => 'Case khác']);
+
+        $path = UploadedFile::fake()->image('secret.png')->store('test-cases/'.$owner->id, 'public');
+        $attachment = TestCaseAttachment::create([
+            'test_case_id' => $owner->id,
+            'original_name' => 'secret.png',
+            'path' => $path,
+            'mime_type' => 'image/png',
+            'size' => 1024,
+            'is_image' => true,
+        ]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->get("/test-cases/{$other->id}/attachments/{$attachment->id}/file")
+            ->assertNotFound();
+    }
+
+    public function test_viewer_cannot_upload_test_case_attachment(): void
+    {
+        Storage::fake('public');
+        $project = Project::factory()->create();
+        $tc = $this->createTestCase($project);
+
+        $this->actingAs($this->viewer(), 'system')
+            ->post("/test-cases/{$tc->id}/attachments", [
+                'files' => [UploadedFile::fake()->image('shot.png')],
+            ])
+            ->assertForbidden();
+    }
+
+    public function test_admin_can_delete_test_case_attachment(): void
+    {
+        Storage::fake('public');
+        $project = Project::factory()->create();
+        $tc = $this->createTestCase($project);
+        $path = UploadedFile::fake()->image('shot.png')->store('test-cases/'.$tc->id, 'public');
+        $attachment = TestCaseAttachment::create([
+            'test_case_id' => $tc->id,
+            'original_name' => 'shot.png',
+            'path' => $path,
+            'mime_type' => 'image/png',
+            'size' => 1024,
+            'is_image' => true,
+        ]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->delete("/test-cases/{$tc->id}/attachments/{$attachment->id}")
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('test_case_attachments', ['id' => $attachment->id]);
+        Storage::disk('public')->assertMissing($path);
+    }
+
+    public function test_deleting_test_case_removes_attachment_files(): void
+    {
+        Storage::fake('public');
+        $project = Project::factory()->create();
+        $tc = $this->createTestCase($project);
+        $path = UploadedFile::fake()->image('shot.png')->store('test-cases/'.$tc->id, 'public');
+        TestCaseAttachment::create([
+            'test_case_id' => $tc->id,
+            'original_name' => 'shot.png',
+            'path' => $path,
+            'mime_type' => 'image/png',
+            'size' => 1024,
+            'is_image' => true,
+        ]);
+
+        $this->actingAs($this->admin(), 'system')
+            ->delete("/test-cases/{$tc->id}")
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('test_cases', ['id' => $tc->id]);
+        $this->assertDatabaseMissing('test_case_attachments', ['test_case_id' => $tc->id]);
+        Storage::disk('public')->assertMissing($path);
     }
 
     // ─── Execute: pass ────────────────────────────────────────────────────────

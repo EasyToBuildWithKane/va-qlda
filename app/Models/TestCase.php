@@ -8,6 +8,7 @@ use App\Support\Enums\TestCaseStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * @property int $id
@@ -20,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $preconditions
  * @property array<int, array{step:string, expected?:string}>|null $steps
  * @property string|null $expected_result
+ * @property list<array{label?:string|null, url:string}>|null $reference_links
  * @property TestCasePriority $priority
  * @property TestCaseStatus $status
  * @property int|null $owner_id
@@ -41,6 +43,7 @@ class TestCase extends Model
         'preconditions',
         'steps',
         'expected_result',
+        'reference_links',
         'priority',
         'status',
         'owner_id',
@@ -55,6 +58,7 @@ class TestCase extends Model
         'priority' => TestCasePriority::class,
         'status' => TestCaseStatus::class,
         'steps' => 'array',
+        'reference_links' => 'array',
         'last_run_at' => 'datetime',
     ];
 
@@ -67,6 +71,16 @@ class TestCase extends Model
                     ->count() + 1;
                 $testCase->code = 'TC-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
             }
+        });
+
+        static::deleting(function (TestCase $testCase) {
+            $paths = $testCase->attachments()->pluck('path');
+            foreach ($paths as $path) {
+                if (is_string($path) && $path !== '') {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+            Storage::disk('public')->deleteDirectory('test-cases/'.$testCase->id);
         });
     }
 
@@ -103,6 +117,11 @@ class TestCase extends Model
     public function runs(): HasMany
     {
         return $this->hasMany(TestCaseRun::class)->latest('executed_at');
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TestCaseAttachment::class)->latest('id');
     }
 
     public function isNotRun(): bool

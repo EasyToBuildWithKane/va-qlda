@@ -9,7 +9,6 @@ export const SPRINT_TABLE_COLUMNS = [
     { key: 'reviewer', label: 'Người duyệt', sortKey: 'reviewer' },
     { key: 'estimate_hours', label: 'Giờ ước tính', sortKey: 'estimate_hours' },
     { key: 'actual_hours', label: 'Giờ thực tế', sortKey: 'actual_hours' },
-    { key: 'sla', label: 'SLA', sortKey: null },
     { key: 'progress', label: 'Tiến độ', sortKey: 'progress' },
     { key: 'start_date', label: 'Bắt đầu', sortKey: 'start_date' },
     { key: 'due_date', label: 'Hạn', sortKey: 'due_date' },
@@ -26,11 +25,10 @@ export const SPRINT_TABLE_DEFAULT_VISIBLE = [
     'due_date',
     'estimate_hours',
     'actual_hours',
-    'sla',
     'progress',
 ];
 
-export const SPRINT_TABLE_COLS_KEY = 'va-workspace.sprint-table.columns';
+export const SPRINT_TABLE_COLS_KEY = 'va-workspace.sprint-table.columns.v2';
 
 export function loadSprintTableColumns() {
     const defaults = [...SPRINT_TABLE_DEFAULT_VISIBLE];

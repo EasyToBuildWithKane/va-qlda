@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\TestCase;
 
+use App\Http\Requests\TestCase\Concerns\CleansReferenceLinks;
 use App\Models\TestCase;
 use App\Support\Enums\TestCasePriority;
 use App\Support\Enums\TestCaseStatus;
@@ -10,9 +11,18 @@ use Illuminate\Validation\Rule;
 
 class StoreTestCaseRequest extends FormRequest
 {
+    use CleansReferenceLinks;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', TestCase::class);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'reference_links' => $this->cleanedReferenceLinks(),
+        ]);
     }
 
     /**
@@ -32,6 +42,7 @@ class StoreTestCaseRequest extends FormRequest
             'steps.*.step' => ['required', 'string', 'max:2000'],
             'steps.*.expected' => ['nullable', 'string', 'max:2000'],
             'expected_result' => ['nullable', 'string', 'max:10000'],
+            ...$this->referenceLinkRules(),
             'priority' => ['required', Rule::in(TestCasePriority::values())],
             'status' => ['nullable', Rule::in(TestCaseStatus::values())],
             'owner_id' => ['nullable', 'integer', 'exists:employees,id'],
@@ -48,6 +59,7 @@ class StoreTestCaseRequest extends FormRequest
             'title.required' => 'Tiêu đề test case không được để trống.',
             'priority.required' => 'Mức độ ưu tiên không hợp lệ.',
             'steps.*.step.required' => 'Nội dung bước kiểm thử không được để trống.',
+            ...$this->referenceLinkMessages(),
         ];
     }
 }

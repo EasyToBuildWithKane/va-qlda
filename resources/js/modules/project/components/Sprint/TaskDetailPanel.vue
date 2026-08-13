@@ -14,7 +14,6 @@ import { date, datetime, hours } from '@/composables/useFormat';
 import { useToast } from '@/shared/composables/useToast';
 import { useDialog } from '@/composables/useDialog';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
-import { getTaskCompletionBadge } from '@/composables/useTaskCompletion';
 import { usePermission } from '@/shared/composables/usePermission';
 import {
     taskDisplayId,
@@ -25,6 +24,7 @@ import { getDirectChildren } from '@/composables/useTaskHierarchy';
 import { normalizeList, normalizeEntities, normalizeKeyed } from '@/composables/useNormalizeList';
 import { matchesSearchKey } from '@/shared/utils/normalizeSearchKey';
 import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
+import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
 import { useClientPagination } from '@/shared/composables/useClientPagination';
 import DatagridPaginationFooter from '@/shared/ui/DatagridPaginationFooter.vue';
 
@@ -110,8 +110,6 @@ const activeTask = computed(() => {
     if (isRef(raw)) raw = raw.value;
     return raw && typeof raw === 'object' && raw.id != null ? raw : null;
 });
-
-const completionBadge = computed(() => getTaskCompletionBadge(activeTask.value));
 
 const isSubtaskRow = computed(() => !!activeTask.value?.parent_id);
 
@@ -263,10 +261,16 @@ const hoursMetaLine = computed(() => {
     if (act != null && act !== '') parts.push(`TT ${act}h`);
     const logged = unref(ws.loggedHours);
     if (logged > 0) parts.push(`Ghi nhận ${logged}h`);
-    const badge = completionBadge.value;
-    if (badge?.label) parts.push(badge.label);
     return parts.length ? parts.join(' · ') : null;
 });
+
+function activityHoursLine(meta) {
+    const est = displayOrEmpty(meta?.estimate_hours, EMPTY_LABELS.notUpdated);
+    const act = displayOrEmpty(meta?.actual_hours, EMPTY_LABELS.notUpdated);
+    const estText = est === EMPTY_LABELS.notUpdated ? est : `${est}h`;
+    const actText = act === EMPTY_LABELS.notUpdated ? act : `${act}h`;
+    return `ƯT ${estText} · TT ${actText}`;
+}
 
 const toneClass = (tone) => ({
     brand: 'bg-brand/10 text-brand ring-brand/20',
@@ -848,8 +852,7 @@ const worklogList = computed(() => normalizeEntities(activeTask.value?.worklogs)
                       v-if="ev.type === 'completed' && ev.meta"
                       class="mt-1 text-xs text-slate-500"
                     >
-                      ƯT {{ ev.meta.estimate_hours ?? '—' }}h · TT {{ ev.meta.actual_hours ?? '—' }}h
-                      <span v-if="ev.meta.sla_result"> · SLA {{ ev.meta.sla_result === 'met' ? 'đạt' : 'vượt' }}</span>
+                      {{ activityHoursLine(ev.meta) }}
                     </p>
                   </div>
                 </div>

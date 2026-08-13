@@ -8,7 +8,7 @@
 
 Module QA / Test case cho phép nhóm dự án xây dựng và thực thi bộ kiểm thử phần mềm. Mỗi test case có thể thuộc một **nhóm kiểm thử** (TestSuite — gom theo tính năng/màn hình, ví dụ «Đăng nhập»), được giao cho một người phụ trách, có danh sách các bước kiểm thử, và theo dõi kết quả qua `TestCaseRun`.
 
-Form tạo/sửa trên `/test-cases`: ô **Dự án** (và người phụ trách) là input autocomplete; **Nhóm kiểm thử** tuỳ chọn — gom case theo tính năng/màn hình (ví dụ «Đăng nhập»), gõ để tìm hoặc tạo mới qua `suite_name`. Không dùng thuật ngữ «test suite / bộ test» trên UI. Modal `fit-viewport` (`max-w-xl`), padding gọn để vừa viewport.
+Form tạo/sửa: modal `max-w-6xl` **3 cột ngang** (Phân loại · Nội dung · Bước & đính kèm), `fit-viewport`. Ô **Dự án** / phụ trách = autocomplete; **Nhóm kiểm thử** tuỳ chọn. **Link tham chiếu** (`reference_links` JSON, chỉ `http://` / `https://`) + **file đính kèm** (`test_case_attachments`, upload sau khi lưu; flash Inertia `created_test_case_id`). Xóa test case cũng xóa file trên disk `public`.
 
 **Luồng chính:**
 
@@ -23,8 +23,9 @@ Tạo TestCase (draft) → Chuyển Ready → Thực thi (pass/fail/blocked/skip
 
 | Model | Bảng | Mô tả |
 |---|---|---|
-| `TestCase` | `va_prd_test_cases` | Trường hợp kiểm thử — có `code`, `steps` (JSON), `last_result`, `last_run_at` |
+| `TestCase` | `va_prd_test_cases` | Trường hợp kiểm thử — `code`, `steps`, `reference_links`, `last_result` |
 | `TestSuite` | `va_prd_test_suites` | Nhóm kiểm thử — gom nhiều TestCase theo tính năng/màn hình (tuỳ chọn) |
+| `TestCaseAttachment` | `va_prd_test_case_attachments` | File đính kèm test case |
 | `TestCaseRun` | `va_prd_test_case_runs` | Lịch sử thực thi: kết quả, actual_result, note, người thực thi |
 
 ---
@@ -39,6 +40,9 @@ Tạo TestCase (draft) → Chuyển Ready → Thực thi (pass/fail/blocked/skip
 | `DELETE` | `/test-cases/{testCase}` | `test-cases.destroy` | Xóa |
 | `POST` | `/test-cases/import` | `test-cases.import` | Nhập hàng loạt từ Excel (bulk, max 200) |
 | `POST` | `/test-cases/{testCase}/execute` | `test-cases.execute` | Ghi nhận kết quả thực thi |
+| `GET` | `/test-cases/{testCase}/attachments/{attachment}/file` | `test-cases.attachments.file` | Tải file |
+| `POST` | `/test-cases/{testCase}/attachments` | `test-cases.attachments.store` | Upload file (max 10/lần, 10MB/file) |
+| `DELETE` | `/test-cases/{testCase}/attachments/{attachment}` | `test-cases.attachments.destroy` | Xóa file |
 | `POST` | `/test-cases/suites` | `test-cases.suites.store` | Tạo nhóm kiểm thử |
 | `PUT` | `/test-cases/suites/{suite}` | `test-cases.suites.update` | Cập nhật nhóm kiểm thử |
 | `DELETE` | `/test-cases/suites/{suite}` | `test-cases.suites.destroy` | Xóa nhóm kiểm thử |
@@ -65,14 +69,15 @@ resources/js/
 ├── modules/testcase/components/
 │   ├── ProjectTestCasePanel.vue    — Panel tab QA trên Project Show
 │   ├── TestCaseSummaryBar.vue      — KPI strip (5 thẻ: total, ready, pass, fail, not_run)
-│   ├── TestCaseFormModal.vue       — Tạo/sửa test case (steps editor)
+│   ├── TestCaseFormModal.vue       — Tạo/sửa (3 cột + link/file)
 │   ├── TestCaseExecuteModal.vue    — Ghi nhận kết quả thực thi
 │   └── TestCaseDataModal.vue       — 3 tab: Nhập / Xuất / Đối soát
 │
 └── composables/
-    ├── useTestCaseExport.js        — Xuất Excel styled (xlsx-js-style)
-    ├── useTestCaseImport.js        — Template, parse, validate, preview (marker VA_TESTCASE_IMPORT_V1)
-    └── useTestCaseReconcile.js     — Đối soát: ready_without_steps, fail_without_blocker, draft_stale, …
+    ├── useTestCaseExport.js
+    ├── useTestCaseImport.js
+    ├── useTestCaseReconcile.js
+    └── useTestCaseAttachmentUpload.js
 ```
 
 ---

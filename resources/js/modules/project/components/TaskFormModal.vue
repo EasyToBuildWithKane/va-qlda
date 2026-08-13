@@ -400,9 +400,6 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
           />
           <span class="shrink-0 text-sm font-semibold tabular-nums text-brand">{{ displayProgress }}%</span>
         </div>
-        <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-          Tiến độ tự tính theo trạng thái công việc.
-        </p>
       </div>
 
       <div>
@@ -547,13 +544,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
               Nhân sự
             </p>
             <div>
-              <label class="label">
-                Người thực hiện
-                <span
-                  class="ml-1 cursor-help text-slate-400"
-                  title="Có thể chọn nhiều người cùng thực hiện."
-                >ⓘ</span>
-              </label>
+              <label class="label">Người thực hiện</label>
               <PersonMultiSelect
                 v-model="form.assignee_ids"
                 :options="employees"

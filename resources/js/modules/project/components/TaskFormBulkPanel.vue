@@ -35,7 +35,6 @@ const toast = useToast();
 const bulkText = ref('');
 const bulkRows = ref([]);
 const view = ref('compose'); // compose | preview
-const showTips = ref(true);
 
 const defaults = ref({
     sprint_id: null,
@@ -64,7 +63,6 @@ const reset = () => {
     bulkText.value = '';
     bulkRows.value = [];
     view.value = 'compose';
-    showTips.value = true;
     applyInitialDefaults();
 };
 
@@ -232,38 +230,6 @@ const phaseSelectOptions = computed(() => valueLabelOptions(props.phaseOptions))
 
 <template>
   <div class="space-y-4">
-    <!-- Tips -->
-    <div
-      v-if="showTips"
-      class="flex gap-3 rounded-lg border border-brand/15 bg-gradient-to-r from-brand-50/80 to-slate-50 px-3 py-2.5 text-xs text-slate-700 dark:border-brand/30 dark:from-brand-950/30 dark:to-slate-900/50 dark:text-slate-300"
-    >
-      <AppIcon
-        name="info"
-        :size="18"
-        class="mt-0.5 shrink-0 text-brand"
-      />
-      <div class="min-w-0 flex-1 space-y-1">
-        <p class="font-semibold text-slate-800 dark:text-slate-100">
-          Tạo hàng loạt nhanh
-        </p>
-        <ul class="list-inside list-disc space-y-0.5 text-slate-600 dark:text-slate-400">
-          <li>Mỗi dòng = một công việc · dán từ Excel (một cột) được</li>
-          <li>Cài đặt chung (Sprint, ưu tiên, người làm) áp dụng cho tất cả</li>
-          <li><kbd class="rounded border border-slate-200 bg-white px-1 dark:border-slate-600 dark:bg-slate-800">Ctrl</kbd>+<kbd class="rounded border border-slate-200 bg-white px-1 dark:border-slate-600 dark:bg-slate-800">Enter</kbd> xem trước / tạo</li>
-        </ul>
-      </div>
-      <button
-        type="button"
-        class="shrink-0 text-slate-400 hover:text-slate-600"
-        @click="showTips = false"
-      >
-        <AppIcon
-          name="close"
-          :size="14"
-        />
-      </button>
-    </div>
-
     <!-- Shared defaults -->
     <section class="rounded-lg border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-900/40">
       <h3 class="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-slate-500">

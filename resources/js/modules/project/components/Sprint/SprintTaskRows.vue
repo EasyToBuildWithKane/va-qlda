@@ -8,7 +8,6 @@ import { date } from '@/composables/useFormat';
 import { getTaskAssignees } from '@/composables/useTaskHierarchy';
 import { useSprintTaskStatusPatch } from '@/composables/useSprintTaskStatusPatch';
 import {
-    getTaskSlaToneClass,
     isTaskDateOverdue,
     isTaskOverdue,
 } from '@/composables/useTaskTimeliness';
@@ -18,7 +17,6 @@ import {
     isSubtask,
 } from '@/composables/useTaskHierarchy';
 import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
-import { getTaskCompletionBadge } from '@/composables/useTaskCompletion';
 
 const props = defineProps({
     tasks: { type: Array, default: () => [] },
@@ -227,14 +225,6 @@ const isDateOverdue = (row, parent) => {
                 class="shrink-0 rounded-full bg-slate-200 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
               >
                 {{ entry.childCount }} con
-              </span>
-              <span
-                v-if="!entry.isSubtask && getTaskCompletionBadge(entry.task)"
-                class="shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-                :class="getTaskSlaToneClass(getTaskCompletionBadge(entry.task).tone)"
-                :title="getTaskCompletionBadge(entry.task).detail"
-              >
-                {{ getTaskCompletionBadge(entry.task).label }}
               </span>
             </div>
           </td>

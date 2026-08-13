@@ -221,14 +221,6 @@ function onDragEnd() {
                   v-if="sprintMetrics(s.id).onPlanCount"
                   class="font-medium text-amber-600 dark:text-amber-400"
                 >Đúng {{ sprintMetrics(s.id).onPlanCount }}</span>
-                <span
-                  v-if="sprintMetrics(s.id).overSlaCount"
-                  class="font-medium text-rose-600 dark:text-rose-400"
-                >Vượt SLA {{ sprintMetrics(s.id).overSlaCount }}</span>
-                <span
-                  v-if="sprintMetrics(s.id).slaComplianceRate != null"
-                  class="font-semibold text-slate-600 dark:text-slate-300"
-                >SLA {{ sprintMetrics(s.id).slaComplianceRate }}%</span>
               </p>
               <p
                 v-if="s.goal"

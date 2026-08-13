@@ -36,7 +36,7 @@ class TestCaseController extends Controller
         $account = $request->user();
 
         $query = TestCase::query()
-            ->with(['suite', 'owner', 'lastRunBy', 'task', 'project'])
+            ->with(['suite', 'owner', 'lastRunBy', 'task', 'project', 'attachments'])
             ->orderBy('project_id')
             ->orderBy('suite_id')
             ->orderBy('id');

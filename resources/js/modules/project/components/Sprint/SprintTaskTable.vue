@@ -9,8 +9,6 @@ import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import { date } from '@/composables/useFormat';
 import { getAssignees } from '@/composables/useSprintFilters';
 import {
-    getTaskSlaState,
-    getTaskSlaToneClass,
     isTaskDateOverdue,
     isTaskOverdue,
 } from '@/composables/useTaskTimeliness';
@@ -176,12 +174,6 @@ const statusDot = {
             @click="toggleSort('actual_hours')"
           >
             Thực tế
-          </th>
-          <th
-            v-if="colVisible('sla')"
-            class="sticky top-0 z-10 min-w-[7rem] border-b border-slate-200 bg-slate-50 px-2 py-2 dark:bg-slate-800"
-          >
-            SLA
           </th>
           <th
             v-if="colVisible('progress')"
@@ -379,21 +371,6 @@ const statusDot = {
               v-else
               class="font-normal text-slate-300"
             >—</span>
-          </td>
-          <td
-            v-if="colVisible('sla')"
-            class="border-b border-slate-100 px-2 py-2 dark:border-slate-800"
-          >
-            <span
-              class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold"
-              :class="getTaskSlaToneClass(getTaskSlaState(row).tone)"
-              :title="getTaskSlaState(row).detail"
-            >
-              {{ getTaskSlaState(row).label }}
-            </span>
-            <p class="mt-0.5 line-clamp-2 text-[10px] text-slate-500">
-              {{ getTaskSlaState(row).detail }}
-            </p>
           </td>
           <td
             v-if="colVisible('progress')"

@@ -167,7 +167,7 @@ Pages import feature components từ `@/modules/project/components/...` và prim
 | Nhóm | Components |
 |---|---|
 | Core | `ProjectCard` (shell clip-path + viền nét đứt kiểu `kpi-card`, nền trắng phẳng — không gradient), `ProjectDataGrid` (kéo ngang cuộn bảng), `ProjectForm`, `ProjectMembers`, `GanttChart`, `TaskBoard`, … · Index Kanban: lane trắng + inset border; wrap thẻ; «Nhóm theo» Loại/Phòng ban chỉ `super_admin` |
-| Sprint/ | `SprintWorkspace`, `SprintTaskRows` (bảng task list không hiển thị cột SLA), `SprintTaskTable`, `SprintDataModal`, `TaskDetailPanel`, … |
+| Sprint/ | `SprintWorkspace`, `SprintTaskRows`, `SprintTaskTable` (không cột SLA), `SprintDataModal`, `TaskDetailPanel`, … |
 | TaskDetail/ | `TaskDetailGeneralInfo` (Thông tin chung 2 cột trong panel), `TaskDetailRichEditor`, `TaskDetailCollaboration`, `TaskDetailSubtasks`, … |
 | Dashboard/ | `ProjectShowSummaryBar` (tab Tổng quan Show — KPI embedded), `WorkloadTable` (phân bổ tải + thêm/sửa thành viên), `ProjectOverviewCard`, `ProjectBlockerPanel` (tab Vướng mắc — KPI strip nhúng + import/export/reconcile modal), `ProjectFeedbackPanel`, `BlockerDataModal` (3 tab: Nhập/Xuất/Đối soát), `BlockerInlineDetail`, `ActivityFeed`, … |
 | WeeklyReport/ | `WeeklyReportWorkspace` — tab `weekly` full-page; trên `overview` nhúng `embedded` full width dưới hồ sơ dự án |

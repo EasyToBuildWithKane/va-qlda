@@ -190,9 +190,6 @@ const submit = () => {
             class="input resize-none"
             placeholder="VD: Trang chủ & thông báo"
           />
-          <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Mô tả ngắn kết quả cần đạt trong sprint này (không bắt buộc).
-          </p>
         </div>
       </div>
 
@@ -268,10 +265,6 @@ const submit = () => {
             class="shrink-0 text-slate-400"
           />
           Khoảng {{ durationDays }} ngày làm việc (tính cả hai đầu mốc).
-        </p>
-
-        <p class="text-xs text-slate-500 dark:text-slate-400">
-          Thứ tự sprint trên danh sách được sắp tự động theo <strong>ngày bắt đầu</strong> (sớm hơn hiển thị trước).
         </p>
       </div>
 

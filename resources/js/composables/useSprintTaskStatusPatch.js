@@ -3,16 +3,8 @@ import { useToast } from '@/shared/composables/useToast';
 import { useTaskCompleteModal } from '@/composables/useTaskCompleteModal';
 import { isTaskStatusLocked } from '@/composables/useTaskCompletion';
 
-const STATUS_EFFECT_HINT = {
-    todo: 'Task về backlog — SLA giờ tạm dừng.',
-    in_progress: 'Bắt đầu làm — SLA giờ ước tính chạy ngay.',
-    in_review: 'Chờ duyệt — SLA vẫn tính cho đến khi hoàn thành.',
-    done: 'Hoàn thành — tiến độ 100%, đóng SLA.',
-    blocked: 'Bị chặn — SLA vẫn đang chạy (cần xử lý sớm).',
-};
-
 /**
- * PATCH trạng thái task từ bảng sprint: reload tasks, toast, gắn SLA/tiến độ.
+ * PATCH trạng thái task từ bảng sprint: reload tasks, toast.
  */
 export function useSprintTaskStatusPatch(projectId, statusOptions = []) {
     const toast = useToast();
@@ -40,17 +32,7 @@ export function useSprintTaskStatusPatch(projectId, statusOptions = []) {
             preserveScroll: true,
             only: ['tasks'],
             onSuccess: () => {
-                const label = labelFor(status);
-                let msg = `#${row.id} → ${label}`;
-                const hint = STATUS_EFFECT_HINT[status];
-                if (status === 'in_progress' && row.estimate_hours) {
-                    msg += ` · SLA ${row.estimate_hours}h bắt đầu tính`;
-                } else if (status === 'done') {
-                    msg += ' · Tiến độ 100%';
-                } else if (hint) {
-                    msg += ` · ${hint}`;
-                }
-                toast.success(msg);
+                toast.success(`#${row.id} → ${labelFor(status)}`);
                 hooks.onSuccess?.();
             },
             onError: () => {
@@ -60,5 +42,5 @@ export function useSprintTaskStatusPatch(projectId, statusOptions = []) {
         });
     };
 
-    return { patchTaskStatus, statusEffectHint: STATUS_EFFECT_HINT };
+    return { patchTaskStatus };
 }

@@ -46,6 +46,7 @@ class TestCaseResource extends JsonResource
             'preconditions' => $this->preconditions,
             'steps' => $this->steps ?? [],
             'expected_result' => $this->expected_result,
+            'reference_links' => $this->reference_links ?? [],
             'priority' => $this->enum($this->priority),
             'status' => $this->enum($this->status),
             'owner_id' => $this->owner_id,
@@ -57,6 +58,10 @@ class TestCaseResource extends JsonResource
             'last_run_by' => $this->whenLoaded('lastRunBy', fn () => $this->person($this->lastRunBy)),
             'last_actual_result' => $this->last_actual_result,
             'last_run_note' => $this->last_run_note,
+            'attachments' => $this->whenLoaded(
+                'attachments',
+                fn () => TestCaseAttachmentResource::collection($this->attachments)->resolve(),
+            ),
             'not_run' => $this->isNotRun(),
             'updated_at' => $this->updated_at?->toIso8601String(),
             'can' => $user ? [
