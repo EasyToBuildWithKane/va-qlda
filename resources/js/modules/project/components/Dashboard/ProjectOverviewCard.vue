@@ -72,7 +72,7 @@ const infoTiles = computed(() => [
     },
     {
         key: 'dept',
-        label: 'Phòng ban',
+        label: 'Phòng phụ trách',
         value: displayOrEmpty(props.project.department?.name, EMPTY_LABELS.team),
         icon: 'department',
     },
@@ -164,6 +164,23 @@ const infoTiles = computed(() => [
               </p>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section
+        v-if="(project.related_departments || []).length"
+        aria-label="Phòng ban liên đới"
+      >
+        <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+          Phòng ban liên đới
+        </h3>
+        <div class="flex flex-wrap gap-1.5">
+          <Badge
+            v-for="d in project.related_departments"
+            :key="'ov-rd-'+d.id"
+            :label="d.name"
+            :color="d.color || 'slate'"
+          />
         </div>
       </section>
 

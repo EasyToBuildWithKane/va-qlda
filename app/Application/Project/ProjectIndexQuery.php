@@ -2,9 +2,11 @@
 
 namespace App\Application\Project;
 
+use App\Models\Department;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\OrgTeam\EmployeeOrgTeamMap;
+use App\Support\Project\ProjectVisibility;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -44,6 +46,8 @@ class ProjectIndexQuery
             ->orderBy('sort_order')
             ->orderBy('name');
 
+        ProjectVisibility::constrainIndex($query, $account);
+
         if ($status = $request->query('status')) {
             $query->where('status', $status);
         }
@@ -57,7 +61,10 @@ class ProjectIndexQuery
             $query->where('scope', $scope);
         }
         if ($departmentId = $request->query('department_id')) {
-            $query->where('department_id', $departmentId);
+            $deptId = (int) $departmentId;
+            if ($deptId > 0) {
+                ProjectVisibility::whereAudienceDepartments($query, [$deptId]);
+            }
         }
 
         if ($request->boolean('mine') && $account->employee_id) {
@@ -80,6 +87,7 @@ class ProjectIndexQuery
 
         $projects = $query->paginate($perPage)->withQueryString();
         $this->memberRosterMerger->mergeForCollection($projects->getCollection());
+        $this->attachRelatedDepartments($projects->getCollection());
         $orgTeamOptions = $this->attachManagerOrgTeams($projects->getCollection());
 
         return [
@@ -87,7 +95,7 @@ class ProjectIndexQuery
             'filters' => (object) $request->only([
                 'status', 'type', 'category', 'scope', 'department_id', 'mine', 'q', 'per_page',
             ]),
-            'summary' => $this->summaryQuery->execute(),
+            'summary' => $this->summaryQuery->execute($account),
             'can' => ['create' => $account->can('create', Project::class)],
             'orgTeamOptions' => $orgTeamOptions,
         ];
@@ -111,5 +119,37 @@ class ProjectIndexQuery
         }
 
         return $map['teams'];
+    }
+
+    /**
+     * @param  Collection<int, Project>  $projects
+     */
+    private function attachRelatedDepartments(Collection $projects): void
+    {
+        $ids = $projects
+            ->flatMap(fn (Project $p) => $p->relatedDepartmentIds())
+            ->unique()
+            ->values();
+
+        $byId = $ids->isEmpty()
+            ? collect()
+            : Department::query()->whereIn('id', $ids)->get(['id', 'name', 'code', 'color'])->keyBy('id');
+
+        foreach ($projects as $project) {
+            $related = [];
+            foreach ($project->relatedDepartmentIds() as $id) {
+                $dept = $byId->get($id);
+                if ($dept === null) {
+                    continue;
+                }
+                $related[] = [
+                    'id' => $dept->id,
+                    'name' => $dept->name,
+                    'code' => $dept->code,
+                    'color' => $dept->color,
+                ];
+            }
+            $project->setAttribute('related_departments', $related);
+        }
     }
 }

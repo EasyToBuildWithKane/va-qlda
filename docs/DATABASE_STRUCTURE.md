@@ -260,7 +260,7 @@ Department ──→ Employee ──→ SystemAccount
 
 ### 3.8b va_prd_routine_tasks
 
-Personal checklist «Công việc thường xuyên» — không gắn Project/Sprint/cost. Được sync từ khối sentinel `projects[].id = -1` trong báo cáo ngày.
+Nhật ký công việc hằng ngày / việc lặp lại — không gắn Project/Sprint/cost. Được sync từ khối sentinel `projects[].id = -1` trong báo cáo ngày.
 
 | Column | Type | Nullable | Description |
 |---|---|---|---|
@@ -270,11 +270,35 @@ Personal checklist «Công việc thường xuyên» — không gắn Project/Sp
 | description | text | YES | |
 | status | varchar(20) | NO | todo / in_progress / done (subset of TaskStatus) |
 | position | int UNSIGNED | NO | Thứ tự thủ công, default 0 |
+| work_date | date | YES | Ngày ghi nhận; null = việc lặp lại không neo ngày |
+| started_at | timestamp | YES | Giờ bắt đầu (vd. họp) |
+| ended_at | timestamp | YES | Giờ kết thúc; nếu ≤ bắt đầu thì +1 ngày (qua đêm) |
+| estimate_hours | decimal(6,2) | YES | Giờ ET |
+| actual_hours | decimal(6,2) | YES | Giờ thực tế (nhập tay hoặc suy ra từ khung giờ) |
+| progress_percent | tinyint UNSIGNED | NO | 0–100, default 0 |
+| blockers | text | YES | Vướng mắc |
+| risks | text | YES | Rủi ro |
 | completed_at | timestamp | YES | Set khi status = done |
 | created_at | timestamp | YES | |
 | updated_at | timestamp | YES | |
 
-**Indexes:** `employee_id`, `(employee_id, status)`, `(employee_id, position)`
+**Indexes:** `employee_id`, `(employee_id, status)`, `(employee_id, position)`, `(employee_id, work_date)`
+
+### 3.8c va_prd_routine_task_attachments
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | bigint UNSIGNED | NO | PK |
+| routine_task_id | uuid | NO | FK → routine_tasks cascade |
+| uploaded_by_id | bigint UNSIGNED | YES | FK → employees |
+| original_name | varchar(255) | NO | |
+| path | varchar(255) | NO | disk `public` (`routine-tasks/{id}/`) |
+| mime_type | varchar(120) | YES | |
+| size | bigint UNSIGNED | NO | bytes |
+| is_image | boolean | NO | |
+| created_at / updated_at | timestamp | YES | |
+
+URL tải: route `routine-tasks.attachments.file` — `url` null khi file không còn trên disk.
 
 ---
 
@@ -803,7 +827,8 @@ Communication Domain:
     comments
 
 Reporting Domain:
-    daily_reports, daily_report_scores
+    daily_reports, daily_report_scores,
+    routine_tasks, routine_task_attachments
 
 Notification Domain:              ← MỚI
     app_notifications,

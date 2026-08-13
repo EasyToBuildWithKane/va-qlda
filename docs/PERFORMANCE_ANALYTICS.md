@@ -33,6 +33,7 @@ PerformanceDashboardController  ──▶   PerformanceFilter   (giải mã bộ
                                       PerformanceScorer   (điểm khách quan từ task)
 PerformanceAuditController      ──▶   EmployeeAuditListBuilder (danh sách: cam kết / điểm theo kỳ)
                                       EmployeeAuditBuilder (timeline tuần: kế hoạch vs kết quả)
+                                      PerformancePersonnelResolver (phòng ban HRM + roster)
                                       PerformanceTaskScope (truy vấn task + gán nhân sự thống nhất)
 ```
 
@@ -75,15 +76,23 @@ kỳ Sprint trên `PerformanceFilterBar`.
 | **Story point** | tổng `story_points` của done |
 | **Giờ ghi nhận** | tổng `Worklog.hours` ∈ kỳ |
 
-Phạm vi nhân sự: `member` → `team` (OrgTeam + con) → `department` → mặc định
-**Phòng Công nghệ** (`DashboardPersonnelScope`).
+Phạm vi nhân sự: `member` → `team` (OrgTeam legacy hoặc tổ HRM) → **phòng ban HRM**
+(`employees.meta.department_code` / `department_name`, cộng thành viên tổ con).
+Mặc định = phòng ban HRM của user đang đăng nhập (`WorkspaceScopeResolver`);
+nếu chưa gắn đơn vị thì fallback **Phòng Công nghệ** (`DashboardPersonnelScope`).
+Query `department=all` xem mọi phòng; `department={mã}` (vd. `CNTT`) lọc một phòng.
+Dropdown phòng ban luôn hiện trên toolbar (không giấu trong **Lọc**).
 
-**Kỳ mặc định (tháng):** từ `00:00` ngày đầu tháng đến hết ngày hiện tại (không
-kéo tới cuối tháng nếu chưa tới). Nhãn hiển thị: `dd/mm/yyyy 00:00` (PHP
-`PerformanceDisplay`, JS `dateAtMidnight` trong `@/composables/useFormat`).
+Cột **Đơn vị** lấy từ HRM (`department_name` · `unit_name`), không phụ thuộc
+sơ đồ `org_teams`. `HrmEmployeeDirectory` đồng bộ roster trước khi dựng danh sách.
 
-**Bộ lọc datagrid:** dòng filter ẩn lần đầu; bật từng control qua nút **Lọc** (localStorage
-`va-workspace.performance.visible-filters.v3`, mặc định tất cả `false`).
+**Kỳ mặc định (tháng):** từ đầu tháng đến hết ngày hiện tại (không kéo tới cuối
+tháng nếu chưa tới). Nhãn hiển thị: `dd/mm/yyyy` — **không** kèm `00:00` (PHP
+`PerformanceDisplay::dateLabel`, JS `date` / `dateAtMidnight` trong `@/composables/useFormat`).
+
+**Bộ lọc datagrid:** phòng ban luôn hiện; các control còn lại (mốc thời gian, tổ)
+ẩn lần đầu, bật qua nút **Lọc** (localStorage
+`va-workspace.performance.visible-filters.v4` / `va-workspace.performance-audit.visible-filters.v2`).
 
 ---
 
@@ -108,7 +117,9 @@ Không dùng điểm review chủ quan (DailyReportScore) ở pha này.
 Lọc (mốc thời gian, phòng ban, team), Cột, Xuất; segmented **Tuần | Tháng | Quý**. KPI strip
 `PerformanceAuditSummaryBar` (`mode=list`). Bấm dòng → `performance.audit.show`.
 
-**Chi tiết (`/performance/audit/{employee}`):** `EmployeeAuditBuilder` chia kỳ thành **tuần** (kỳ "năm" → tháng) thành các Weekly
+**Chi tiết (`/performance/audit/{employee}`):** KPI strip `PerformanceAuditSummaryBar`
+(`mode=detail`) ngay sau header, rồi `PerformanceFilterBar`, timeline tuần.
+`EmployeeAuditBuilder` chia kỳ thành **tuần** (kỳ "năm" → tháng) thành các Weekly
 Audit Card:
 
 - **Kế hoạch / Cam kết** = task đến hạn hoặc bắt đầu làm trong tuần.
@@ -123,7 +134,8 @@ Audit Card:
 `usePerformanceExport`: Excel styled (`xlsx-js-style`, brand `#9A0036`) — Dashboard
 (Tổng quan + Nhân sự), Audit (theo tuần). Toolbar: **Lọc** + **Xuất** (không nút In/Đặt lại).
 
-Audit: dải KPI `PerformanceAuditSummaryBar` trên index (`mode=list`) và show (`mode=detail`).
+Audit: dải KPI `PerformanceAuditSummaryBar` trên index (`mode=list`, sau header) và show
+(`mode=detail`, đầu trang — trước bộ lọc và timeline).
 
 ---
 

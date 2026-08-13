@@ -291,11 +291,26 @@ function onClickCapture(e) {
                 >{{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}</span>
               </template>
               <template v-else-if="c.key === 'department'">
-                <Badge
-                  v-if="p.department"
-                  :label="p.department.name"
-                  :color="p.department.color"
-                />
+                <div
+                  v-if="p.department || (p.related_departments || []).length"
+                  class="flex flex-wrap items-center gap-1"
+                >
+                  <Badge
+                    v-if="p.department"
+                    :label="p.department.name"
+                    :color="p.department.color"
+                  />
+                  <Badge
+                    v-for="d in (p.related_departments || []).slice(0, 2)"
+                    :key="'rd-'+d.id"
+                    :label="d.name"
+                    :color="d.color"
+                  />
+                  <span
+                    v-if="(p.related_departments || []).length > 2"
+                    class="text-[11px] font-medium text-slate-400"
+                  >+{{ p.related_departments.length - 2 }} liên đới</span>
+                </div>
                 <span
                   v-else
                   class="text-slate-400"

@@ -63,7 +63,7 @@ Gate `performance.view` (`admin`, `lead`, `viewer`). Chi tiết module: [`docs/P
 | Method | URI | Controller | Middleware | Mô Tả |
 |---|---|---|---|---|
 | GET | `/performance` | PerformanceDashboardController | auth + gate | Executive dashboard |
-| GET | `/performance/audit` | PerformanceAuditController@index | auth + gate | Danh sách audit nhân sự; query: `period`, `date`, `department`, `team`, `project`, `status[]`, `q`, `kpi`, `per_page`, `page` |
+| GET | `/performance/audit` | PerformanceAuditController@index | auth + gate | Danh sách audit nhân sự; query: `period`, `date`, `department` (mã HRM hoặc `all`), `team` (mã tổ HRM), `project`, `status[]`, `q`, `kpi`, `per_page`, `page` |
 | GET | `/performance/audit/{employee}` | PerformanceAuditController@show | auth + gate | Timeline audit một nhân sự; query bộ lọc kỳ giống index |
 
 ### 2.2.1 Phòng Công Nghệ (cổng nội bộ)
@@ -133,12 +133,15 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 
 | Method | URI | Controller | Auth | Description |
 |---|---|---|---|---|
-| GET | `/routine-tasks` | RoutineTaskController@index | auth | Checklist cá nhân — Inertia `RoutineTask/Index` (`q`, `status`, `employee` cho lead/admin) |
-| POST | `/routine-tasks` | RoutineTaskController@store | auth | Tạo việc thường xuyên (owner) |
+| GET | `/routine-tasks` | RoutineTaskController@index | auth | Nhật ký công việc — Inertia `RoutineTask/Index` (`q`, `status`, `employee`, `from`, `to`; lead/admin + thành viên dưới quyền) |
+| POST | `/routine-tasks` | RoutineTaskController@store | auth | Ghi nhận việc (owner) — giờ, ET, tiến độ, vướng mắc, tệp |
 | POST | `/routine-tasks/reorder` | RoutineTaskController@reorder | auth | Sắp xếp lại `position` (owner) |
-| PUT | `/routine-tasks/{routineTask}` | RoutineTaskController@update | auth | Sửa tiêu đề / mô tả / status |
+| PUT | `/routine-tasks/{routineTask}` | RoutineTaskController@update | auth | Sửa nhật ký / status / giờ / tiến độ |
 | POST | `/routine-tasks/{routineTask}/toggle-status` | RoutineTaskController@toggleStatus | auth | Cycle todo → in_progress → done; sync vào báo cáo hôm nay (draft) |
-| DELETE | `/routine-tasks/{routineTask}` | RoutineTaskController@destroy | auth | Xoá |
+| DELETE | `/routine-tasks/{routineTask}` | RoutineTaskController@destroy | auth | Xoá (kèm tệp trên disk) |
+| GET | `/routine-tasks/{routineTask}/attachments/{attachment}/file` | RoutineTaskAttachmentController@file | auth | Tải tệp (policy view) |
+| POST | `/routine-tasks/{routineTask}/attachments` | RoutineTaskAttachmentController@store | auth | Thêm tệp (max 10, 10MB) |
+| DELETE | `/routine-tasks/{routineTask}/attachments/{attachment}` | RoutineTaskAttachmentController@destroy | auth | Xoá tệp |
 
 ### 2.4 Projects
 
@@ -151,7 +154,6 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | GET | `/projects/{project}/edit` | ProjectController@edit | auth | Form sửa dự án |
 | PUT | `/projects/{project}` | ProjectController@update | auth | Cập nhật dự án |
 | PATCH | `/projects/{project}/type` | ProjectController@updateType | auth | Sửa loại dự án (nhanh) |
-| PATCH | `/projects/{project}/department` | ProjectController@updateDepartment | auth | Sửa phòng ban (nhanh) |
 | POST | `/projects/{project}/duplicate` | ProjectController@duplicate | auth | Nhân bản dự án |
 | DELETE | `/projects/{project}` | ProjectController@destroy | auth | Xóa dự án |
 
@@ -444,7 +446,7 @@ Daily Report Group
 
 Project Group
 ├── /projects               (index, create, store)
-├── /projects/{id}          (show, edit, update, delete, duplicate, type, department)
+├── /projects/{id}          (show, edit, update, delete, duplicate, type)
 ├── /projects/{id}/sprints  (CRUD)
 ├── /projects/{id}/tasks    (CRUD + bulk + subtasks + watchers + attachments)
 ├── /projects/{id}/epics    (store only)

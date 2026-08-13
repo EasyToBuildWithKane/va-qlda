@@ -45,7 +45,8 @@ const isOverdue = computed(() => {
 });
 
 const hasMetaBadges = computed(
-    () => (props.showType && props.project.type) || (props.showDepartment && props.project.department),
+    () => (props.showType && props.project.type)
+        || (props.showDepartment && (props.project.department || (props.project.related_departments || []).length)),
 );
 </script>
 
@@ -107,6 +108,16 @@ const hasMetaBadges = computed(
           :label="project.department.name"
           :color="project.department.color"
         />
+        <Badge
+          v-for="d in (showDepartment ? (project.related_departments || []).slice(0, 2) : [])"
+          :key="'rd-'+d.id"
+          :label="d.name"
+          :color="d.color"
+        />
+        <span
+          v-if="showDepartment && (project.related_departments || []).length > 2"
+          class="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-500"
+        >+{{ project.related_departments.length - 2 }} liên đới</span>
       </div>
 
       <!-- Progress -->

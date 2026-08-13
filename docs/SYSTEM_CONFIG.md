@@ -92,7 +92,7 @@ Pages/Settings/Index.vue       SystemSettingController             SystemSetting
 | | | `base_url` | string | `weekly_report.llm.base_url` (bắt buộc với OpenAI-compatible) |
 | **Phân quyền** | `permissions` | `role_grants` | matrix | `va_permissions.role_grants` |
 | **Tùy chỉnh menu** | `menu` | `hidden_groups` | list (nav group keys) | `va.menu_hidden_groups` — ẩn nhóm sidebar toàn hệ thống; đồng bộ module hub qua `WorkspaceNavModuleMap` (xem [WORKSPACE_CONFIG.md](WORKSPACE_CONFIG.md) § Menu sidebar) |
-| **Chào mừng nhân viên** | `onboarding` | `welcome_enabled` | bool | `va.onboarding_welcome_enabled` — màn hình chào mừng lần đầu; UI: `OnboardingTab` + `WelcomePanel`; reset: `POST /settings/onboarding/reset` · `reset-self` |
+| **Chào mừng nhân viên** | `onboarding` | `welcome_enabled` | bool | `va.onboarding_welcome_enabled` — màn hình chào mừng lần đầu; UI: `OnboardingTab` (một viewport, form ngang) + `WelcomePanel` (`max-w-4xl`); reset: `POST /settings/onboarding/reset` · `reset-self` |
 | **Tài khoản & Vai trò** | `accounts` | — | (runtime) | gán `system_accounts.role` (PUT `/settings/accounts/{id}/role`) |
 
 `general.app_*` còn được chia sẻ ra Inertia qua prop `app` (`HandleInertiaRequests`) → `AppLayout` dùng cho ô thương hiệu (rail), tiêu đề, chân thanh bên.

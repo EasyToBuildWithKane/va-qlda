@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Log;
  */
 final class HrmDepartmentDirectory
 {
-    public const CACHE_KEY = 'evaluation.department_directory.v2';
+    public const CACHE_KEY = 'evaluation.department_directory.v3';
 
     public const CACHE_TTL_SECONDS = 86400;
 
@@ -24,7 +24,7 @@ final class HrmDepartmentDirectory
     ) {}
 
     /**
-     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}>
+     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>
      */
     public function all(bool $fresh = false): array
     {
@@ -32,7 +32,7 @@ final class HrmDepartmentDirectory
             Cache::forget(self::CACHE_KEY);
         }
 
-        /** @var list<array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}> */
+        /** @var list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}> */
         return Cache::remember(self::CACHE_KEY, self::CACHE_TTL_SECONDS, fn () => $this->build());
     }
 
@@ -42,7 +42,7 @@ final class HrmDepartmentDirectory
     }
 
     /**
-     * @return array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}|null
+     * @return array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}|null
      */
     public function findByCode(string $code): ?array
     {
@@ -61,11 +61,48 @@ final class HrmDepartmentDirectory
     }
 
     /**
-     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}>
+     * Phòng / khối (không gồm tổ/bộ phận).
+     *
+     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>
+     */
+    public function departments(): array
+    {
+        return array_values(array_filter(
+            $this->all(),
+            fn (array $row) => ($row['type'] ?? 'department') !== 'unit',
+        ));
+    }
+
+    /**
+     * Tổ / bộ phận — có thể lọc theo mã phòng cha.
+     *
+     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>
+     */
+    public function units(?string $parentCode = null): array
+    {
+        $parent = strtoupper(trim((string) $parentCode));
+
+        return array_values(array_filter(
+            $this->all(),
+            function (array $row) use ($parent) {
+                if (($row['type'] ?? '') !== 'unit') {
+                    return false;
+                }
+                if ($parent === '') {
+                    return true;
+                }
+
+                return strtoupper((string) ($row['parent_code'] ?? '')) === $parent;
+            },
+        ));
+    }
+
+    /**
+     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>
      */
     private function build(): array
     {
-        /** @var array<string, array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}> $byCode */
+        /** @var array<string, array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}> $byCode */
         $byCode = [];
 
         $this->mergeLocalDepartments($byCode);
@@ -79,7 +116,7 @@ final class HrmDepartmentDirectory
     }
 
     /**
-     * @param  array<string, array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}>  $byCode
+     * @param  array<string, array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>  $byCode
      */
     private function mergeLocalDepartments(array &$byCode): void
     {
@@ -98,13 +135,15 @@ final class HrmDepartmentDirectory
                     'name' => $dept->name,
                     'local_department_id' => $dept->id,
                     'source' => 'local',
+                    'type' => 'department',
+                    'parent_code' => null,
                     'hrm_uuid' => null,
                 ];
             });
     }
 
     /**
-     * @param  array<string, array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}>  $byCode
+     * @param  array<string, array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>  $byCode
      */
     private function mergeHrmOrgUnits(array &$byCode): void
     {
@@ -143,12 +182,17 @@ final class HrmDepartmentDirectory
 
             $key = strtoupper($code);
             $uuid = isset($unit['uuid']) ? (string) $unit['uuid'] : null;
+            $type = trim((string) ($unit['type'] ?? 'department')) ?: 'department';
+            $parent = is_array($unit['parent'] ?? null) ? $unit['parent'] : [];
+            $parentCode = trim((string) ($parent['code'] ?? $unit['parent_code'] ?? '')) ?: null;
 
             if (isset($byCode[$key])) {
                 if ($name !== '') {
                     $byCode[$key]['name'] = $name;
                 }
                 $byCode[$key]['source'] = 'hrm';
+                $byCode[$key]['type'] = $type;
+                $byCode[$key]['parent_code'] = $parentCode ?? ($byCode[$key]['parent_code'] ?? null);
                 $byCode[$key]['hrm_uuid'] = $uuid;
 
                 continue;
@@ -159,13 +203,15 @@ final class HrmDepartmentDirectory
                 'name' => $name !== '' ? $name : $code,
                 'local_department_id' => null,
                 'source' => 'hrm',
+                'type' => $type,
+                'parent_code' => $parentCode,
                 'hrm_uuid' => $uuid,
             ];
         }
     }
 
     /**
-     * @param  array<string, array{code:string, name:string, local_department_id:int|null, source:string, hrm_uuid?:string|null}>  $byCode
+     * @param  array<string, array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>  $byCode
      */
     private function mergeEmployeeMeta(array &$byCode): void
     {
@@ -200,6 +246,8 @@ final class HrmDepartmentDirectory
                     'name' => $name !== '' ? $name : $code,
                     'local_department_id' => null,
                     'source' => 'employee',
+                    'type' => 'department',
+                    'parent_code' => null,
                     'hrm_uuid' => null,
                 ];
             });

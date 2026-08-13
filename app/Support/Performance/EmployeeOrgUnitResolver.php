@@ -8,20 +8,100 @@ use App\Models\OrgTeamMember;
 use Illuminate\Support\Collection;
 
 /**
- * Nhãn đơn vị (root org team) cho nhân sự — gồm thành viên roster và trưởng nhóm trên sơ đồ.
+ * Nhãn đơn vị cho nhân sự — ưu tiên phòng/tổ HRM (employees.meta), fallback sơ đồ OrgTeam.
  */
 class EmployeeOrgUnitResolver
 {
+    /**
+     * @param  Collection<int, int>  $employeeIds
+     * @return array<int, array{label: string|null, department: string|null, unit: string|null}>
+     */
+    public static function detailsFor(Collection $employeeIds): array
+    {
+        if ($employeeIds->isEmpty()) {
+            return [];
+        }
+
+        /** @var array<int, array{label: string|null, department: string|null, unit: string|null}> $details */
+        $details = [];
+
+        Employee::query()
+            ->whereIn('id', $employeeIds)
+            ->get(['id', 'meta'])
+            ->each(function (Employee $employee) use (&$details): void {
+                $meta = is_array($employee->meta) ? $employee->meta : [];
+                $department = self::trimMeta($meta['department_name'] ?? null);
+                $unit = self::trimMeta($meta['unit_name'] ?? null);
+                $label = self::composeLabel($department, $unit);
+                if ($label !== null || $department !== null || $unit !== null) {
+                    $details[$employee->id] = [
+                        'label' => $label,
+                        'department' => $department,
+                        'unit' => $unit,
+                    ];
+                }
+            });
+
+        $missingIds = $employeeIds
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => empty($details[$id]['label'] ?? null))
+            ->values();
+
+        if ($missingIds->isEmpty()) {
+            return $details;
+        }
+
+        $orgLabels = self::orgTeamLabels($missingIds);
+        foreach ($orgLabels as $id => $name) {
+            if (isset($details[$id]) && filled($details[$id]['label'])) {
+                continue;
+            }
+            $details[$id] = [
+                'label' => $name,
+                'department' => $details[$id]['department'] ?? $name,
+                'unit' => $details[$id]['unit'] ?? null,
+            ];
+        }
+
+        return $details;
+    }
+
     /**
      * @param  Collection<int, int>  $employeeIds
      * @return array<int, string|null>
      */
     public static function labelsFor(Collection $employeeIds): array
     {
-        if ($employeeIds->isEmpty()) {
-            return [];
+        $out = [];
+        foreach (self::detailsFor($employeeIds) as $id => $row) {
+            $out[$id] = $row['label'];
         }
 
+        return $out;
+    }
+
+    private static function composeLabel(?string $department, ?string $unit): ?string
+    {
+        if ($department !== null && $unit !== null && strcasecmp($department, $unit) !== 0) {
+            return $department.' · '.$unit;
+        }
+
+        return $department ?? $unit;
+    }
+
+    private static function trimMeta(mixed $value): ?string
+    {
+        $s = trim((string) $value);
+
+        return $s !== '' ? $s : null;
+    }
+
+    /**
+     * @param  Collection<int, int>  $employeeIds
+     * @return array<int, string>
+     */
+    private static function orgTeamLabels(Collection $employeeIds): array
+    {
         /** @var Collection<int, OrgTeam> $byId */
         $byId = OrgTeam::query()
             ->where('is_active', true)
@@ -39,7 +119,7 @@ class EmployeeOrgUnitResolver
             return $current;
         };
 
-        /** @var array<int, string|null> $labels */
+        /** @var array<int, string> $labels */
         $labels = [];
 
         OrgTeamMember::query()
@@ -74,27 +154,6 @@ class EmployeeOrgUnitResolver
                     $labels[$id] = $resolveRoot($team)->name;
                 }
             });
-
-        $missingIds = $employeeIds
-            ->map(fn ($id) => (int) $id)
-            ->filter(fn (int $id) => empty($labels[$id] ?? null))
-            ->values();
-
-        if ($missingIds->isNotEmpty()) {
-            Employee::query()
-                ->whereIn('id', $missingIds)
-                ->get(['id', 'meta'])
-                ->each(function (Employee $employee) use (&$labels): void {
-                    $meta = $employee->meta;
-                    if (! is_array($meta)) {
-                        return;
-                    }
-                    $unit = isset($meta['unit_name']) ? trim((string) $meta['unit_name']) : '';
-                    if ($unit !== '') {
-                        $labels[$employee->id] = $unit;
-                    }
-                });
-        }
 
         return $labels;
     }

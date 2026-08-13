@@ -6,12 +6,17 @@ use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Domain\DailyReport\Support\ReportProjectTaskStatus;
 use App\Domain\RoutineTask\Models\RoutineTask;
+use App\Domain\RoutineTask\Models\RoutineTaskAttachment;
 use App\Models\Employee;
+use App\Models\OrgTeam;
+use App\Models\OrgTeamMember;
 use App\Models\SystemAccount;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
 use App\Support\Enums\TaskStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class RoutineTaskTest extends TestCase
@@ -149,6 +154,97 @@ class RoutineTaskTest extends TestCase
                 ->where('viewer.is_self', false)
                 ->where('tasks.0.title', 'Việc của member')
                 ->where('summary.total', 1));
+    }
+
+    public function test_team_leader_can_view_direct_report_list(): void
+    {
+        $leader = Employee::factory()->create();
+        $member = Employee::factory()->create();
+        $account = $this->accountFor($leader, SystemRole::Member);
+
+        $team = OrgTeam::create([
+            'name' => 'Nhóm A',
+            'level' => 1,
+            'leader_id' => $leader->id,
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        OrgTeamMember::create([
+            'org_team_id' => $team->id,
+            'employee_id' => $member->id,
+            'sort_order' => 0,
+        ]);
+
+        RoutineTask::query()->create([
+            'employee_id' => $member->id,
+            'title' => 'Báo cáo cho lead',
+            'status' => TaskStatus::Todo,
+            'position' => 0,
+        ]);
+
+        $this->actingAs($account, 'system')
+            ->get(route('routine-tasks.index', ['employee' => $member->id]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->where('viewer.is_self', false)
+                ->where('tasks.0.title', 'Báo cáo cho lead'));
+    }
+
+    public function test_store_computes_actual_hours_from_start_end(): void
+    {
+        $employee = Employee::factory()->create();
+        $account = $this->accountFor($employee, SystemRole::Member);
+
+        $this->actingAs($account, 'system')
+            ->post(route('routine-tasks.store'), [
+                'title' => 'Họp standup',
+                'work_date' => '2026-08-13',
+                'start_time' => '09:00',
+                'end_time' => '10:30',
+                'estimate_hours' => 2,
+                'blockers' => 'Chờ tài liệu',
+                'progress_percent' => 40,
+            ])
+            ->assertRedirect();
+
+        $task = RoutineTask::query()->forEmployee($employee->id)->first();
+        $this->assertNotNull($task);
+        $this->assertSame('2026-08-13', $task->work_date?->toDateString());
+        $this->assertSame('09:00', $task->started_at?->format('H:i'));
+        $this->assertSame('10:30', $task->ended_at?->format('H:i'));
+        $this->assertEquals(2.0, (float) $task->estimate_hours);
+        $this->assertEquals(1.5, (float) $task->actual_hours);
+        $this->assertSame(40, (int) $task->progress_percent);
+        $this->assertSame('Chờ tài liệu', $task->blockers);
+    }
+
+    public function test_store_accepts_attachment(): void
+    {
+        Storage::fake('public');
+        $employee = Employee::factory()->create();
+        $account = $this->accountFor($employee, SystemRole::Member);
+        $file = UploadedFile::fake()->create('bien-ban.pdf', 80, 'application/pdf');
+
+        $this->actingAs($account, 'system')
+            ->post(route('routine-tasks.store'), [
+                'title' => 'Họp tuần',
+                'files' => [$file],
+            ])
+            ->assertRedirect();
+
+        $task = RoutineTask::query()->forEmployee($employee->id)->first();
+        $this->assertNotNull($task);
+        $attachment = RoutineTaskAttachment::query()->where('routine_task_id', $task->id)->first();
+        $this->assertNotNull($attachment);
+        $this->assertSame('bien-ban.pdf', $attachment->original_name);
+        Storage::disk('public')->assertExists($attachment->path);
+
+        $this->actingAs($account, 'system')
+            ->get(route('routine-tasks.attachments.file', [
+                'routineTask' => $task->id,
+                'attachment' => $attachment->id,
+            ]))
+            ->assertOk();
     }
 
     public function test_reorder_updates_positions(): void

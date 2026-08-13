@@ -216,11 +216,11 @@ const bucketMeta = [
     { key: 'no_due', label: 'Chưa có hạn', icon: 'task', alwaysShow: true, highlight: 'open' },
 ];
 
-const openState = reactive({ daily_report: true, overdue: true, today: true, upcoming: true, no_due: false });
+const openState = reactive({ daily_report: true });
 const bucketOf = (key) => props.buckets?.[key] ?? [];
 
 const VIEW_KEY = 'va-workspace.my-work.view.v1';
-const GROUP_KEY = 'va-workspace.my-work.group.v1';
+const GROUP_KEY = 'va-workspace.my-work.group.v2';
 const VALID_VIEWS = ['cards', 'list'];
 const VALID_GROUPS = ['bucket', 'project', 'flat'];
 
@@ -230,8 +230,8 @@ function readStored(key, allowed, fallback) {
     return allowed.includes(saved) ? saved : fallback;
 }
 
-const viewMode = ref(readStored(VIEW_KEY, VALID_VIEWS, 'cards'));
-const groupMode = ref(readStored(GROUP_KEY, VALID_GROUPS, 'bucket'));
+const viewMode = ref(readStored(VIEW_KEY, VALID_VIEWS, 'list'));
+const groupMode = ref(readStored(GROUP_KEY, VALID_GROUPS, 'project'));
 const sortState = reactive({ key: '', dir: 'asc' });
 
 watch(viewMode, (v) => {
@@ -259,10 +259,6 @@ function toggleSort(key) {
     }
     sortState.key = key;
     sortState.dir = 'asc';
-}
-
-function toggleGroup(key) {
-    openState[key] = !(openState[key] !== false);
 }
 
 const taskGroups = computed(() => {
@@ -307,19 +303,6 @@ const taskGroups = computed(() => {
         tasks: sorted(bucketOf(b.key)),
     }));
 });
-
-const allGroupsExpanded = computed(() =>
-    taskGroups.value
-        .filter((g) => g.tasks.length > 0 || g.alwaysShow)
-        .every((g) => openState[g.key] !== false),
-);
-
-function toggleAllGroups() {
-    const next = !allGroupsExpanded.value;
-    taskGroups.value.forEach((g) => {
-        openState[g.key] = next;
-    });
-}
 
 const bucketHighlight = ref('');
 
@@ -767,7 +750,7 @@ function onScope(scope) {
                   :show="showColDd"
                   :columns="TABLE_COLUMNS"
                   :anchor-ref="colDdRef"
-                  :fixed-labels="['Công việc', 'Thao tác']"
+                  :fixed-labels="['Công việc']"
                   input-id-prefix="my-work-col-vis"
                   @persist="persistVisibleColumns"
                 />
@@ -794,14 +777,6 @@ function onScope(scope) {
               </DatagridToolbarActionButton>
             </div>
             <div class="ml-auto flex min-w-0 shrink-0 flex-wrap items-center justify-end gap-2">
-              <DatagridToolbarActionButton
-                v-if="taskGroups.length"
-                icon="chevron-down"
-                :title="allGroupsExpanded ? 'Thu gọn mọi nhóm' : 'Mở mọi nhóm'"
-                @click="toggleAllGroups"
-              >
-                {{ allGroupsExpanded ? 'Thu nhóm' : 'Mở nhóm' }}
-              </DatagridToolbarActionButton>
               <DatagridSegmentedControl
                 v-model="groupMode"
                 aria-label="Cách nhóm danh sách việc"
@@ -973,15 +948,6 @@ function onScope(scope) {
           </div>
 
           <template v-else>
-            <p
-              v-if="totalTasks > 0"
-              class="mb-3 text-xs text-slate-500"
-            >
-              {{ totalTasks }} việc
-              <span v-if="hasActiveFilters"> khớp bộ lọc</span>
-              <span v-if="viewMode === 'list'"> · bấm tiêu đề cột để sắp xếp</span>
-            </p>
-
             <MyWorkDailyReportSection
               v-if="dailyReportToday"
               v-model:open="openState.daily_report"
@@ -991,13 +957,12 @@ function onScope(scope) {
             <MyWorkTaskTable
               v-if="viewMode === 'list'"
               :groups="taskGroups"
-              :open-state="openState"
               :is-col-visible="isColVisible"
+              :hide-project-col="groupMode === 'project'"
               :mode="mode"
               :status-options="options.statuses"
               :sort-key="sortState.key"
               :sort-dir="sortState.dir"
-              @toggle-group="toggleGroup"
               @sort="toggleSort"
               @change-status="changeStatus"
               @log-work="logWork"
@@ -1009,39 +974,28 @@ function onScope(scope) {
                 v-for="group in taskGroups"
                 v-show="group.tasks.length > 0 || group.alwaysShow"
                 :key="group.key"
-                class="mb-4 last:mb-0"
+                class="mb-5 last:mb-0"
               >
-                <button
-                  type="button"
-                  class="flex w-full items-center gap-2 py-1.5 text-left"
-                  @click="toggleGroup(group.key)"
-                >
-                  <AppIcon
-                    :name="openState[group.key] !== false ? 'chevron-down' : 'chevron-right'"
-                    :size="15"
-                    class="text-slate-400"
-                  />
+                <div class="flex items-center gap-3 py-1.5">
                   <span
                     v-if="group.color"
-                    class="h-2.5 w-2.5 shrink-0 rounded-full"
+                    class="h-2 w-2 shrink-0 rounded-full"
                     :style="{ backgroundColor: group.color }"
                   />
                   <AppIcon
                     v-else
                     :name="group.icon || 'task'"
-                    :size="15"
+                    :size="14"
                     :class="group.key === 'overdue' ? 'text-rose-500' : 'text-slate-400'"
                   />
-                  <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ group.label }}</span>
-                  <span class="rounded-full bg-slate-100 px-1.5 py-0.5 text-[11px] font-medium text-slate-500 dark:bg-slate-800">
-                    {{ group.tasks.length }}
+                  <span class="shrink-0 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ group.label }}</span>
+                  <span class="shrink-0 text-[11px] tabular-nums text-slate-400">
+                    {{ group.tasks.length }} việc
                   </span>
-                </button>
+                  <div class="h-px min-w-[2rem] flex-1 bg-slate-200 dark:bg-slate-700" />
+                </div>
 
-                <div
-                  v-show="openState[group.key] !== false"
-                  class="mt-2"
-                >
+                <div class="mt-2">
                   <p
                     v-if="group.tasks.length === 0"
                     class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-400 dark:bg-slate-800/50"
@@ -1057,6 +1011,7 @@ function onScope(scope) {
                       :key="task.id"
                       :task="task"
                       :mode="mode"
+                      :hide-project="groupMode === 'project'"
                       :status-options="options.statuses"
                       @change-status="changeStatus"
                       @log-work="logWork"

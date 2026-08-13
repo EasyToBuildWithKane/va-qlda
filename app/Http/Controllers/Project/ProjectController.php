@@ -204,19 +204,6 @@ class ProjectController extends Controller
         return back();
     }
 
-    public function updateDepartment(Request $request, Project $project): RedirectResponse
-    {
-        $this->authorize('update', $project);
-
-        $data = $request->validate([
-            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
-        ]);
-
-        $project->update(['department_id' => $data['department_id'] ?? null]);
-
-        return back();
-    }
-
     public function duplicate(Project $project): RedirectResponse
     {
         $this->authorize('create', Project::class);

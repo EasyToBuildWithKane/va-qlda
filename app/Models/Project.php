@@ -186,4 +186,22 @@ class Project extends Model
     {
         return (float) $this->worklogs()->sum('cost');
     }
+
+    /**
+     * Phòng ban liên đới (không gồm phòng phụ trách).
+     *
+     * @return list<int>
+     */
+    public function relatedDepartmentIds(): array
+    {
+        $ids = [];
+        foreach ($this->scope_departments ?? [] as $id) {
+            $id = (int) $id;
+            if ($id > 0 && $id !== (int) $this->department_id) {
+                $ids[] = $id;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
 }

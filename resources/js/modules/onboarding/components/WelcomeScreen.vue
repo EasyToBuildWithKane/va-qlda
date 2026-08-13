@@ -23,7 +23,7 @@ function onDismiss() {
     >
       <div
         v-if="visible && welcome"
-        class="fixed inset-0 z-[90] flex items-center justify-center overflow-y-auto bg-slate-950/55 p-4 backdrop-blur-md"
+        class="fixed inset-0 z-[90] flex items-center justify-center overflow-hidden bg-slate-950/55 p-4 backdrop-blur-md"
         role="dialog"
         aria-modal="true"
         :aria-label="isPreview ? 'Xem trước màn hình chào mừng' : 'Màn hình chào mừng'"
@@ -44,13 +44,7 @@ function onDismiss() {
           leave-active-class="transition duration-150 ease-in"
           leave-to-class="opacity-0 scale-95"
         >
-          <div class="relative my-6 w-full max-w-lg">
-            <p
-              v-if="isPreview"
-              class="mb-3 text-center text-[11px] font-semibold uppercase tracking-[0.16em] text-white/70"
-            >
-              Xem trước — không ghi «đã xem»
-            </p>
+          <div class="relative w-full max-w-4xl">
             <WelcomePanel
               :welcome="welcome"
               @dismiss="onDismiss"

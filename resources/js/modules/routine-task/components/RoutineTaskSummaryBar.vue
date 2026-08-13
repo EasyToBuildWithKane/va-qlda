@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import KpiSummaryStrip from '@/shared/ui/KpiSummaryStrip.vue';
+import { hoursLabel } from '@/modules/routine-task/composables/useRoutineTasks';
 
 const props = defineProps({
     summary: { type: Object, required: true },
@@ -24,6 +25,9 @@ const cards = computed(() => {
     const inProgress = s.in_progress ?? 0;
     const done = s.done ?? 0;
     const pct = (n) => (total > 0 ? Math.round((n / total) * 100) : 0);
+    const etHours = Number(s.estimate_hours ?? 0);
+    const actualHours = Number(s.actual_hours ?? 0);
+    const todayHours = hoursLabel(s.hours_today) ?? '0h';
 
     return [
         {
@@ -32,7 +36,7 @@ const cards = computed(() => {
             value: total,
             tone: 'brand',
             icon: 'list',
-            sub: total ? 'Tất cả việc thường xuyên' : 'Chưa có việc nào',
+            sub: total ? 'Nhật ký công việc' : 'Chưa có việc nào',
             interactive: true,
             payload: { status: '' },
         },
@@ -70,14 +74,23 @@ const cards = computed(() => {
             payload: { status: 'done' },
         },
         {
-            key: 'progress',
-            label: 'Tiến độ',
-            value: `${s.progress_pct ?? 0}`,
-            suffix: '%',
+            key: 'estimate',
+            label: 'Giờ ET',
+            value: etHours,
+            suffix: 'h',
             tone: 'violet',
-            icon: 'performance',
-            sub: total ? `${done}/${total} đã xong` : 'Chưa có dữ liệu',
-            progress: s.progress_pct ?? 0,
+            icon: 'timer',
+            sub: 'Tổng giờ ước tính',
+            interactive: false,
+        },
+        {
+            key: 'actual',
+            label: 'Giờ thực tế',
+            value: actualHours,
+            suffix: 'h',
+            tone: 'amber',
+            icon: 'clock',
+            sub: `Hôm nay ${todayHours}`,
             interactive: false,
         },
     ];
@@ -91,11 +104,16 @@ function onSelect(card) {
 <template>
   <KpiSummaryStrip
     aria-label="Thống kê việc thường xuyên"
-    heading="Tiến độ việc thường xuyên"
+    heading="Nhật ký công việc hằng ngày"
     hint="Thẻ có viền nét đứt — bấm để lọc nhanh danh sách"
     :cards="cards"
     :active-key="activeKey"
     :progress-denominator="summary.total ?? 0"
+    grid-class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6"
     @select="onSelect"
   />
 </template>
+
+<style scoped>
+@import '@/shared/styles/kpi-summary-strip.css';
+</style>

@@ -7,6 +7,7 @@ use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\Region;
+use App\Support\Project\ProjectDepartmentPayload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -21,14 +22,25 @@ class UpdateProjectRequest extends FormRequest
     {
         $allowed = Region::values();
         $scopeRegions = $this->input('scope_regions');
+        $departments = ProjectDepartmentPayload::normalize(
+            $this->input('department_id'),
+            $this->input('scope_departments'),
+            fallbackOwner: false,
+        );
+
+        $merge = [
+            'department_id' => $departments['department_id'],
+            'scope_departments' => $departments['scope_departments'],
+        ];
+
         if (is_array($scopeRegions)) {
-            $this->merge([
-                'scope_regions' => array_values(array_filter(
-                    $scopeRegions,
-                    fn ($v) => is_string($v) && in_array($v, $allowed, true)
-                )),
-            ]);
+            $merge['scope_regions'] = array_values(array_filter(
+                $scopeRegions,
+                fn ($v) => is_string($v) && in_array($v, $allowed, true)
+            ));
         }
+
+        $this->merge($merge);
     }
 
     /**
@@ -78,7 +90,7 @@ class UpdateProjectRequest extends FormRequest
             'actual_budget.min' => 'Ngân sách thực tế phải lớn hơn hoặc bằng 0.',
             'due_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
             'department_id.exists' => 'Phòng ban phụ trách không hợp lệ hoặc đã ngừng hoạt động. Vui lòng chọn lại.',
-            'scope_departments.*.exists' => 'Có phòng ban trong phạm vi không còn tồn tại hoặc đã ngừng hoạt động — hãy chọn lại.',
+            'scope_departments.*.exists' => 'Có phòng ban liên đới không còn tồn tại hoặc đã ngừng hoạt động — hãy chọn lại.',
             'manager_id.exists' => 'Chủ dự án (nhân sự) không tồn tại hoặc đã bị xóa.',
         ];
     }
@@ -91,7 +103,7 @@ class UpdateProjectRequest extends FormRequest
         return [
             'name' => 'tên dự án',
             'department_id' => 'phòng ban phụ trách',
-            'scope_departments.*' => 'phòng ban áp dụng',
+            'scope_departments.*' => 'phòng ban liên đới',
             'manager_id' => 'chủ dự án',
         ];
     }

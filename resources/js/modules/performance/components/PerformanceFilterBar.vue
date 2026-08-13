@@ -28,8 +28,7 @@ const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 const FILTER_CONTROLS_DEF = [
     { key: 'anchor_date', label: 'Mốc thời gian', default: false },
     { key: 'sprint', label: 'Sprint', default: false },
-    { key: 'department', label: 'Phòng ban', default: false },
-    { key: 'team', label: 'Team', default: false },
+    { key: 'team', label: 'Đơn vị / tổ', default: false },
     { key: 'member', label: 'Thành viên', default: false },
     { key: 'project', label: 'Dự án', default: false },
     { key: 'status', label: 'Trạng thái task', default: false },
@@ -45,7 +44,7 @@ const {
     FILTER_CONTROLS,
 } = useVisibleFilterControls(
     FILTER_CONTROLS_DEF,
-    'va-workspace.performance.visible-filters.v3',
+    'va-workspace.performance.visible-filters.v4',
 );
 
 const filterPanelDdRef = ref(null);
@@ -62,7 +61,7 @@ const state = reactive({
     period: props.filter.period ?? 'month',
     date: props.filter.date ?? '',
     sprint: props.filter.sprint ?? null,
-    department: props.filter.department ?? null,
+    department: props.filter.department ?? 'all',
     team: props.filter.team ?? null,
     member: props.filter.member ?? null,
     project: props.filter.project ?? null,
@@ -90,6 +89,11 @@ watch(state, () => {
     clearTimeout(timer);
     timer = setTimeout(apply, 250);
 }, { deep: true });
+
+watch(() => state.department, (next, prev) => {
+    if (suppress || prev === undefined || next === prev) return;
+    state.team = null;
+});
 
 const periodTabs = computed(() =>
     (props.options.periods ?? []).map((p) => ({
@@ -201,6 +205,23 @@ function runExport() {
         </div>
 
         <div class="ml-auto flex shrink-0 items-center gap-2">
+          <select
+            v-model="state.department"
+            :class="FILTER_CONTROL_CLASS"
+            class="max-w-[16rem] shrink-0"
+            aria-label="Phòng ban"
+          >
+            <option value="all">
+              Tất cả phòng ban
+            </option>
+            <option
+              v-for="d in options.departments"
+              :key="d.value"
+              :value="d.value"
+            >
+              {{ d.label }}
+            </option>
+          </select>
           <DatagridSegmentedControl
             v-if="periodTabs.length"
             :model-value="state.period"
@@ -248,33 +269,14 @@ function runExport() {
           </select>
         </DatagridFilterField>
 
-        <DatagridFilterField v-if="visibleFilters.department">
-          <select
-            v-model="state.department"
-            :class="FILTER_CONTROL_CLASS"
-            aria-label="Phòng ban"
-          >
-            <option :value="null">
-              Phòng ban
-            </option>
-            <option
-              v-for="d in options.departments"
-              :key="d.value"
-              :value="d.value"
-            >
-              {{ d.label }}
-            </option>
-          </select>
-        </DatagridFilterField>
-
         <DatagridFilterField v-if="visibleFilters.team">
           <select
             v-model="state.team"
             :class="FILTER_CONTROL_CLASS"
-            aria-label="Team"
+            aria-label="Đơn vị / tổ"
           >
             <option :value="null">
-              Team
+              Đơn vị / tổ
             </option>
             <option
               v-for="t in options.teams"

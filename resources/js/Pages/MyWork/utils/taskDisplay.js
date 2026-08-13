@@ -50,6 +50,42 @@ export function dueToneClass(task) {
     return 'text-slate-700 dark:text-slate-200';
 }
 
+/** Chấm màu — thay badge pill. */
+export const TONE_DOT = {
+    slate: 'bg-slate-400',
+    sky: 'bg-sky-500',
+    violet: 'bg-violet-500',
+    emerald: 'bg-emerald-500',
+    rose: 'bg-rose-500',
+    amber: 'bg-amber-500',
+    indigo: 'bg-indigo-500',
+    teal: 'bg-teal-500',
+    orange: 'bg-orange-500',
+    brand: 'bg-brand',
+};
+
+/** Chữ màu — thay badge pill. */
+export const TONE_TEXT = {
+    slate: 'text-slate-600 dark:text-slate-300',
+    sky: 'text-sky-700 dark:text-sky-300',
+    violet: 'text-violet-700 dark:text-violet-300',
+    emerald: 'text-emerald-700 dark:text-emerald-300',
+    rose: 'text-rose-700 dark:text-rose-300',
+    amber: 'text-amber-700 dark:text-amber-300',
+    indigo: 'text-indigo-700 dark:text-indigo-300',
+    teal: 'text-teal-700 dark:text-teal-300',
+    orange: 'text-orange-700 dark:text-orange-300',
+    brand: 'text-brand',
+};
+
+export function toneDotClass(color) {
+    return TONE_DOT[color] || TONE_DOT.slate;
+}
+
+export function toneTextClass(color) {
+    return TONE_TEXT[color] || TONE_TEXT.slate;
+}
+
 export function personName(person) {
     return displayOrEmpty(person?.name, EMPTY_LABELS.notUpdated);
 }

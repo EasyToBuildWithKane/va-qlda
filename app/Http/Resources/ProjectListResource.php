@@ -48,6 +48,10 @@ class ProjectListResource extends JsonResource
                 'name' => $this->department->name,
                 'color' => $this->department->color,
             ] : null),
+            'scope_departments' => $this->relatedDepartmentIds(),
+            'related_departments' => is_array($this->related_departments)
+                ? $this->related_departments
+                : [],
             // Đội (lĩnh vực) của người quản lý — dùng để nhóm Kanban "Đội công nghệ".
             'org_team' => $this->org_team ?? null,
             'manager' => $this->whenLoaded('manager', fn () => $this->person($this->manager)),

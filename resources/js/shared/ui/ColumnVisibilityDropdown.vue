@@ -35,6 +35,13 @@ function onToggle(key, checked) {
     emit('update:modelValue', { ...props.modelValue, [key]: checked });
     emit('persist');
 }
+
+const fixedHint = computed(() => {
+    const labels = props.fixedLabels.filter(Boolean);
+    if (labels.length === 0) return 'Một số cột luôn hiển thị';
+    if (labels.length === 1) return `Cột «${labels[0]}» luôn hiển thị`;
+    return `Cột ${labels.map((l) => `«${l}»`).join(', ')} luôn hiển thị`;
+});
 </script>
 
 <template>
@@ -94,7 +101,7 @@ function onToggle(key, checked) {
         </div>
         <div class="shrink-0 border-t border-slate-100 px-4 py-2 dark:border-slate-700">
           <p class="text-[11px] text-slate-400">
-            Cột «Thao tác» luôn hiển thị
+            {{ fixedHint }}
           </p>
         </div>
       </div>
@@ -152,7 +159,7 @@ function onToggle(key, checked) {
       </div>
       <div class="border-t border-slate-100 px-4 py-2">
         <p class="text-[11px] text-slate-400">
-          Cột «Thao tác» luôn hiển thị
+          {{ fixedHint }}
         </p>
       </div>
     </div>

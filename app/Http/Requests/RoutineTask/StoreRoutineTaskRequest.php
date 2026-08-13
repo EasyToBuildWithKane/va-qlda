@@ -4,13 +4,19 @@ namespace App\Http\Requests\RoutineTask;
 
 use App\Domain\RoutineTask\Models\RoutineTask;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StoreRoutineTaskRequest extends FormRequest
 {
+    use RoutineTaskFormRules;
+
     public function authorize(): bool
     {
         return $this->user()->can('create', RoutineTask::class);
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $this->emptyToNull();
     }
 
     /**
@@ -18,11 +24,7 @@ class StoreRoutineTaskRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'title' => ['required', 'string', 'max:255'],
-            'description' => ['nullable', 'string', 'max:5000'],
-            'status' => ['nullable', 'string', Rule::in(RoutineTask::allowedStatusValues())],
-        ];
+        return $this->fieldRules();
     }
 
     /**
@@ -30,10 +32,6 @@ class StoreRoutineTaskRequest extends FormRequest
      */
     public function messages(): array
     {
-        return [
-            'title.required' => 'Nhập tiêu đề công việc thường xuyên.',
-            'title.max' => 'Tiêu đề không được vượt quá 255 ký tự.',
-            'status.in' => 'Trạng thái không hợp lệ (todo / in_progress / done).',
-        ];
+        return $this->fieldMessages();
     }
 }

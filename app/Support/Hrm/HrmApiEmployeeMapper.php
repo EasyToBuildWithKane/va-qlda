@@ -118,27 +118,42 @@ final class HrmApiEmployeeMapper
 
         $orgUnit = is_array($assignment['org_unit'] ?? null) ? $assignment['org_unit'] : [];
         $company = is_array($assignment['company'] ?? null) ? $assignment['company'] : [];
+        $deptRef = is_array($assignment['department'] ?? null) ? $assignment['department'] : [];
+        $parentUnit = is_array($orgUnit['parent'] ?? null) ? $orgUnit['parent'] : [];
         $orgType = self::nullableString($orgUnit['type'] ?? null);
         $orgName = self::nullableString($orgUnit['name'] ?? null);
+        $orgCode = self::nullableString($orgUnit['code'] ?? null);
 
-        $departmentName = self::nullableString($payload['department_name'] ?? null);
+        $departmentName = self::nullableString($payload['department_name'] ?? null)
+            ?? self::nullableString($deptRef['name'] ?? null);
         $unitName = null;
+        $unitCode = null;
+        $departmentCode = self::nullableString($payload['department_code'] ?? null)
+            ?? self::nullableString($deptRef['code'] ?? null);
         $headquarterName = self::resolveHeadquarterName($payload, $assignment, $orgType, $orgName);
 
         if ($orgType === 'unit') {
             $unitName = $orgName;
+            $unitCode = $orgCode;
+            $departmentCode = $departmentCode
+                ?? self::nullableString($parentUnit['code'] ?? $orgUnit['parent_code'] ?? null);
+            $departmentName = $departmentName
+                ?? self::nullableString($parentUnit['name'] ?? null);
         } elseif ($orgType === 'department') {
             $departmentName = $departmentName ?? $orgName;
+            $departmentCode = $departmentCode ?? $orgCode;
         } elseif (! in_array($orgType, ['headquarter', 'branch'], true)) {
             $departmentName = $departmentName ?? $orgName;
+            $departmentCode = $departmentCode ?? $orgCode;
         }
 
         $meta = array_filter([
             'department_name' => $departmentName,
-            'department_code' => self::nullableString($orgUnit['code'] ?? null),
+            'department_code' => $departmentCode,
             'company_name' => self::nullableString($company['name'] ?? null),
             'company_id' => self::nullableString($company['code'] ?? null),
             'unit_name' => $unitName,
+            'unit_code' => $unitCode,
             'headquarter_name' => $headquarterName,
             'workplace' => self::nullableString($payload['workplace'] ?? null),
             'position_name' => self::nullableString($payload['job_title_name'] ?? null)

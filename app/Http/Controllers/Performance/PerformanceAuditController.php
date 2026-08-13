@@ -91,6 +91,7 @@ class PerformanceAuditController extends Controller
                 'name' => $employee->full_name,
                 'role' => $employee->role_title,
                 'avatar' => $audit['member']['avatar'] ?? null,
+                'unitName' => $audit['member']['unitName'] ?? null,
             ],
             'filter' => $filter->toClientArray(),
             'options' => $filter->options(),

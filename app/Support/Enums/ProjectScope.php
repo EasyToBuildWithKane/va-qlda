@@ -4,7 +4,7 @@ namespace App\Support\Enums;
 
 /**
  * Phạm vi áp dụng của dự án: Hội sở / Toàn hệ thống / Khu vực / Phòng ban.
- * Quyết định dự án được triển khai ở đâu (độc lập với loại & phòng ban phụ trách).
+ * Quyết định dự án được triển khai ở đâu (độc lập với phòng ban phụ trách và phòng liên đới).
  */
 enum ProjectScope: string
 {
@@ -29,7 +29,7 @@ enum ProjectScope: string
             self::Headquarters => 'Chỉ triển khai tại văn phòng hội sở.',
             self::System => 'Áp dụng cho toàn bộ hệ thống VA School.',
             self::Regional => 'Triển khai theo từng khu vực/chi nhánh.',
-            self::Departmental => 'Áp dụng cho một số phòng ban cụ thể.',
+            self::Departmental => 'Áp dụng cho các phòng ban liên đới được chọn bên dưới.',
         };
     }
 

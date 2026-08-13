@@ -190,9 +190,9 @@ Chi tiết đồng bộ, filter, export: **`docs/DAILY_REPORT_PROJECTS.md`**.
 4. **Routine board → Báo cáo hôm nay:** `ToggleRoutineTaskStatusUseCase` cập nhật `projects[].tasks[].status` trên báo cáo draft ngày hiện tại khi đổi status tại `/routine-tasks`.
 
 Migration task sync: `2026_06_12_110000_add_task_daily_report_sync_fields.php`.  
-Migration routine: `2026_08_13_140000_create_routine_tasks_table.php`. Backfill: `php artisan routine-tasks:backfill`.
+Migration routine: `2026_08_13_140000_create_routine_tasks_table.php` + `2026_08_13_160000_add_daily_log_fields_to_routine_tasks.php` + `2026_08_13_160100_create_routine_task_attachments_table.php`. Backfill: `php artisan routine-tasks:backfill`.
 
-Trang quản lý: `/routine-tasks` (sidebar nhóm Báo cáo). Chi tiết module: `docs/FRONTEND_STRUCTURE.md` §6.6b.
+Trang `/routine-tasks`: nhật ký list (giờ bắt đầu/kết thúc, ET, tiến độ, vướng mắc/rủi ro, tệp); modal form ngang vừa viewport. Chi tiết: `docs/FRONTEND_STRUCTURE.md` §6.6b.
 
 ---
 

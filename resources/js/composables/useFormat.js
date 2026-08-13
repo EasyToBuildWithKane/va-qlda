@@ -23,12 +23,9 @@ export function dateFromYmd(ymd) {
     return Number.isNaN(d.getTime()) ? null : d;
 }
 
-/** ISO date/datetime → "dd/mm/yyyy 00:00" (mốc lịch, báo cáo). null → "—". */
+/** ISO date/datetime → "dd/mm/yyyy" (mốc lịch, báo cáo). null → nhãn trống caller xử lý. */
 export function dateAtMidnight(value) {
-    if (!value) return '—';
-    const d = String(value).length === 10 ? dateFromYmd(value) : new Date(value);
-    if (!d || Number.isNaN(d.getTime())) return '—';
-    return `${d.toLocaleDateString('vi-VN')} 00:00`;
+    return date(value);
 }
 
 /** ISO date/datetime → "dd/mm/yyyy". null → "—". */

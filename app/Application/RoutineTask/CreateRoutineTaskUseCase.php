@@ -7,8 +7,10 @@ use App\Support\Enums\TaskStatus;
 
 class CreateRoutineTaskUseCase
 {
+    use MapsRoutineTaskFields;
+
     /**
-     * @param  array{title: string, description?: string|null, status?: string|null}  $data
+     * @param  array<string, mixed>  $data
      */
     public function execute(int $employeeId, array $data): RoutineTask
     {
@@ -19,17 +21,22 @@ class CreateRoutineTaskUseCase
             $status = TaskStatus::Todo;
         }
 
+        $data['status'] = $status->value;
+
         $nextPosition = (int) RoutineTask::query()
             ->forEmployee($employeeId)
             ->max('position') + 1;
 
-        return RoutineTask::query()->create([
-            'employee_id' => $employeeId,
-            'title' => trim((string) $data['title']),
-            'description' => isset($data['description']) ? trim((string) $data['description']) ?: null : null,
-            'status' => $status,
-            'position' => $nextPosition,
-            'completed_at' => $status === TaskStatus::Done ? now() : null,
-        ]);
+        $fields = $this->mapWritableFields($data, $status);
+        $fields['employee_id'] = $employeeId;
+        $fields['position'] = $nextPosition;
+        $fields['status'] = $status;
+        $fields['completed_at'] = $status === TaskStatus::Done ? now() : null;
+
+        if (! array_key_exists('work_date', $data) && empty($fields['work_date'])) {
+            $fields['work_date'] = now()->toDateString();
+        }
+
+        return RoutineTask::query()->create($fields);
     }
 }

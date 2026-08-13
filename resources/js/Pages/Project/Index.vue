@@ -13,7 +13,6 @@ import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
-import { usePermission } from '@/shared/composables/usePermission';
 import { COLUMNS, DEFAULT_VISIBLE } from '@/modules/project/config/columns';
 import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
@@ -67,33 +66,16 @@ const props = defineProps({
 
 const dialog = useDialog();
 const toast = useToast();
-const { isSuperAdmin } = usePermission();
 const perPage = ref(Number(props.filters.per_page) || props.projects.meta?.per_page || DEFAULT_PER_PAGE);
 
 // ---- Persisted UI state ---------------------------------------------------
 const VIEW_KEY = 'va-workspace.projects.view';
-const GROUP_KEY = 'va-workspace.projects.groupby';
 const KANBAN_COLLAPSE_KEY = 'va-workspace.projects.kanban.collapsed';
 const COLS_KEY = 'va-workspace.projects.columns';
 const SAVED_KEY = 'va-workspace.projects.savedfilters';
-const ALLOWED_GROUP_BY = new Set(['type', 'department']);
 
 const view = ref(localStorage.getItem(VIEW_KEY) || 'list');
-const loadGroupBy = () => {
-    const saved = localStorage.getItem(GROUP_KEY);
-    if (ALLOWED_GROUP_BY.has(saved) && isSuperAdmin.value) return saved;
-    return 'type';
-};
-const groupBy = ref(loadGroupBy());
 watch(view, (v) => localStorage.setItem(VIEW_KEY, v));
-watch(groupBy, (v) => {
-    if (!isSuperAdmin.value) return;
-    localStorage.setItem(GROUP_KEY, v);
-});
-watch(isSuperAdmin, (ok) => {
-    if (!ok) groupBy.value = 'type';
-    else if (!ALLOWED_GROUP_BY.has(groupBy.value)) groupBy.value = loadGroupBy();
-});
 
 // Visible columns
 const loadCols = () => {
@@ -268,20 +250,10 @@ const dot = {
 
 const columns = computed(() => {
     const data = props.projects.data;
-    // Non–super-admin luôn nhóm theo loại; chỉ super admin đổi được sang phòng ban.
-    const mode = isSuperAdmin.value && groupBy.value === 'department' ? 'department' : 'type';
-    if (mode === 'type') {
-        return props.typeOptions.map((t) => ({
-            key: 't' + t.value, label: t.label, color: t.color, value: t.value,
-            projects: data.filter((p) => p.type?.value === t.value),
-        }));
-    }
-    const cols = props.departmentOptions.map((d) => ({
-        key: 'd' + d.id, label: d.name, color: d.color, value: d.id,
-        projects: data.filter((p) => p.department_id === d.id),
+    return props.typeOptions.map((t) => ({
+        key: 't' + t.value, label: t.label, color: t.color, value: t.value,
+        projects: data.filter((p) => p.type?.value === t.value),
     }));
-    cols.push({ key: 'none', label: 'Chưa phân phòng', color: 'slate', value: null, projects: data.filter((p) => !p.department_id) });
-    return cols;
 });
 
 const dragId = ref(null);
@@ -289,10 +261,8 @@ const onDrop = (col) => {
     const p = props.projects.data.find((x) => x.id === dragId.value);
     dragId.value = null;
     if (!p || !p.can?.update) return;
-    if (groupBy.value === 'type') {
-        if (p.type?.value !== col.value) router.patch(`/projects/${p.id}/type`, { type: col.value }, { preserveScroll: true, preserveState: true });
-    } else if (isSuperAdmin.value && groupBy.value === 'department' && (p.department_id ?? null) !== col.value) {
-        router.patch(`/projects/${p.id}/department`, { department_id: col.value }, { preserveScroll: true, preserveState: true });
+    if (p.type?.value !== col.value) {
+        router.patch(`/projects/${p.id}/type`, { type: col.value }, { preserveScroll: true, preserveState: true });
     }
 };
 
@@ -757,47 +727,21 @@ function onPortfolioQuickFilter({ status }) {
       v-else
       class="space-y-4"
     >
-      <div class="flex flex-wrap items-center justify-between gap-2 text-sm">
-        <div
-          v-if="isSuperAdmin"
-          class="flex items-center gap-2"
+      <div class="flex flex-wrap items-center justify-end gap-1 text-sm">
+        <button
+          type="button"
+          class="rounded-btn border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          @click="expandAllLanes"
         >
-          <span class="text-slate-500">Nhóm theo:</span>
-          <div class="inline-flex rounded-btn border border-slate-200 bg-white p-0.5">
-            <button
-              type="button"
-              class="rounded-[4px] px-3 py-1 text-sm font-medium transition"
-              :class="groupBy === 'type' ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100'"
-              @click="groupBy = 'type'"
-            >
-              Loại dự án
-            </button>
-            <button
-              type="button"
-              class="rounded-[4px] px-3 py-1 text-sm font-medium transition"
-              :class="groupBy === 'department' ? 'bg-brand text-white' : 'text-slate-500 hover:bg-slate-100'"
-              @click="groupBy = 'department'"
-            >
-              Phòng ban
-            </button>
-          </div>
-        </div>
-        <div class="ml-auto flex items-center gap-1">
-          <button
-            type="button"
-            class="rounded-btn border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
-            @click="expandAllLanes"
-          >
-            Mở tất cả
-          </button>
-          <button
-            type="button"
-            class="rounded-btn border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
-            @click="collapseAllLanes"
-          >
-            Thu gọn tất cả
-          </button>
-        </div>
+          Mở tất cả
+        </button>
+        <button
+          type="button"
+          class="rounded-btn border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-600 hover:bg-slate-50"
+          @click="collapseAllLanes"
+        >
+          Thu gọn tất cả
+        </button>
       </div>
 
       <div
@@ -861,8 +805,7 @@ function onPortfolioQuickFilter({ status }) {
             class="w-[18.5rem] shrink-0"
             :project="p"
             :draggable="!!p.can?.update"
-            :show-type="groupBy !== 'type'"
-            :show-department="groupBy !== 'department'"
+            show-department
             @dragstart="dragId = p.id"
             @remove="remove"
           />

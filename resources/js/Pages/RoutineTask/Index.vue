@@ -8,10 +8,13 @@ import DatagridToolbarSearch from '@/shared/ui/DatagridToolbarSearch.vue';
 import DatagridToolbarActionButton from '@/shared/ui/DatagridToolbarActionButton.vue';
 import DatagridFilterField from '@/shared/ui/DatagridFilterField.vue';
 import FilterVisibilityDropdown from '@/shared/ui/FilterVisibilityDropdown.vue';
+import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import RoutineTaskSummaryBar from '@/modules/routine-task/components/RoutineTaskSummaryBar.vue';
-import RoutineTaskCard from '@/modules/routine-task/components/RoutineTaskCard.vue';
-import { useRoutineTasks } from '@/modules/routine-task/composables/useRoutineTasks';
+import RoutineTaskListRow from '@/modules/routine-task/components/RoutineTaskListRow.vue';
+import RoutineTaskPeopleBar from '@/modules/routine-task/components/RoutineTaskPeopleBar.vue';
+import RoutineTaskFormModal from '@/modules/routine-task/components/RoutineTaskFormModal.vue';
+import { useRoutineTasks, todayIso, formatViDate } from '@/modules/routine-task/composables/useRoutineTasks';
 
 const props = defineProps({
     tasks: { type: Array, default: () => [] },
@@ -21,12 +24,13 @@ const props = defineProps({
     viewer: { type: Object, default: () => ({}) },
 });
 
-const { createTask, updateTask, toggleStatus, deleteTask } = useRoutineTasks();
+const { toggleStatus, deleteTask } = useRoutineTasks();
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
 const ROUTINE_FILTER_CONTROLS = [
     { key: 'status', label: 'Trạng thái', default: false },
     { key: 'employee', label: 'Nhân sự', default: false },
+    { key: 'date_range', label: 'Khoảng ngày', default: false },
 ];
 
 const {
@@ -37,16 +41,19 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS,
-} = useVisibleFilterControls(ROUTINE_FILTER_CONTROLS, 'va-workspace.routine-task.visible-filters.v1');
+} = useVisibleFilterControls(ROUTINE_FILTER_CONTROLS, 'va-workspace.routine-task.visible-filters.v2');
 
 const filterPanelDdRef = ref(null);
-const draftTitle = ref('');
 const searchQ = ref(props.filters.q ?? '');
+const showForm = ref(false);
+const editingTask = ref(null);
 let searchTimer = null;
 
 const filterForm = reactive({
     status: props.filters.status ?? '',
     employee: props.filters.employee ?? '',
+    from: props.filters.from ?? '',
+    to: props.filters.to ?? '',
 });
 
 watch(
@@ -55,6 +62,8 @@ watch(
         searchQ.value = f.q ?? '';
         filterForm.status = f.status ?? '';
         filterForm.employee = f.employee ?? '';
+        filterForm.from = f.from ?? '';
+        filterForm.to = f.to ?? '';
     },
     { deep: true },
 );
@@ -76,6 +85,8 @@ const applyFilters = (overrides = {}) => {
         q: searchQ.value || undefined,
         status: filterForm.status || undefined,
         employee: filterForm.employee || undefined,
+        from: filterForm.from || undefined,
+        to: filterForm.to || undefined,
         ...overrides,
     };
     Object.keys(params).forEach((k) => {
@@ -95,16 +106,48 @@ const onQuickFilter = ({ status }) => {
     applyFilters({ status: status || undefined });
 };
 
+const onSelectPerson = (employeeId) => {
+    filterForm.employee = employeeId || '';
+    applyFilters({ employee: employeeId || undefined });
+};
+
 const groups = computed(() => {
-    const order = [
-        { key: 'todo', label: 'Cần làm' },
-        { key: 'in_progress', label: 'Đang làm' },
-        { key: 'done', label: 'Hoàn thành' },
-    ];
-    return order.map((g) => ({
-        ...g,
-        items: (props.tasks ?? []).filter((t) => t.status?.value === g.key),
-    })).filter((g) => g.items.length > 0 || !filterForm.status);
+    const today = todayIso();
+    const y = new Date(`${today}T00:00:00`);
+    y.setDate(y.getDate() - 1);
+    const yesterday = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+
+    const buckets = new Map();
+    const ensure = (key, label) => {
+        if (!buckets.has(key)) buckets.set(key, { key, label, items: [] });
+        return buckets.get(key);
+    };
+
+    (props.tasks ?? []).forEach((task) => {
+        const d = task.work_date || '';
+        if (!d) {
+            ensure('undated', 'Việc lặp lại').items.push(task);
+        } else if (d === today) {
+            ensure('today', 'Hôm nay').items.push(task);
+        } else if (d === yesterday) {
+            ensure('yesterday', 'Hôm qua').items.push(task);
+        } else {
+            ensure(d, formatViDate(d) || d).items.push(task);
+        }
+    });
+
+    return [...buckets.values()].sort((a, b) => {
+        const rank = (g) => {
+            if (g.key === 'today') return 0;
+            if (g.key === 'yesterday') return 1;
+            if (g.key === 'undated') return 100;
+            return 10;
+        };
+        const ra = rank(a);
+        const rb = rank(b);
+        if (ra !== rb) return ra - rb;
+        return String(b.key).localeCompare(String(a.key));
+    });
 });
 
 const pageTitle = computed(() => (
@@ -115,13 +158,20 @@ const pageTitle = computed(() => (
 
 const canEdit = computed(() => Boolean(props.viewer?.is_self));
 
-const submitNew = () => {
-    const title = draftTitle.value.trim();
-    if (!title || !props.viewer?.can_create) return;
-    createTask({ title }, {
-        onSuccess: () => { draftTitle.value = ''; },
-    });
-};
+function openCreate() {
+    editingTask.value = null;
+    showForm.value = true;
+}
+
+function openTask(task) {
+    editingTask.value = task;
+    showForm.value = true;
+}
+
+function closeForm() {
+    showForm.value = false;
+    editingTask.value = null;
+}
 </script>
 
 <template>
@@ -130,11 +180,24 @@ const submitNew = () => {
     <template #header>
       <PageHeader
         :title="pageTitle"
-        subtitle="Checklist dài hạn — theo dõi tiến độ việc lặp lại, độc lập với dự án"
+        subtitle="Nhật ký công việc hằng ngày — giờ ET, tiến độ, vướng mắc"
         icon="list"
         icon-color="brand"
         :badge="summary.total ?? null"
-      />
+      >
+        <button
+          v-if="viewer.can_create"
+          type="button"
+          class="btn-primary inline-flex h-9 shrink-0 items-center gap-1.5 px-3 text-xs font-semibold"
+          @click="openCreate"
+        >
+          <AppIcon
+            name="add"
+            :size="15"
+          />
+          Thêm
+        </button>
+      </PageHeader>
     </template>
 
     <RoutineTaskSummaryBar
@@ -151,7 +214,7 @@ const submitNew = () => {
               v-model="searchQ"
               input-id="routine-task-search"
               input-name="q"
-              placeholder="Tìm theo tiêu đề hoặc mô tả…"
+              placeholder="Tìm theo tiêu đề, mô tả, vướng mắc…"
               stretch
               inline-actions
               hide-label
@@ -229,33 +292,37 @@ const submitNew = () => {
               </option>
             </select>
           </DatagridFilterField>
-        </div>
-      </div>
 
-      <div
-        v-if="viewer.can_create"
-        class="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-slate-50/60 px-5 py-3"
-      >
-        <input
-          v-model="draftTitle"
-          type="text"
-          class="input h-10 min-w-0 flex-1 text-sm"
-          maxlength="255"
-          placeholder="Thêm việc thường xuyên mới…"
-          @keydown.enter.prevent="submitNew"
+          <DatagridFilterField
+            v-if="visibleFilters.date_range"
+            class="sm:col-span-2 xl:col-span-2"
+          >
+            <div class="grid grid-cols-2 gap-2">
+              <FilterDatePicker
+                v-model="filterForm.from"
+                placeholder="Từ ngày"
+                @update:model-value="applyFilters()"
+              />
+              <FilterDatePicker
+                v-model="filterForm.to"
+                placeholder="Đến ngày"
+                @update:model-value="applyFilters()"
+              />
+            </div>
+          </DatagridFilterField>
+        </div>
+
+        <div
+          v-if="viewer.can_view_others"
+          class="mt-3"
         >
-        <button
-          type="button"
-          class="btn-primary h-10 shrink-0 gap-1.5 px-3 text-sm"
-          :disabled="!draftTitle.trim()"
-          @click="submitNew"
-        >
-          <AppIcon
-            name="add"
-            :size="15"
+          <RoutineTaskPeopleBar
+            :self="viewer.self"
+            :reports="options.direct_reports ?? []"
+            :active-employee-id="filterForm.employee || viewer.employee_id"
+            @select="onSelectPerson"
           />
-          Thêm
-        </button>
+        </div>
       </div>
 
       <div class="space-y-6 px-5 py-5">
@@ -269,10 +336,10 @@ const submitNew = () => {
             class="mx-auto text-slate-300"
           />
           <p class="mt-3 text-sm font-medium text-slate-700">
-            Chưa có việc thường xuyên
+            Chưa có công việc
           </p>
           <p class="mt-1 text-xs text-slate-500">
-            Thêm việc lặp lại tại đây, hoặc gắn từ tab «Công việc thường xuyên» trong báo cáo hôm nay.
+            Bấm «Thêm» để ghi nhận việc trong ngày — họp, tác vụ lặp, tiến độ và vướng mắc.
           </p>
         </div>
 
@@ -291,15 +358,15 @@ const submitNew = () => {
           </div>
           <div
             v-if="group.items.length"
-            class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3"
+            class="space-y-2"
           >
-            <RoutineTaskCard
+            <RoutineTaskListRow
               v-for="task in group.items"
               :key="task.id"
               :task="task"
               :can-edit="canEdit && Boolean(task.can?.update)"
               @toggle-status="toggleStatus(task.id)"
-              @update-title="(title) => updateTask(task.id, { title })"
+              @open="openTask(task)"
               @delete="deleteTask(task.id)"
             />
           </div>
@@ -312,5 +379,13 @@ const submitNew = () => {
         </section>
       </div>
     </div>
+
+    <RoutineTaskFormModal
+      :show="showForm"
+      :task="editingTask"
+      :statuses="options.statuses ?? []"
+      :can-edit="canEdit && (editingTask ? Boolean(editingTask.can?.update) : Boolean(viewer.can_create))"
+      @close="closeForm"
+    />
   </AppLayout>
 </template>

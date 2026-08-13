@@ -2,7 +2,6 @@
 
 namespace App\Support\Performance;
 
-use App\Models\Department;
 use App\Models\Employee;
 use App\Models\OrgTeam;
 use App\Models\OrgTeamMember;
@@ -20,7 +19,8 @@ use Illuminate\Support\Collection;
  * Giải mã query (periodType + anchor + scope) thành khoảng thời gian {start,end}
  * và tập employee ids đã phạm vi hóa. Mọi widget đọc cùng một filter để đồng bộ.
  *
- * Mặc định phạm vi nhân sự = Phòng Công nghệ (tái dùng DashboardPersonnelScope).
+ * Mặc định phạm vi nhân sự = phòng ban HRM của user đang đăng nhập
+ * (fallback Phòng Công nghệ khi chưa gắn đơn vị).
  */
 class PerformanceFilter
 {
@@ -39,11 +39,16 @@ class PerformanceFilter
         public readonly string $label,
         public readonly ?int $sprintId,
         public readonly ?int $departmentId,
+        public readonly ?string $departmentCode,
+        public readonly ?string $departmentName,
+        public readonly bool $allDepartments,
         public readonly ?int $teamId,
+        public readonly ?string $unitKey,
         public readonly ?int $memberId,
         public readonly ?int $projectId,
         public readonly array $statuses,
         private readonly DashboardPersonnelScope $personnelScope,
+        private readonly PerformancePersonnelResolver $hrmScope,
         public readonly string $anchorDate,
     ) {}
 
@@ -74,18 +79,35 @@ class PerformanceFilter
             fn (string $s) => in_array($s, TaskStatus::values(), true),
         ));
 
+        $hrmScope = app(PerformancePersonnelResolver::class);
+        $hrmScope->syncEmployees();
+
+        $dept = $hrmScope->resolveDepartment(
+            $request->query('department') !== null ? (string) $request->query('department') : null,
+            $request->user('system'),
+        );
+
+        $teamRaw = $request->query('team');
+        $teamId = self::intOrNull($teamRaw);
+        $unitKey = $teamId === null && filled($teamRaw) ? trim((string) $teamRaw) : null;
+
         return new self(
             periodType: $period,
             start: $start,
             end: $end,
             label: $label,
             sprintId: $sprint?->id,
-            departmentId: self::intOrNull($request->query('department')),
-            teamId: self::intOrNull($request->query('team')),
+            departmentId: $dept['local_id'],
+            departmentCode: $dept['code'],
+            departmentName: $dept['name'],
+            allDepartments: $dept['all'],
+            teamId: $teamId,
+            unitKey: $unitKey,
             memberId: self::intOrNull($request->query('member')),
             projectId: self::intOrNull($request->query('project')),
             statuses: $statuses,
             personnelScope: $personnelScope,
+            hrmScope: $hrmScope,
             anchorDate: $anchor->toDateString(),
         );
     }
@@ -160,7 +182,7 @@ class PerformanceFilter
     }
 
     /**
-     * Tập employee ids đã phạm vi hóa theo member → team → department → mặc định Phòng Công nghệ.
+     * Tập employee ids đã phạm vi hóa theo member → team Org → đơn vị HRM → phòng ban HRM.
      *
      * @return Collection<int, int>
      */
@@ -178,14 +200,9 @@ class PerformanceFilter
             return $this->resolvedEmployeeIds = $this->teamEmployeeIds($this->teamId);
         }
 
-        if ($this->departmentId) {
-            $ids = Department::query()->whereKey($this->departmentId)->first()
-                ?->members()->pluck('employees.id') ?? collect();
-
-            return $this->resolvedEmployeeIds = $ids->map(fn ($id) => (int) $id)->values();
-        }
-
-        return $this->resolvedEmployeeIds = $this->personnelScope->employeeIds()->values();
+        return $this->resolvedEmployeeIds = $this->hrmScope
+            ->employeeIds($this->departmentCode, $this->allDepartments, $this->unitKey)
+            ->values();
     }
 
     /**
@@ -230,8 +247,9 @@ class PerformanceFilter
                 'end' => $this->end->toDateString(),
             ],
             'sprint' => $this->sprintId,
-            'department' => $this->departmentId,
-            'team' => $this->teamId,
+            'department' => $this->allDepartments ? PerformancePersonnelResolver::ALL : $this->departmentCode,
+            'department_name' => $this->departmentName,
+            'team' => $this->unitKey ?? $this->teamId,
             'member' => $this->memberId,
             'project' => $this->projectId,
             'status' => $this->statuses,
@@ -256,16 +274,8 @@ class PerformanceFilter
                 ['value' => 'sprint', 'label' => 'Sprint'],
             ],
             'statuses' => TaskStatus::options(),
-            'departments' => Department::query()->active()
-                ->orderBy('sort_order')->orderBy('name')
-                ->get(['id', 'name'])
-                ->map(fn (Department $d) => ['value' => $d->id, 'label' => $d->name])
-                ->values(),
-            'teams' => OrgTeam::query()->where('is_active', true)
-                ->orderBy('level')->orderBy('name')
-                ->get(['id', 'name', 'level'])
-                ->map(fn (OrgTeam $t) => ['value' => $t->id, 'label' => $t->name])
-                ->values(),
+            'departments' => $this->hrmScope->departmentOptions(),
+            'teams' => $this->unitOptions(),
             'members' => Employee::query()
                 ->whereIn('id', $memberIds)
                 ->orderBy('full_name')
@@ -286,6 +296,23 @@ class PerformanceFilter
                 ]))
                 ->values(),
         ];
+    }
+
+    /**
+     * @return \Illuminate\Support\Collection<int, array{value: string, label: string}>
+     */
+    private function unitOptions()
+    {
+        $fromHrm = collect($this->hrmScope->unitOptions($this->allDepartments ? null : $this->departmentCode));
+        if ($fromHrm->isNotEmpty()) {
+            return $fromHrm->values();
+        }
+
+        return OrgTeam::query()->where('is_active', true)
+            ->orderBy('level')->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (OrgTeam $t) => ['value' => (string) $t->id, 'label' => $t->name])
+            ->values();
     }
 
     private static function intOrNull(mixed $value): ?int

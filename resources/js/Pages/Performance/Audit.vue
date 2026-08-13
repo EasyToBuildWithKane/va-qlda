@@ -45,8 +45,7 @@ const PERIOD_TABS = [
 
 const FILTER_CONTROLS = [
     { key: 'anchor_date', label: 'Mốc thời gian', default: false },
-    { key: 'department', label: 'Phòng ban', default: false },
-    { key: 'team', label: 'Đơn vị', default: false },
+    { key: 'team', label: 'Đơn vị / tổ', default: false },
 ];
 
 const FILTER_CONTROL_CLASS = 'input h-10 w-full text-sm';
@@ -63,8 +62,20 @@ const form = reactive({
     kpi: props.filters.kpi || '',
     period: props.filter.period ?? 'month',
     date: props.filter.date ?? '',
-    department: props.filter.department ?? '',
+    department: props.filter.department ?? 'all',
     team: props.filter.team ?? '',
+});
+
+const scopeLabel = computed(() => {
+    if (form.department === 'all' || !props.filter.department_name) {
+        return form.department === 'all' ? 'Tất cả phòng ban' : '';
+    }
+    return props.filter.department_name;
+});
+
+const pageSubtitle = computed(() => {
+    const period = displayOrEmpty(props.filter.label, EMPTY_LABELS.period);
+    return scopeLabel.value ? `${scopeLabel.value} · ${period}` : period;
 });
 
 const {
@@ -75,7 +86,7 @@ const {
     persistVisibleFilters,
     openFilterPanel,
     FILTER_CONTROLS: filterControlDefs,
-} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.performance-audit.visible-filters.v1');
+} = useVisibleFilterControls(FILTER_CONTROLS, 'va-workspace.performance-audit.visible-filters.v2');
 
 const {
     visibleCols,
@@ -259,9 +270,25 @@ function onQuickFilter({ kpi }) {
     applyImmediate({ page: 1, kpi: form.kpi || undefined });
 }
 
+function setDepartment(code) {
+    form.department = code || 'all';
+    form.team = '';
+    applyImmediate({ page: 1, team: undefined });
+}
+
 function setPeriod(period) {
     form.period = period;
     applyImmediate({ page: 1 });
+}
+
+function unitLabel(row) {
+    return displayOrEmpty(row.departmentName || row.unitName, EMPTY_LABELS.team);
+}
+
+function unitHint(row) {
+    const unit = row.orgUnitName;
+    if (!unit || unit === row.departmentName) return '';
+    return unit;
 }
 
 function shiftAnchor(delta) {
@@ -365,7 +392,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
     <template #header>
       <PageHeader
         title="Audit nhân sự"
-        :subtitle="`Danh sách cam kết & kết quả · ${displayOrEmpty(filter.label, EMPTY_LABELS.period)}`"
+        :subtitle="pageSubtitle"
         icon="leaderboard"
         icon-color="brand"
         :badge="summary.total ?? null"
@@ -457,6 +484,24 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
           </div>
 
           <div class="ml-auto flex shrink-0 items-center gap-2">
+            <select
+              :value="form.department"
+              :class="FILTER_CONTROL_CLASS"
+              class="max-w-[16rem] shrink-0"
+              aria-label="Phòng ban"
+              @change="setDepartment($event.target.value)"
+            >
+              <option value="all">
+                Tất cả phòng ban
+              </option>
+              <option
+                v-for="d in options.departments"
+                :key="d.value"
+                :value="d.value"
+              >
+                {{ d.label }}
+              </option>
+            </select>
             <DatagridToolbarActionButton
               v-if="usePeriodLineGroups && groupedByPeriod.length"
               icon="chevron-down"
@@ -466,6 +511,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               <span class="hidden sm:inline">{{ allPeriodGroupsExpanded ? 'Thu kỳ' : 'Mở kỳ' }}</span>
               <span class="sm:hidden">{{ allPeriodGroupsExpanded ? 'Thu' : 'Mở' }}</span>
             </DatagridToolbarActionButton>
+            <span class="hidden max-w-[14rem] truncate text-xs text-slate-500 lg:inline">{{ filter.label }}</span>
             <DatagridSegmentedControl
               :model-value="form.period"
               :items="PERIOD_TABS"
@@ -542,35 +588,15 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
               </div>
             </DatagridFilterField>
 
-            <DatagridFilterField v-if="visibleFilters.department">
-              <select
-                v-model="form.department"
-                :class="FILTER_CONTROL_CLASS"
-                aria-label="Phòng ban"
-                @change="applyImmediate({ page: 1 })"
-              >
-                <option value="">
-                  Phòng ban
-                </option>
-                <option
-                  v-for="d in options.departments"
-                  :key="d.value"
-                  :value="d.value"
-                >
-                  {{ d.label }}
-                </option>
-              </select>
-            </DatagridFilterField>
-
             <DatagridFilterField v-if="visibleFilters.team">
               <select
                 v-model="form.team"
                 :class="FILTER_CONTROL_CLASS"
-                aria-label="Đơn vị"
+                aria-label="Đơn vị / tổ"
                 @change="applyImmediate({ page: 1 })"
               >
                 <option value="">
-                  Đơn vị
+                  Đơn vị / tổ
                 </option>
                 <option
                   v-for="t in options.teams"
@@ -705,11 +731,12 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                         />
                         <div class="min-w-0">
                           <span class="font-medium text-brand hover:underline">{{ row.name }}</span>
-                          <p
-                            v-if="row.role"
-                            class="truncate text-xs text-slate-500"
-                          >
-                            {{ row.role }}
+                          <p class="truncate text-xs text-slate-500">
+                            {{ displayOrEmpty(row.role, EMPTY_LABELS.role) }}
+                            <span
+                              v-if="unitHint(row)"
+                              class="text-slate-400"
+                            > · {{ unitHint(row) }}</span>
                           </p>
                         </div>
                       </Link>
@@ -718,8 +745,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                       v-if="isAuditColVisible('team')"
                       class="px-5 py-3 text-slate-600"
                     >
-                      <span :class="{ 'text-slate-400 italic text-xs': !row.unitName }">
-                        {{ displayOrEmpty(row.unitName, EMPTY_LABELS.team) }}
+                      <span :class="{ 'text-slate-400 italic text-xs': !row.departmentName && !row.unitName }">
+                        {{ unitLabel(row) }}
                       </span>
                     </td>
                     <td
@@ -792,11 +819,12 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                     />
                     <div class="min-w-0">
                       <span class="font-medium text-brand hover:underline">{{ row.name }}</span>
-                      <p
-                        v-if="row.role"
-                        class="truncate text-xs text-slate-500"
-                      >
-                        {{ row.role }}
+                      <p class="truncate text-xs text-slate-500">
+                        {{ displayOrEmpty(row.role, EMPTY_LABELS.role) }}
+                        <span
+                          v-if="unitHint(row)"
+                          class="text-slate-400"
+                        > · {{ unitHint(row) }}</span>
                       </p>
                     </div>
                   </Link>
@@ -805,8 +833,8 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
                   v-if="isAuditColVisible('team')"
                   class="px-5 py-3 text-slate-600"
                 >
-                  <span :class="{ 'text-slate-400 italic text-xs': !row.unitName }">
-                    {{ displayOrEmpty(row.unitName, EMPTY_LABELS.team) }}
+                  <span :class="{ 'text-slate-400 italic text-xs': !row.departmentName && !row.unitName }">
+                    {{ unitLabel(row) }}
                   </span>
                 </td>
                 <td
@@ -871,9 +899,16 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', onToolbarClickOu
             <tr v-if="!employees.data?.length">
               <td
                 :colspan="Math.max(tableColspan, 1)"
-                class="px-5 py-10 text-center text-slate-500"
+                class="px-5 py-12 text-center"
               >
-                Không có nhân sự phù hợp trong kỳ này.
+                <p class="font-medium text-slate-700">
+                  Không có nhân sự trong phạm vi này
+                </p>
+                <p class="mx-auto mt-1 max-w-md text-sm text-slate-500">
+                  {{ scopeLabel && form.department !== 'all'
+                    ? `Chưa thấy nhân sự thuộc ${scopeLabel}. Kiểm tra đồng bộ HRM hoặc chọn phòng ban khác.`
+                    : 'Thử đổi phòng ban, kỳ thời gian hoặc từ khóa tìm kiếm.' }}
+                </p>
               </td>
             </tr>
           </tbody>

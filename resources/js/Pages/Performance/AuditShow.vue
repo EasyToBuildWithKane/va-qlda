@@ -32,7 +32,10 @@ function onExportAudit() {
 }
 
 const memberSubtitle = computed(() => {
-    const parts = [props.employee?.role || props.audit?.member?.role].filter(Boolean);
+    const parts = [
+        props.employee?.role || props.audit?.member?.role,
+        props.audit?.member?.unitName || props.filter?.department_name,
+    ].filter(Boolean);
     return parts.join(' · ');
 });
 
@@ -54,12 +57,18 @@ const backHref = computed(() => {
     <template #header>
       <PageHeader
         :title="employee.name"
-        :subtitle="`Timeline cam kết & kết quả — ${filter.label || ''}`"
+        :subtitle="memberSubtitle ? `${memberSubtitle} — ${filter.label || ''}` : `Timeline cam kết & kết quả — ${filter.label || ''}`"
         icon="leaderboard"
         icon-color="brand"
         :back-href="backHref"
       />
     </template>
+
+    <PerformanceAuditSummaryBar
+      v-if="audit"
+      mode="detail"
+      :summary="audit.summary"
+    />
 
     <PerformanceFilterBar
       :filter="filter"
@@ -70,16 +79,6 @@ const backHref = computed(() => {
     />
 
     <template v-if="audit">
-      <div
-        class="transition-opacity"
-        :class="processing ? 'opacity-60' : 'opacity-100'"
-      >
-        <PerformanceAuditSummaryBar
-          mode="detail"
-          :summary="audit.summary"
-        />
-      </div>
-
       <section
         class="card mb-4 flex flex-wrap items-center gap-4 p-5 transition-opacity"
         :class="processing ? 'opacity-60' : 'opacity-100'"

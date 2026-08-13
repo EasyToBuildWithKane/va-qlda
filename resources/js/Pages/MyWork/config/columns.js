@@ -1,4 +1,4 @@
-/** Cột bảng việc cá nhân / thành viên — dùng với useVisibleColumns. Tiêu đề + thao tác luôn hiện. */
+/** Cột bảng việc cá nhân / thành viên — dùng với useVisibleColumns. Cột Công việc luôn hiện. */
 export const MY_WORK_TABLE_COLUMNS = [
     { key: 'project', label: 'Dự án' },
     { key: 'status', label: 'Trạng thái' },

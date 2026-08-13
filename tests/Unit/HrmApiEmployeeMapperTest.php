@@ -69,8 +69,10 @@ class HrmApiEmployeeMapperTest extends TestCase
         ]);
 
         $this->assertSame('Web', $unit['meta']['unit_name']);
+        $this->assertSame('WEB', $unit['meta']['unit_code']);
         $this->assertSame('Member', $unit['meta']['position_name']);
         $this->assertArrayNotHasKey('department_name', $unit['meta']);
+        $this->assertArrayNotHasKey('department_code', $unit['meta']);
 
         $hq = HrmApiEmployeeMapper::toEmployeeAttributes([
             'uuid' => '44444444-4444-4444-4444-444444444444',
@@ -116,6 +118,32 @@ class HrmApiEmployeeMapperTest extends TestCase
         ]);
 
         $this->assertSame('Cơ sở Mỹ Đình', $fromWorkplace['meta']['headquarter_name']);
+    }
+
+    public function test_maps_parent_department_when_assigned_to_unit(): void
+    {
+        $attrs = HrmApiEmployeeMapper::toEmployeeAttributes([
+            'uuid' => '77777777-7777-7777-7777-777777777777',
+            'full_name' => 'G',
+            'status' => 'active',
+            'company_email' => 'g@vaschools.edu.vn',
+            'department_name' => 'Phòng Công nghệ',
+            'primary_assignment' => [
+                'department' => ['code' => 'CNTT', 'name' => 'Phòng Công nghệ'],
+                'org_unit' => [
+                    'code' => 'WEB',
+                    'name' => 'Tổ Web',
+                    'type' => 'unit',
+                    'parent' => ['code' => 'CNTT', 'name' => 'Phòng Công nghệ', 'type' => 'department'],
+                ],
+                'position' => ['title' => 'Dev'],
+            ],
+        ]);
+
+        $this->assertSame('CNTT', $attrs['meta']['department_code']);
+        $this->assertSame('Phòng Công nghệ', $attrs['meta']['department_name']);
+        $this->assertSame('WEB', $attrs['meta']['unit_code']);
+        $this->assertSame('Tổ Web', $attrs['meta']['unit_name']);
     }
 
     public function test_falls_back_to_personal_email_and_inactive_status(): void

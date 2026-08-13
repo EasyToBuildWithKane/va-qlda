@@ -39,34 +39,33 @@ const activeMeta = computed(() => groupMeta(active.value));
 
 <template>
   <Head :title="`${activeMeta.label} — Cấu hình hệ thống`" />
-  <AppLayout>
+  <AppLayout :flush="active === 'onboarding'">
     <template #header>
       <PageHeader
         :title="activeMeta.label || 'Cấu hình hệ thống'"
-        :subtitle="activeMeta.description || 'Quản trị nhận diện, đăng nhập, email, thông báo và phân quyền'"
+        :subtitle="active === 'onboarding' ? '' : (activeMeta.description || 'Quản trị nhận diện, đăng nhập, email, thông báo và phân quyền')"
         :icon="activeMeta.icon || 'system-config'"
       />
     </template>
 
-    <div class="flex w-full max-w-none flex-col gap-5">
-      <section
-        v-if="active === 'onboarding'"
-        class="min-w-0"
-      >
-        <OnboardingTab
-          :save-hotkeys-enabled="true"
-          :title="groupMeta('onboarding').label"
-          :description="groupMeta('onboarding').description"
-          :fields="settings.onboarding ?? []"
-          :welcome-preview="welcomePreview"
-          :can-manage="can.manage"
-        />
-      </section>
+    <section
+      v-if="active === 'onboarding'"
+      class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden p-4 sm:p-6"
+    >
+      <OnboardingTab
+        class="min-h-0 flex-1"
+        :save-hotkeys-enabled="true"
+        :fields="settings.onboarding ?? []"
+        :welcome-preview="welcomePreview"
+        :can-manage="can.manage"
+      />
+    </section>
 
-      <section
-        v-else
-        class="card min-w-0 p-5 md:p-6"
-      >
+    <div
+      v-else
+      class="flex w-full max-w-none flex-col gap-5"
+    >
+      <section class="card min-w-0 p-5 md:p-6">
         <FieldsTab
           v-show="active === 'general'"
           group="general"

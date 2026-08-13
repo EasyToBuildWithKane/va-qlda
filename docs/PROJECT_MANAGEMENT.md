@@ -12,7 +12,7 @@
 
 | Mục tiêu | Mô tả |
 |---|---|
-| Danh mục dự án | Lọc, KPI portfolio, bảng (kéo ngang để cuộn) + Kanban wrap thẻ (không scroll ngang). Nhóm theo **Loại dự án** / **Phòng ban** — chỉ **super_admin** thấy thanh «Nhóm theo» |
+| Danh mục dự án | Lọc, KPI portfolio, bảng (kéo ngang để cuộn) + Kanban wrap thẻ (không scroll ngang). Kanban nhóm theo **Loại dự án** |
 | Workspace dự án | Một URL `/projects/{id}` — tab Tổng quan, Tài liệu, Lịch, Kanban, Sprint, Test case, Phản hồi |
 | Kế hoạch Agile | Sprint, epic, backlog, kéo-thả trạng thái, nhập Excel công việc (bulk) |
 | Chi phí nhân công | Worklog trên task + `rate_snapshot` theo `project_member` |
@@ -143,7 +143,7 @@ Pattern datagrid: `DatagridToolbarSearch` (`hide-label`, `inline-actions`), Lọ
 
 **Lọc client** (Index, không gửi server): `region`, `manager_id` — áp trên tập đã paginate.
 
-Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được «Nhóm theo» → **Loại dự án** | **Phòng ban** (kéo-thả cập nhật `PATCH …/type` hoặc `…/department`). Role khác không thấy thanh nhóm; luôn theo loại. Thẻ trong lane **flex-wrap** (không cuộn ngang).
+Kanban Index: nhóm theo `type` (kéo-thả cập nhật `PATCH …/type`). Thẻ trong lane **flex-wrap** (không cuộn ngang).
 
 ### 4.3 Xuất
 
@@ -152,7 +152,7 @@ Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được �
 ### 4.4 Hành động
 
 - **Tạo dự án** → `/projects/create` (cần `create`).
-- Hàng lưới: sửa nhanh loại/phòng ban (`PATCH type`, `PATCH department`), nhân bản, xoá (policy).
+- Hàng lưới: sửa nhanh loại (`PATCH type`), nhân bản, xoá (policy). Phòng ban gán trên form tạo/sửa dự án.
 
 ---
 
@@ -390,7 +390,6 @@ Marker sprint Excel: `VA_SPRINT_IMPORT_V1` — chi tiết cột trong composable
 | GET | `/projects/{project}/edit` | `projects.edit` |
 | PUT | `/projects/{project}` | `projects.update` |
 | PATCH | `/projects/{project}/type` | `projects.type` |
-| PATCH | `/projects/{project}/department` | `projects.department` |
 | POST | `/projects/{project}/duplicate` | `projects.duplicate` |
 | DELETE | `/projects/{project}` | `projects.destroy` |
 | POST | `/projects/{project}/sprints` | `projects.sprints.store` |
@@ -459,7 +458,7 @@ flowchart TD
 | Cổng Công nghệ | Attachment `showcase` + public project card |
 | Comments | `CommentController` morph trên Task (panel collaboration) |
 | Performance / Work dashboard | KPI tổng hợp từ task/project — `PERFORMANCE_ANALYTICS.md`, `/work` |
-| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. **Hai chế độ xem:** thẻ lưới 3 cột (`MyWorkTaskCard`, meta 2×3) và **bảng list** (`MyWorkTaskTable` + `MyWorkTaskListRow`) — chọn cột (`Pages/MyWork/config/columns.js`, 20 cột tuỳ chọn + Công việc/Thao tác cố định), sắp xếp theo header, nhóm Theo hạn / Theo dự án / Tất cả, cột tiêu đề & thao tác dính khi cuộn ngang. Toolbar chuẩn Lọc/Cột/Xuất; lọc thêm nguồn, mốc, khoảng hạn; tìm theo tên việc **hoặc** mã/tên dự án. **Modal chi tiết** (`MyWorkTaskDetailModal`, `max-w-5xl`, `fit-viewport`) — layout **5–5** (meta chip 2 cột \| mô tả); header gọn (dự án + badge ưu tiên/giai đoạn/mốc/SLA, trạng thái, ghi giờ); meta chỉ lịch/giờ/sprint (+ epic/parent/story points/kế hoạch giờ khi có) — **không lặp** badge header hay nguồn (nguồn cạnh tiêu đề Mô tả); nhân sự riêng; chỉ vùng mô tả (và cột meta khi quá cao) cuộn nội bộ — không scroll cả overlay; không điều hướng `/projects` khi bấm Chi tiết; nút «Mở dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`) — roster nhóm cũng chọn được cột. Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
+| Việc của tôi (`/my-work`) | Tập trung task cá nhân đa dự án (bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn — luôn hiển thị cả khi rỗng), hàng **Báo cáo công việc hằng ngày** (trạng thái + link `/daily-reports/today`); task phát sinh / gắn trong báo cáo hôm nay không hạn → bucket **Hôm nay**; task trong báo cáo nhưng chưa gán assignee vẫn hiện dạng card như việc được giao. Form báo cáo: dropdown task chỉ **việc được giao** cho bạn trên dự án. **Hai chế độ xem:** thẻ lưới 3 cột (`MyWorkTaskCard`, meta 2×3) và **bảng list** (`MyWorkTaskTable` + `MyWorkTaskListRow`) — chọn cột (`Pages/MyWork/config/columns.js`, 20 cột tuỳ chọn + Công việc cố định), sắp xếp theo header, nhóm mặc định **Theo dự án** bằng dòng ngang (không thu/mở nhóm, không cột Thao tác — bấm tên việc mở modal). Hàng/thẻ quá hạn tô nền đỏ, không badge pill; trạng thái/ưu tiên = chấm + chữ. Toolbar chuẩn Lọc/Cột/Xuất; lọc thêm nguồn, mốc, khoảng hạn; tìm theo tên việc **hoặc** mã/tên dự án. **Modal chi tiết** (`MyWorkTaskDetailModal`, `max-w-5xl`, `fit-viewport`) — header dự án + thanh tiến độ lớn + lưới nhãn 2 cột (trạng thái, ưu tiên, giai đoạn, nguồn, mốc, SLA, lịch/giờ/sprint/epic/parent…) \| mô tả; nhân sự luôn hiện 3 vai trò; không điều hướng `/projects` khi bấm tên việc; nút «Mở dự án» là lối phụ. Quick status + worklog tái dùng `projects.tasks.status` & `projects.worklogs.store`; lead xem việc thành viên nhóm (RBAC `my_work.view_team`/`my_work.act_team`, phạm vi `LedTeamScope`) — roster nhóm cũng chọn được cột. Read-aggregation: `app/Application/Work/MyWorkQuery`, `MyWorkController`, widget trên `/work`. Đổi status hộ qua `TaskPolicy@changeStatus` (additive) |
 
 ---
 

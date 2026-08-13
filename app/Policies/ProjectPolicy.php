@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Models\Project;
 use App\Models\SystemAccount;
+use App\Support\Project\ProjectVisibility;
 
 class ProjectPolicy
 {
@@ -14,9 +15,7 @@ class ProjectPolicy
 
     public function view(SystemAccount $account, Project $project): bool
     {
-        return $account->allows('project.view')
-            || $this->isManager($account, $project)
-            || $this->isMember($account, $project);
+        return ProjectVisibility::canView($account, $project);
     }
 
     public function create(SystemAccount $account): bool

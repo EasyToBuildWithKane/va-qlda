@@ -49,12 +49,18 @@ class EmployeeAuditBuilder
         $avgScore = $weeks->where('summary.committed', '>', 0)->avg('scores.performance');
         $avgScore = $avgScore !== null ? (int) round($avgScore) : 0;
 
+        $org = EmployeeOrgUnitResolver::detailsFor(collect([$member->id]))[$member->id]
+            ?? ['label' => null, 'department' => null, 'unit' => null];
+
         return [
             'member' => [
                 'id' => $member->id,
                 'name' => $member->full_name,
                 'role' => $member->role_title,
                 'avatar' => PublicMediaUrl::fromPublicDisk($member->avatar_path),
+                'unitName' => $org['label'],
+                'departmentName' => $org['department'],
+                'orgUnitName' => $org['unit'],
             ],
             'summary' => [
                 'committed' => $committed,

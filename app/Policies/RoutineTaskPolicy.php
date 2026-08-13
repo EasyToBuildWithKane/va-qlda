@@ -4,6 +4,7 @@ namespace App\Policies;
 
 use App\Domain\RoutineTask\Models\RoutineTask;
 use App\Models\SystemAccount;
+use App\Support\Team\LedTeamScope;
 
 class RoutineTaskPolicy
 {
@@ -15,8 +16,13 @@ class RoutineTaskPolicy
 
     public function view(SystemAccount $account, RoutineTask $routineTask): bool
     {
-        return $this->owns($account, $routineTask)
-            || $account->allows('routine_task.view');
+        if ($this->owns($account, $routineTask) || $account->allows('routine_task.view')) {
+            return true;
+        }
+
+        $selfId = (int) ($account->employee_id ?? 0);
+
+        return $selfId > 0 && LedTeamScope::leads($selfId, (int) $routineTask->employee_id);
     }
 
     public function create(SystemAccount $account): bool

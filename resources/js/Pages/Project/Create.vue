@@ -22,7 +22,7 @@ defineProps({
     <template #header>
       <PageHeader
         title="Tạo dự án mới"
-        subtitle="Điền thông tin để khởi tạo dự án"
+        subtitle="Phòng phụ trách, phòng liên đới và phạm vi triển khai"
         icon="new-project"
         icon-color="emerald"
         back-href="/projects"

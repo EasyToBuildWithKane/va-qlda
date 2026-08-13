@@ -2,14 +2,13 @@
 
 namespace App\Http\Requests\Project;
 
-use App\Models\Department;
 use App\Models\Project;
 use App\Support\Enums\ProjectCategory;
 use App\Support\Enums\ProjectScope;
 use App\Support\Enums\ProjectStatus;
 use App\Support\Enums\ProjectType;
 use App\Support\Enums\Region;
-use App\Support\Options\DepartmentOptions;
+use App\Support\Project\ProjectDepartmentPayload;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -22,27 +21,15 @@ class StoreProjectRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $departmentId = $this->normalizeDepartmentId($this->input('department_id'));
-
-        if ($departmentId !== null && ! app(DepartmentOptions::class)->isActiveDepartmentId($departmentId)) {
-            $departmentId = null;
-        }
-
-        if ($departmentId === null) {
-            $departmentId = app(DepartmentOptions::class)->defaultOwnerId();
-        }
-
-        $scopeDepartments = $this->input('scope_departments');
-        if (is_array($scopeDepartments)) {
-            $scopeDepartments = array_values(array_filter(
-                array_map(fn ($id) => is_numeric($id) ? (int) $id : null, $scopeDepartments),
-                fn ($id) => $id > 0 && Department::active()->whereKey($id)->exists()
-            ));
-        }
+        $departments = ProjectDepartmentPayload::normalize(
+            $this->input('department_id'),
+            $this->input('scope_departments'),
+            fallbackOwner: true,
+        );
 
         $this->merge([
-            'department_id' => $departmentId,
-            'scope_departments' => $scopeDepartments ?? $this->input('scope_departments'),
+            'department_id' => $departments['department_id'],
+            'scope_departments' => $departments['scope_departments'],
             'scope_regions' => is_array($scopeRegions = $this->input('scope_regions'))
                 ? array_values(array_filter(
                     $scopeRegions,
@@ -50,19 +37,6 @@ class StoreProjectRequest extends FormRequest
                 ))
                 : $this->input('scope_regions'),
         ]);
-    }
-
-    private function normalizeDepartmentId(mixed $value): ?int
-    {
-        if ($value === null || $value === '' || $value === false) {
-            return null;
-        }
-
-        if (is_numeric($value) && (int) $value > 0) {
-            return (int) $value;
-        }
-
-        return null;
     }
 
     /**
@@ -115,8 +89,8 @@ class StoreProjectRequest extends FormRequest
             'due_date.after_or_equal' => 'Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu.',
             'department_id.exists' => 'Phòng ban phụ trách không hợp lệ hoặc đã ngừng hoạt động. Vui lòng chọn lại ở tab «Phạm vi».',
             'department_id.integer' => 'Phòng ban phụ trách không hợp lệ.',
-            'scope_departments.*.exists' => 'Có phòng ban trong «Phạm vi áp dụng» không còn tồn tại hoặc đã ngừng hoạt động — hãy bỏ chọn và chọn lại danh sách phòng ban.',
-            'scope_departments.*.integer' => 'Danh sách phòng ban áp dụng không hợp lệ.',
+            'scope_departments.*.exists' => 'Có phòng ban liên đới không còn tồn tại hoặc đã ngừng hoạt động — hãy bỏ chọn và chọn lại.',
+            'scope_departments.*.integer' => 'Danh sách phòng ban liên đới không hợp lệ.',
             'manager_id.exists' => 'Chủ dự án (nhân sự) không tồn tại hoặc đã bị xóa.',
         ];
     }
@@ -129,8 +103,8 @@ class StoreProjectRequest extends FormRequest
         return [
             'name' => 'tên dự án',
             'department_id' => 'phòng ban phụ trách',
-            'scope_departments' => 'phòng ban áp dụng',
-            'scope_departments.*' => 'phòng ban áp dụng',
+            'scope_departments' => 'phòng ban liên đới',
+            'scope_departments.*' => 'phòng ban liên đới',
             'manager_id' => 'chủ dự án',
         ];
     }

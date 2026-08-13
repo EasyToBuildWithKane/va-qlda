@@ -14,10 +14,10 @@
 
 - UI form tách **Dự án** và **Công việc thường xuyên**; lưu trữ vẫn nằm trong `projects` JSON với một phần tử ảo `{ "id": -1, "name": "Công việc thường xuyên", "tasks": [...] }` (chỉ xuất hiện khi có ít nhất một task).
 - `ReportProjectSync::ROUTINE_PROJECT_ID` / `isLinkableProjectId()` — **không** map sang `project_id`, **không** sync sang bảng `tasks` (`SyncDailyReportSpawnedTasksUseCase` bỏ qua `project_id <= 0`).
-- **Persist riêng:** `SyncDailyReportRoutineTasksUseCase` ghi vào `va_prd_routine_tasks` và thay id tạm / `_localKey` bằng UUID thật trong JSON. Trang quản lý: `/routine-tasks`.
+- **Persist riêng:** `SyncDailyReportRoutineTasksUseCase` ghi vào `va_prd_routine_tasks` và thay id tạm / `_localKey` bằng UUID thật trong JSON. Trang quản lý: `/routine-tasks` (nhật ký list + modal form).
 - Frontend: `resources/js/modules/daily-report/constants/routineWork.js`, `ProjectSelect.vue`; module UI: `modules/routine-task/`.
 
-Migration ghi chú: `database/migrations/2024_01_01_000008_create_daily_reports_table.php` · routine: `2026_08_13_140000_create_routine_tasks_table.php`.
+Migration ghi chú: `database/migrations/2024_01_01_000008_create_daily_reports_table.php` · routine: `2026_08_13_140000_create_routine_tasks_table.php`, `2026_08_13_160000_add_daily_log_fields_to_routine_tasks.php`, `2026_08_13_160100_create_routine_task_attachments_table.php`.
 
 ## Đồng bộ
 

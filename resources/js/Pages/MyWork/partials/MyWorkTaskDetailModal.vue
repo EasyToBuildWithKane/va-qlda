@@ -4,11 +4,12 @@ import { computed, ref, watch } from 'vue';
 import MarkdownIt from 'markdown-it';
 import Modal from '@/Components/Ui/Modal.vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
+import MyWorkToneLabel from './MyWorkToneLabel.vue';
 import QuickWorklogPopover from './QuickWorklogPopover.vue';
 import { useFixedDropdownAnchor, resolveAnchorElement } from '@/shared/composables/useFixedDropdownAnchor';
 import { displayOrEmpty, EMPTY_LABELS } from '@/shared/utils/emptyDisplay';
+import { overdueDays, isDueToday, hoursLabel, progressValue, toneDotClass } from '../utils/taskDisplay';
 
 const props = defineProps({
     open: { type: Boolean, default: false },
@@ -31,15 +32,6 @@ const { panelStyle: statusPanelStyle } = useFixedDropdownAnchor(
 );
 
 const md = new MarkdownIt({ linkify: true, breaks: true });
-
-const dotClass = {
-    slate: 'bg-slate-400',
-    sky: 'bg-sky-500',
-    violet: 'bg-violet-500',
-    emerald: 'bg-emerald-500',
-    rose: 'bg-rose-500',
-    amber: 'bg-amber-500',
-};
 
 watch(() => props.open, (v) => {
     if (!v) {
@@ -64,7 +56,7 @@ const projectColor = computed(() => props.task?.project?.color || '#9A0036');
 
 function fmtDate(value) {
     if (!value) return null;
-    return new Date(value + 'T00:00:00').toLocaleDateString('vi-VN', {
+    return new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN', {
         day: '2-digit', month: '2-digit', year: 'numeric',
     });
 }
@@ -82,67 +74,69 @@ function fmtDateTime(value) {
     });
 }
 
-function fmtHours(h) {
-    if (h == null || h <= 0) return null;
-    return `${Number.isInteger(h) ? h : Number(h).toFixed(1)}h`;
-}
-
 const startLabel = computed(() => fmtDate(props.task?.start_date));
 const dueLabel = computed(() => fmtDate(props.task?.due_date));
 const workStartedLabel = computed(() => fmtDateTime(props.task?.work_started_at));
 const completedLabel = computed(() => fmtDateTime(props.task?.completed_at));
+const lateDays = computed(() => overdueDays(props.task));
+const dueToday = computed(() => isDueToday(props.task));
+const overdue = computed(() => Boolean(props.task?.is_late));
+const progress = computed(() => progressValue(props.task));
 
-const overdueDays = computed(() => {
-    if (!props.task?.is_late || !props.task?.due_date) return 0;
-    const due = new Date(props.task.due_date + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.round((today - due) / 86400000));
+const progressFillClass = computed(() => {
+    if (overdue.value && progress.value < 100) return 'from-rose-500 to-rose-400';
+    if (progress.value >= 100) return 'from-emerald-500 to-emerald-400';
+    if (progress.value >= 60) return 'from-sky-500 to-brand';
+    if (progress.value >= 30) return 'from-amber-400 to-amber-500';
+    return 'from-brand to-rose-400';
 });
 
-const isDueToday = computed(() => {
-    if (!props.task?.due_date) return false;
-    const due = new Date(props.task.due_date + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return due.getTime() === today.getTime();
+const hoursCaption = computed(() => {
+    const t = props.task;
+    if (!t) return '';
+    const parts = [];
+    const actual = hoursLabel(t.actual_hours);
+    const estimate = hoursLabel(t.estimate_hours);
+    if (actual) parts.push(`${actual} thực tế`);
+    if (estimate) parts.push(`${estimate} dự kiến`);
+    if (t.logged_today > 0) parts.push(`${t.logged_today}h hôm nay`);
+    return parts.join(' · ');
 });
 
-const progress = computed(() => {
-    const p = Number(props.task?.progress ?? 0);
-    return Number.isFinite(p) ? Math.min(100, Math.max(0, p)) : 0;
+const dueCaption = computed(() => {
+    if (!dueLabel.value) return 'Chưa chọn hạn';
+    if (lateDays.value > 0) return `${dueLabel.value} · quá hạn ${lateDays.value} ngày`;
+    if (dueToday.value) return `${dueLabel.value} · đến hạn hôm nay`;
+    return dueLabel.value;
 });
 
 const descriptionHtml = computed(() => {
     const raw = props.task?.description?.trim();
     if (!raw) return '';
     if (/<[a-z][\s\S]*>/i.test(raw)) return raw;
-    if (/^#{1,6}\s|^\*\*|^-\s|^\d+\.\s/m.test(raw) || raw.includes('```')) {
-        return md.render(raw);
-    }
     return md.render(raw.replace(/\n/g, '  \n'));
 });
 
-/**
- * Meta 2 cột trái — denser chip grid.
- * Không lặp field đã có ở header badge (ưu tiên / giai đoạn / mốc / SLA) hay cạnh tiêu đề Mô tả (nguồn).
- * Field tùy chọn chỉ hiện khi có giá trị.
- */
-const metaRows = computed(() => {
+const labelRows = computed(() => {
     const t = props.task;
     if (!t) return [];
-    const sp = t.story_points;
-    const rows = [
-        { key: 'start', label: 'Bắt đầu', value: startLabel.value, empty: EMPTY_LABELS.notUpdated },
+    return [
+        { key: 'status', label: 'Trạng thái', value: t.status?.label, tone: t.status, empty: EMPTY_LABELS.notUpdated },
+        { key: 'priority', label: 'Ưu tiên', value: t.priority?.label, tone: t.priority, empty: EMPTY_LABELS.notUpdated },
+        { key: 'phase', label: 'Giai đoạn', value: t.phase?.label, tone: t.phase, empty: EMPTY_LABELS.notUpdated },
+        { key: 'source', label: 'Nguồn', value: t.source?.label, empty: EMPTY_LABELS.notUpdated },
+        { key: 'milestone', label: 'Mốc', value: t.is_milestone ? 'Có' : 'Không' },
+        { key: 'sla', label: 'SLA', value: t.sla_result?.label, tone: t.sla_result, empty: EMPTY_LABELS.notUpdated },
+        { key: 'start', label: 'Ngày bắt đầu', value: startLabel.value, empty: EMPTY_LABELS.notUpdated },
         {
             key: 'due',
             label: 'Hạn hoàn thành',
-            value: dueLabel.value,
+            value: dueCaption.value,
             empty: EMPTY_LABELS.period,
-            late: t.is_late,
+            late: overdue.value,
         },
-        { key: 'estimate', label: 'Giờ dự kiến', value: fmtHours(t.estimate_hours), empty: EMPTY_LABELS.notUpdated },
-        { key: 'actual', label: 'Giờ thực tế', value: fmtHours(t.actual_hours), empty: EMPTY_LABELS.notUpdated },
+        { key: 'estimate', label: 'Giờ dự kiến', value: hoursLabel(t.estimate_hours), empty: EMPTY_LABELS.notUpdated },
+        { key: 'actual', label: 'Giờ thực tế', value: hoursLabel(t.actual_hours), empty: EMPTY_LABELS.notUpdated },
         {
             key: 'logged',
             label: 'Giờ hôm nay',
@@ -150,26 +144,13 @@ const metaRows = computed(() => {
             empty: 'Chưa ghi giờ',
         },
         { key: 'sprint', label: 'Sprint', value: t.sprint?.name ?? null, empty: EMPTY_LABELS.notUpdated },
-        // Tùy chọn — chỉ hiện khi có dữ liệu
-        { key: 'started', label: 'Bắt tay làm', value: workStartedLabel.value, optional: true },
-        { key: 'completed', label: 'Hoàn thành', value: completedLabel.value, optional: true },
-        {
-            key: 'sp',
-            label: 'Story points',
-            value: sp != null && sp > 0 ? String(sp) : null,
-            optional: true,
-        },
-        { key: 'epic', label: 'Epic', value: t.epic?.name ?? null, optional: true },
-        { key: 'parent', label: 'Việc cha', value: t.parent?.title ?? null, optional: true },
-        {
-            key: 'timing',
-            label: 'Kế hoạch giờ',
-            value: t.hours_timing?.label ?? null,
-            badge: t.hours_timing,
-            optional: true,
-        },
+        { key: 'sp', label: 'Story points', value: t.story_points != null && t.story_points > 0 ? String(t.story_points) : null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'epic', label: 'Epic', value: t.epic?.name ?? null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'parent', label: 'Việc cha', value: t.parent?.title ?? null, empty: EMPTY_LABELS.notUpdated },
+        { key: 'timing', label: 'Kế hoạch giờ', value: t.hours_timing?.label ?? null, tone: t.hours_timing, empty: EMPTY_LABELS.notUpdated },
+        { key: 'started', label: 'Bắt tay làm', value: workStartedLabel.value, empty: EMPTY_LABELS.notUpdated },
+        { key: 'completed', label: 'Hoàn thành lúc', value: completedLabel.value, empty: EMPTY_LABELS.notUpdated },
     ];
-    return rows.filter((row) => !row.optional || !!row.value);
 });
 
 const people = computed(() => {
@@ -178,8 +159,8 @@ const people = computed(() => {
     return [
         { key: 'assignee', label: 'Phụ trách', person: t.assignee },
         { key: 'reporter', label: 'Người giao', person: t.reporter },
-        { key: 'reviewer', label: 'Reviewer', person: t.reviewer },
-    ].filter((row) => row.person);
+        { key: 'reviewer', label: 'Người duyệt', person: t.reviewer },
+    ];
 });
 
 function pickStatus(value) {
@@ -205,69 +186,36 @@ function onLog(payload) {
   >
     <div
       v-if="task"
-      class="flex h-full min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain lg:overflow-hidden"
+      class="flex h-full min-h-0 flex-col gap-4 overflow-y-auto overscroll-contain lg:overflow-hidden"
     >
-      <!-- Header compact: dự án + badge + actions -->
-      <div
-        class="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50/90 to-white dark:border-slate-700 dark:from-slate-900 dark:to-slate-900"
+      <section
+        class="relative shrink-0 overflow-hidden rounded-xl border"
+        :class="overdue
+          ? 'border-rose-200 bg-gradient-to-br from-rose-50 via-white to-white dark:border-rose-900/60 dark:from-rose-950/40 dark:via-slate-900 dark:to-slate-900'
+          : 'border-slate-200 bg-gradient-to-br from-slate-50/90 to-white dark:border-slate-700 dark:from-slate-900 dark:to-slate-900'"
       >
         <div
-          class="absolute inset-y-0 left-0 w-1"
-          :style="{ backgroundColor: projectColor }"
+          class="absolute inset-y-0 left-0 w-1.5"
+          :style="{ backgroundColor: overdue ? '#e11d48' : projectColor }"
         />
-        <div class="flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 pl-3.5 pr-3 sm:pl-4">
+
+        <div class="flex flex-wrap items-start justify-between gap-3 py-3 pl-5 pr-3 sm:pl-6">
           <div class="min-w-0 flex-1">
-            <p
-              v-if="projectLabel"
-              class="truncate text-[12px] font-semibold text-brand"
-              :title="projectLabel"
-            >
-              {{ projectLabel }}
+            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Dự án
             </p>
-            <div class="mt-1 flex flex-wrap items-center gap-1.5">
-              <span
-                v-if="overdueDays > 0"
-                class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
-              >
-                <AppIcon
-                  name="alert"
-                  :size="11"
-                  class="shrink-0"
-                />
-                Quá hạn {{ overdueDays }} ngày
-              </span>
-              <span
-                v-else-if="isDueToday"
-                class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-              >
-                <AppIcon
-                  name="calendar-clock"
-                  :size="11"
-                  class="shrink-0"
-                />
-                Đến hạn hôm nay
-              </span>
-              <Badge
-                v-if="task.priority"
-                :label="task.priority.label"
-                :color="task.priority.color"
-              />
-              <Badge
-                v-if="task.phase"
-                :label="task.phase.label"
-                :color="task.phase.color"
-              />
-              <Badge
-                v-if="task.is_milestone"
-                label="Mốc"
-                color="amber"
-              />
-              <Badge
-                v-if="task.sla_result"
-                :label="task.sla_result.label"
-                :color="task.sla_result.color"
-              />
-            </div>
+            <p
+              class="mt-0.5 truncate text-sm font-semibold text-brand"
+              :title="projectLabel || undefined"
+            >
+              {{ displayOrEmpty(projectLabel, 'Chưa gán dự án') }}
+            </p>
+            <p
+              class="mt-1 text-xs"
+              :class="overdue ? 'font-medium text-rose-600' : dueToday ? 'font-medium text-amber-700' : 'text-slate-500'"
+            >
+              {{ dueCaption }}
+            </p>
           </div>
 
           <div class="flex shrink-0 flex-wrap items-center gap-1.5">
@@ -276,14 +224,14 @@ function onLog(payload) {
                 ref="statusTriggerRef"
                 type="button"
                 :disabled="!canChange"
-                class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
+                class="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs transition disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800"
                 :class="canChange ? 'hover:border-brand/40 hover:bg-brand/5' : ''"
                 :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
                 aria-haspopup="listbox"
                 :aria-expanded="statusOpen"
                 @click="statusOpen = !statusOpen"
               >
-                <Badge
+                <MyWorkToneLabel
                   v-if="task.status"
                   :label="task.status.label"
                   :color="task.status.color"
@@ -324,7 +272,7 @@ function onLog(payload) {
                       >
                         <span
                           class="h-2 w-2 shrink-0 rounded-full"
-                          :class="dotClass[opt.color] || dotClass.slate"
+                          :class="toneDotClass(opt.color)"
                         />
                         <span class="min-w-0 break-words">{{ opt.label }}</span>
                       </button>
@@ -373,122 +321,137 @@ function onLog(payload) {
           </div>
         </div>
 
-        <div class="flex items-center gap-2 border-t border-slate-100 px-3.5 py-1.5 sm:px-4 dark:border-slate-800">
-          <span class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">Tiến độ</span>
-          <div class="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+        <div class="border-t border-slate-100/80 px-5 py-3 sm:px-6 dark:border-slate-800">
+          <div class="flex items-end justify-between gap-3">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Tiến độ
+            </p>
+            <p
+              class="font-display text-2xl leading-none tabular-nums"
+              :class="overdue && progress < 100 ? 'text-rose-600' : 'text-slate-800 dark:text-slate-100'"
+            >
+              {{ progress }}<span class="text-sm font-semibold text-slate-400">%</span>
+            </p>
+          </div>
+          <div
+            class="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-100 ring-1 ring-inset ring-slate-200/70 dark:bg-slate-800 dark:ring-slate-700"
+            role="progressbar"
+            :aria-valuenow="progress"
+            aria-valuemin="0"
+            aria-valuemax="100"
+            :aria-label="`Tiến độ ${progress} phần trăm`"
+          >
             <div
-              class="h-full rounded-full bg-brand transition-all"
+              class="h-full rounded-full bg-gradient-to-r transition-all duration-500"
+              :class="progressFillClass"
               :style="{ width: progress + '%' }"
             />
           </div>
-          <span class="shrink-0 text-[11px] font-semibold tabular-nums text-slate-600 dark:text-slate-300">{{ progress }}%</span>
-        </div>
-      </div>
-
-      <!-- Body 5–5: meta | mô tả — chỉ mô tả dài mới cuộn nội bộ -->
-      <div class="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-2 lg:gap-4">
-        <!-- Cột trái -->
-        <div class="flex min-h-0 flex-col gap-2.5 overflow-y-auto overscroll-contain pr-0.5">
-          <dl class="grid shrink-0 grid-cols-2 gap-1.5">
-            <div
-              v-for="row in metaRows"
-              :key="row.key"
-              class="rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-1.5 dark:border-slate-800 dark:bg-slate-800/40"
-            >
-              <dt class="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
-                {{ row.label }}
-              </dt>
-              <dd
-                class="mt-0.5 min-w-0 text-[12px] font-medium leading-snug"
-                :class="row.late ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'"
-              >
-                <Badge
-                  v-if="row.badge && row.value"
-                  :label="row.badge.label"
-                  :color="row.badge.color"
-                />
-                <span
-                  v-else
-                  class="line-clamp-2 break-words"
-                  :title="row.value || undefined"
-                >
-                  {{ displayOrEmpty(row.value, row.empty || EMPTY_LABELS.notUpdated) }}
-                </span>
-              </dd>
-            </div>
-          </dl>
-
-          <div
-            v-if="people.length"
-            class="shrink-0 rounded-lg border border-slate-100 px-2.5 py-2 dark:border-slate-800"
+          <p
+            v-if="hoursCaption"
+            class="mt-1.5 text-[11px] text-slate-500"
           >
-            <p class="mb-1.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+            {{ hoursCaption }}
+          </p>
+        </div>
+      </section>
+
+      <div class="grid min-h-0 flex-1 grid-cols-1 gap-4 lg:grid-cols-2 lg:overflow-hidden">
+        <div class="flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain pr-0.5">
+          <section>
+            <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Thông tin
+            </h3>
+            <dl class="grid grid-cols-2 gap-x-4 gap-y-2.5">
+              <div
+                v-for="row in labelRows"
+                :key="row.key"
+                class="min-w-0"
+              >
+                <dt class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
+                  {{ row.label }}
+                </dt>
+                <dd
+                  class="mt-0.5 min-w-0 text-[13px] font-medium leading-snug"
+                  :class="row.late ? 'text-rose-600' : 'text-slate-700 dark:text-slate-200'"
+                >
+                  <MyWorkToneLabel
+                    v-if="row.tone && row.value"
+                    :label="row.tone.label"
+                    :color="row.tone.color"
+                  />
+                  <span
+                    v-else
+                    class="line-clamp-2 break-words"
+                    :title="row.value || undefined"
+                  >
+                    {{ displayOrEmpty(row.value, row.empty || EMPTY_LABELS.notUpdated) }}
+                  </span>
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          <section class="rounded-xl border border-slate-100 px-3 py-2.5 dark:border-slate-800">
+            <h3 class="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               Nhân sự
-            </p>
-            <ul class="flex flex-wrap gap-x-3 gap-y-1.5">
+            </h3>
+            <ul class="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               <li
                 v-for="row in people"
                 :key="row.key"
-                class="flex min-w-0 items-center gap-1.5"
+                class="flex min-w-0 items-center gap-2"
               >
                 <Avatar
+                  v-if="row.person"
                   :name="row.person.name"
                   :src="row.person.avatar_path"
-                  :size="24"
+                  :size="28"
                 />
+                <span
+                  v-else
+                  class="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-100 text-[10px] font-semibold text-slate-400 dark:bg-slate-800"
+                >?</span>
                 <div class="min-w-0">
-                  <p class="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+                  <p class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
                     {{ row.label }}
                   </p>
                   <p
-                    class="truncate text-[12px] font-medium text-slate-700 dark:text-slate-200"
-                    :title="row.person.name"
+                    class="truncate text-[13px] font-medium text-slate-700 dark:text-slate-200"
+                    :title="row.person?.name || undefined"
                   >
-                    {{ row.person.name }}
+                    {{ displayOrEmpty(row.person?.name, EMPTY_LABELS.notUpdated) }}
                   </p>
                 </div>
               </li>
             </ul>
-          </div>
-          <div
-            v-else
-            class="shrink-0 rounded-lg border border-dashed border-slate-200 px-2.5 py-2 text-[12px] text-slate-400 dark:border-slate-700"
-          >
-            {{ displayOrEmpty(null, EMPTY_LABELS.notUpdated) }}
-          </div>
+          </section>
         </div>
 
-        <!-- Cột phải -->
         <section class="flex min-h-0 flex-col gap-2">
-          <div class="flex shrink-0 items-center justify-between gap-2">
-            <h3 class="text-[10px] font-semibold uppercase tracking-wide text-slate-400">
-              Mô tả
-            </h3>
-            <span
-              v-if="task.source?.label"
-              class="truncate text-[11px] text-slate-400"
-            >{{ task.source.label }}</span>
-          </div>
+          <h3 class="shrink-0 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            Mô tả
+          </h3>
           <div
             v-if="descriptionHtml"
-            class="prose prose-sm min-h-0 max-w-none flex-1 overflow-y-auto overscroll-contain break-words rounded-lg border border-slate-100 bg-white px-3 py-2.5 text-[13px] leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+            class="prose prose-sm min-h-0 max-w-none flex-1 overflow-y-auto overscroll-contain break-words rounded-xl border border-slate-100 bg-white px-3.5 py-3 text-[13px] leading-relaxed text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
             v-html="descriptionHtml"
           />
           <p
             v-else
-            class="flex min-h-0 flex-1 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50/60 px-3 py-6 text-center text-[13px] text-slate-400 dark:border-slate-700 dark:bg-slate-800/40"
+            class="flex min-h-0 flex-1 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/60 px-3 py-6 text-center text-[13px] text-slate-400 dark:border-slate-700 dark:bg-slate-800/40"
           >
             Chưa cập nhật mô tả.
           </p>
 
           <div
             v-if="task.completion_note?.trim()"
-            class="shrink-0 rounded-lg border border-slate-100 bg-slate-50/80 px-2.5 py-2 dark:border-slate-800 dark:bg-slate-800/40"
+            class="shrink-0 rounded-xl border border-slate-100 bg-slate-50/80 px-3 py-2.5 dark:border-slate-800 dark:bg-slate-800/40"
           >
-            <p class="text-[9px] font-semibold uppercase tracking-wide text-slate-400">
+            <p class="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">
               Ghi chú hoàn thành
             </p>
-            <p class="mt-0.5 line-clamp-3 whitespace-pre-wrap break-words text-[12px] leading-snug text-slate-700 dark:text-slate-200">
+            <p class="mt-1 whitespace-pre-wrap break-words text-[13px] leading-snug text-slate-700 dark:text-slate-200">
               {{ task.completion_note }}
             </p>
           </div>

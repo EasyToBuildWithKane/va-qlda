@@ -5,6 +5,7 @@ namespace App\Application\RoutineTask;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Support\ReportProjectSync;
 use App\Domain\RoutineTask\Models\RoutineTask;
+use App\Domain\RoutineTask\Support\RoutineTaskSchedule;
 use App\Support\DailyReportCalendar;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\TaskStatus;
@@ -26,6 +27,11 @@ class ToggleRoutineTaskStatusUseCase
 
             $task->forceFill([
                 'status' => $next,
+                'progress_percent' => RoutineTaskSchedule::progressFor(
+                    $next,
+                    null,
+                    (int) $task->progress_percent,
+                ),
                 'completed_at' => $next === TaskStatus::Done ? now() : null,
             ])->save();
 

@@ -1,14 +1,16 @@
 <script setup>
 import { ref, computed } from 'vue';
 import AppIcon from '@/Components/AppIcon.vue';
-import Badge from '@/shared/ui/Badge.vue';
+import MyWorkToneLabel from './MyWorkToneLabel.vue';
 import QuickWorklogPopover from './QuickWorklogPopover.vue';
 import { useFixedDropdownAnchor, resolveAnchorElement } from '@/shared/composables/useFixedDropdownAnchor';
 import { displayOrEmpty } from '@/shared/utils/emptyDisplay';
+import { toneDotClass } from '../utils/taskDisplay';
 
 const props = defineProps({
     task: { type: Object, required: true },
     mode: { type: String, default: 'self' },
+    hideProject: { type: Boolean, default: false },
     statusOptions: { type: Array, default: () => [] },
 });
 
@@ -25,15 +27,6 @@ const { panelStyle: statusPanelStyle } = useFixedDropdownAnchor(
     { width: 168, zIndex: 120, preferDown: true, maxHeight: 280 },
 );
 
-const dotClass = {
-    slate: 'bg-slate-400',
-    sky: 'bg-sky-500',
-    violet: 'bg-violet-500',
-    emerald: 'bg-emerald-500',
-    rose: 'bg-rose-500',
-    amber: 'bg-amber-500',
-};
-
 const canChange = computed(
     () => (props.task.can?.contribute || props.task.can?.act_team) && props.task.can_change_status,
 );
@@ -41,23 +34,15 @@ const canLog = computed(() => props.mode === 'self' && props.task.can?.contribut
 
 function fmtDate(value) {
     if (!value) return null;
-    const d = new Date(value + 'T00:00:00');
+    const d = new Date(`${value}T00:00:00`);
     return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
 }
 
 const dueLabel = computed(() => fmtDate(props.task.due_date));
-
-const overdueDays = computed(() => {
-    if (!props.task.is_late || !props.task.due_date) return 0;
-    const due = new Date(props.task.due_date + 'T00:00:00');
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return Math.max(0, Math.round((today - due) / 86400000));
-});
-
+const overdue = computed(() => Boolean(props.task.is_late));
 const isDueToday = computed(() => {
     if (!props.task.due_date) return false;
-    const due = new Date(props.task.due_date + 'T00:00:00');
+    const due = new Date(`${props.task.due_date}T00:00:00`);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return due.getTime() === today.getTime();
@@ -115,7 +100,7 @@ const metaCells = computed(() => [
         label: 'Ưu tiên',
         value: props.task.priority?.label ?? null,
         empty: 'Chưa cập nhật',
-        badge: props.task.priority,
+        tone: props.task.priority,
     },
     {
         key: 'sprint',
@@ -147,75 +132,56 @@ function onLog(payload) {
 
 <template>
   <article
-    class="group relative flex h-full flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900"
+    class="group relative flex h-full flex-col overflow-hidden rounded-xl border transition hover:shadow-sm"
+    :class="overdue
+      ? 'border-rose-300 bg-rose-50/80 hover:border-rose-400 dark:border-rose-800 dark:bg-rose-950/30'
+      : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900'"
   >
     <div
       class="absolute inset-y-0 left-0 w-1"
-      :style="{ backgroundColor: projectColor }"
+      :style="{ backgroundColor: overdue ? '#e11d48' : projectColor }"
     />
 
-    <!-- Header -->
     <button
       type="button"
       class="min-w-0 flex-1 px-3.5 pb-2 pt-3 pl-4 text-left"
       @click="emit('open', task)"
     >
-      <div class="mb-1.5 flex flex-wrap items-center gap-1.5">
-        <span
-          v-if="overdueDays > 0"
-          class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/50 dark:text-rose-300"
-        >
-          Quá hạn {{ overdueDays }}d
-        </span>
-        <span
-          v-else-if="isDueToday"
-          class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-        >
-          Hôm nay
-        </span>
-        <Badge
-          v-if="task.is_milestone"
-          label="Mốc"
-          color="amber"
-        />
-        <Badge
-          v-if="task.phase && !task.sprint"
-          :label="task.phase.label"
-          :color="task.phase.color"
-        />
-      </div>
       <p
-        v-if="projectLabel"
+        v-if="projectLabel && !hideProject"
         class="truncate text-[11px] font-semibold text-brand"
         :title="projectLabel"
       >
         {{ projectLabel }}
       </p>
       <p
-        class="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug text-slate-800 group-hover:text-brand dark:text-slate-100"
+        class="mt-0.5 line-clamp-2 text-sm font-semibold leading-snug group-hover:text-brand"
+        :class="overdue ? 'text-rose-800 dark:text-rose-100' : 'text-slate-800 dark:text-slate-100'"
         :title="task.title"
       >
         {{ task.title }}
       </p>
     </button>
 
-    <!-- Meta: 2 hàng × 3 cột -->
     <div class="grid grid-cols-3 gap-1.5 px-3.5 pb-3 pl-4">
       <div
         v-for="cell in metaCells"
         :key="cell.key"
-        class="min-w-0 rounded-lg border border-slate-100 bg-slate-50/80 px-2 py-1.5 dark:border-slate-800 dark:bg-slate-800/40"
+        class="min-w-0 rounded-lg border px-2 py-1.5"
+        :class="overdue
+          ? 'border-rose-100 bg-white/70 dark:border-rose-900/40 dark:bg-slate-900/40'
+          : 'border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/40'"
       >
         <p class="truncate text-[9px] font-semibold uppercase tracking-wide text-slate-400">
           {{ cell.label }}
         </p>
         <div
-          v-if="cell.badge"
+          v-if="cell.tone"
           class="mt-0.5"
         >
-          <Badge
-            :label="cell.badge.label"
-            :color="cell.badge.color"
+          <MyWorkToneLabel
+            :label="cell.tone.label"
+            :color="cell.tone.color"
           />
         </div>
         <template v-else-if="cell.progress != null">
@@ -243,21 +209,23 @@ function onLog(payload) {
       </div>
     </div>
 
-    <!-- Footer actions -->
-    <div class="mt-auto flex items-center justify-between gap-1 border-t border-slate-100 px-2.5 py-2 pl-3.5 dark:border-slate-800">
+    <div
+      class="mt-auto flex items-center justify-between gap-1 border-t px-2.5 py-2 pl-3.5"
+      :class="overdue ? 'border-rose-100 dark:border-rose-900/40' : 'border-slate-100 dark:border-slate-800'"
+    >
       <div class="relative min-w-0">
         <button
           ref="statusTriggerRef"
           type="button"
           :disabled="!canChange"
           class="inline-flex max-w-full items-center gap-1 rounded-lg border border-transparent px-1.5 py-1 transition disabled:cursor-not-allowed disabled:opacity-60"
-          :class="canChange ? 'hover:border-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800' : ''"
+          :class="canChange ? 'hover:border-slate-200 hover:bg-white/80 dark:hover:bg-slate-800' : ''"
           :title="canChange ? 'Đổi trạng thái' : 'Bạn không có quyền đổi trạng thái việc này'"
           aria-haspopup="listbox"
           :aria-expanded="statusOpen"
           @click="statusOpen = !statusOpen"
         >
-          <Badge
+          <MyWorkToneLabel
             v-if="task.status"
             :label="task.status.label"
             :color="task.status.color"
@@ -299,7 +267,7 @@ function onLog(payload) {
                 >
                   <span
                     class="h-2 w-2 shrink-0 rounded-full"
-                    :class="dotClass[opt.color] || dotClass.slate"
+                    :class="toneDotClass(opt.color)"
                   />
                   {{ opt.label }}
                 </button>
@@ -309,12 +277,14 @@ function onLog(payload) {
         </Teleport>
       </div>
 
-      <div class="flex shrink-0 items-center gap-0.5">
+      <div
+        v-if="canLog"
+        class="relative shrink-0"
+      >
         <button
-          v-if="canLog"
           ref="worklogTriggerRef"
           type="button"
-          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand dark:hover:bg-slate-800"
+          class="grid h-8 w-8 place-items-center rounded-lg text-slate-400 transition hover:bg-white/80 hover:text-brand dark:hover:bg-slate-800"
           title="Ghi giờ nhanh"
           @click="worklogOpen = !worklogOpen"
         >
@@ -324,26 +294,12 @@ function onLog(payload) {
           />
         </button>
         <QuickWorklogPopover
-          v-if="canLog"
           :open="worklogOpen"
           :anchor-ref="worklogTriggerRef"
           :task-title="task.title"
           @submit="onLog"
           @close="worklogOpen = false"
         />
-
-        <button
-          type="button"
-          class="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-medium text-slate-500 transition hover:bg-brand/5 hover:text-brand dark:hover:bg-slate-800"
-          title="Xem chi tiết"
-          @click="emit('open', task)"
-        >
-          <AppIcon
-            name="eye"
-            :size="15"
-          />
-          <span class="hidden sm:inline">Chi tiết</span>
-        </button>
       </div>
     </div>
   </article>

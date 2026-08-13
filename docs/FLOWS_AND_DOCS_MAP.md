@@ -174,7 +174,7 @@ flowchart TB
 | Trung tâm Công Nghệ | `CONGNGHE_CONTENT.md` | `Congnghe/*` | `Pages/Congnghe/`, `CongngheAdmin/` |
 | Dự án & test case | **`PROJECT_MANAGEMENT.md`** (+ `API_STRUCTURE` §2.4–2.11) | `Project/*`, `BlockerController` | `Pages/Project/`, `modules/project/` |
 | Báo cáo ngày | `DAILY_REPORT.md` (+ `DAILY_REPORT_TODAY.md` brief Today, `DAILY_REPORT_PROJECTS.md` liên kết dự án) | `DailyReport/*` | `Pages/DailyReport/`, `modules/daily-report/` |
-| Việc thường xuyên | `DAILY_REPORT.md` §6.3 + `DATABASE_STRUCTURE` `routine_tasks` | `RoutineTaskController` + `Application/RoutineTask/*` | `Pages/RoutineTask/`, `modules/routine-task/` |
+| Việc thường xuyên | `DAILY_REPORT.md` §6.3 + `DATABASE_STRUCTURE` `routine_tasks` | `RoutineTaskController` + `RoutineTaskAttachmentController` + `Application/RoutineTask/*` | `Pages/RoutineTask/`, `modules/routine-task/` |
 | Hồ sơ | `API_STRUCTURE` §2.18 | `ProfileController` | `Pages/Profile/` |
 | Tri thức | `KNOWLEDGE_BASE.md` | `KbArticleController` | `Pages/KnowledgeBase/` |
 | AI Workspace | `AI_ACCOUNTS.md` | `AiAccount/*`, `api/ai-accounts` | `Pages/AiAccount/`, `modules/aiAccount/` |

@@ -3,6 +3,7 @@
 namespace App\Http\Resources;
 
 use App\Http\Resources\Concerns\PresentsEntities;
+use App\Support\Project\ProjectVisibility;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -31,7 +32,8 @@ class ProjectResource extends JsonResource
             'category' => $this->enum($this->category),
             'scope' => $this->enum($this->scope),
             'scope_regions' => $this->scope_regions ?? [],
-            'scope_departments' => $this->scope_departments ?? [],
+            'scope_departments' => $this->relatedDepartmentIds(),
+            'related_departments' => $this->relatedDepartmentsPayload(),
             'start_date' => $this->start_date?->toDateString(),
             'due_date' => $this->due_date?->toDateString(),
             'budget' => $this->budget !== null ? (float) $this->budget : null,
@@ -62,5 +64,18 @@ class ProjectResource extends JsonResource
                 'contribute' => $user->can('contribute', $this->resource),
             ] : null,
         ];
+    }
+
+    /**
+     * @return list<array{id: int, name: string, code: string, color: string}>
+     */
+    private function relatedDepartmentsPayload(): array
+    {
+        $preset = $this->resource->getAttribute('related_departments');
+        if (is_array($preset)) {
+            return $preset;
+        }
+
+        return ProjectVisibility::presentDepartments($this->relatedDepartmentIds());
     }
 }

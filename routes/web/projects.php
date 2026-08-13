@@ -28,7 +28,6 @@ Route::prefix('projects')->name('projects.')->group(function () {
     Route::get('/{project}/edit', [ProjectController::class, 'edit'])->name('edit');
     Route::put('/{project}', [ProjectController::class, 'update'])->name('update');
     Route::patch('/{project}/type', [ProjectController::class, 'updateType'])->name('type');
-    Route::patch('/{project}/department', [ProjectController::class, 'updateDepartment'])->name('department');
     Route::post('/{project}/duplicate', [ProjectController::class, 'duplicate'])->name('duplicate');
     Route::delete('/{project}', [ProjectController::class, 'destroy'])->name('destroy');
 

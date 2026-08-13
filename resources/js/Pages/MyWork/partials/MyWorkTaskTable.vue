@@ -6,15 +6,15 @@ import { MY_WORK_TABLE_COLUMNS } from '../config/columns';
 
 const props = defineProps({
     groups: { type: Array, default: () => [] },
-    openState: { type: Object, required: true },
     isColVisible: { type: Function, required: true },
+    hideProjectCol: { type: Boolean, default: false },
     mode: { type: String, default: 'self' },
     statusOptions: { type: Array, default: () => [] },
     sortKey: { type: String, default: '' },
     sortDir: { type: String, default: 'asc' },
 });
 
-const emit = defineEmits(['toggle-group', 'sort', 'change-status', 'log-work', 'open']);
+const emit = defineEmits(['sort', 'change-status', 'log-work', 'open']);
 
 const SORTABLE = new Set([
     'title', 'project', 'status', 'priority', 'due_date', 'progress',
@@ -23,13 +23,14 @@ const SORTABLE = new Set([
     'assignee', 'reporter', 'reviewer',
 ]);
 
-const colCount = computed(
-    () => 2 + MY_WORK_TABLE_COLUMNS.filter((c) => props.isColVisible(c.key)).length,
-);
-
-function isOpen(key) {
-    return props.openState[key] !== false;
+function showCol(key) {
+    if (key === 'project' && props.hideProjectCol) return false;
+    return props.isColVisible(key);
 }
+
+const colCount = computed(
+    () => 1 + MY_WORK_TABLE_COLUMNS.filter((c) => showCol(c.key)).length,
+);
 
 function sortMark(key) {
     if (props.sortKey !== key) return '';
@@ -45,10 +46,6 @@ function headerClass(key) {
     return SORTABLE.has(key)
         ? 'cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-200'
         : '';
-}
-
-function showCol(key) {
-    return props.isColVisible(key);
 }
 </script>
 
@@ -224,9 +221,6 @@ function showCol(key) {
           >
             Người duyệt{{ sortMark('reviewer') }}
           </th>
-          <th class="sticky right-0 z-[3] w-[7.5rem] bg-slate-50/95 px-2 py-2.5 text-right dark:bg-slate-800/90 sm:px-3">
-            Thao tác
-          </th>
         </tr>
       </thead>
       <tbody>
@@ -236,61 +230,51 @@ function showCol(key) {
         >
           <tr
             v-show="group.tasks.length > 0 || group.alwaysShow"
-            class="border-y border-slate-100 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-800/50"
+            class="my-work-group-line"
           >
             <td
               :colspan="colCount"
-              class="px-3 py-2 sm:px-4"
+              class="px-3 pt-4 pb-1.5 sm:px-4"
             >
-              <button
-                type="button"
-                class="flex w-full items-center gap-2 text-left"
-                @click="emit('toggle-group', group.key)"
-              >
-                <AppIcon
-                  :name="isOpen(group.key) ? 'chevron-down' : 'chevron-right'"
-                  :size="15"
-                  class="text-slate-400"
-                />
+              <div class="flex items-center gap-3">
                 <span
                   v-if="group.color"
-                  class="h-2.5 w-2.5 shrink-0 rounded-full"
+                  class="h-2 w-2 shrink-0 rounded-full"
                   :style="{ backgroundColor: group.color }"
                 />
                 <AppIcon
                   v-else
                   :name="group.icon || 'task'"
-                  :size="15"
+                  :size="14"
                   :class="group.key === 'overdue' ? 'text-rose-500' : 'text-slate-400'"
                 />
-                <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">{{ group.label }}</span>
-                <span class="rounded-full bg-white px-1.5 py-0.5 text-[11px] font-medium text-slate-500 ring-1 ring-slate-200 dark:bg-slate-900 dark:ring-slate-700">
-                  {{ group.tasks.length }}
+                <span class="shrink-0 text-sm font-semibold text-slate-800 dark:text-slate-100">{{ group.label }}</span>
+                <span class="shrink-0 text-[11px] tabular-nums text-slate-400">
+                  {{ group.tasks.length }} việc
                 </span>
-              </button>
+                <div class="h-px min-w-[2rem] flex-1 bg-slate-200 dark:bg-slate-700" />
+              </div>
             </td>
           </tr>
-          <template v-if="isOpen(group.key)">
-            <tr v-if="group.tasks.length === 0">
-              <td
-                :colspan="colCount"
-                class="px-3 py-3 text-xs text-slate-400 sm:px-4"
-              >
-                Không có việc nào.
-              </td>
-            </tr>
-            <MyWorkTaskListRow
-              v-for="task in group.tasks"
-              :key="task.id"
-              :task="task"
-              :mode="mode"
-              :status-options="statusOptions"
-              :is-col-visible="isColVisible"
-              @change-status="(t, s) => emit('change-status', t, s)"
-              @log-work="(t, p) => emit('log-work', t, p)"
-              @open="(t) => emit('open', t)"
-            />
-          </template>
+          <tr v-if="group.tasks.length === 0 && group.alwaysShow">
+            <td
+              :colspan="colCount"
+              class="px-3 py-2.5 text-xs text-slate-400 sm:px-4"
+            >
+              Không có việc nào.
+            </td>
+          </tr>
+          <MyWorkTaskListRow
+            v-for="task in group.tasks"
+            :key="task.id"
+            :task="task"
+            :mode="mode"
+            :status-options="statusOptions"
+            :is-col-visible="showCol"
+            @change-status="(t, s) => emit('change-status', t, s)"
+            @log-work="(t, p) => emit('log-work', t, p)"
+            @open="(t) => emit('open', t)"
+          />
         </template>
       </tbody>
     </table>

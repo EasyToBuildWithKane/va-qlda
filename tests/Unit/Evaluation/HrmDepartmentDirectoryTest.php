@@ -138,7 +138,12 @@ class HrmDepartmentDirectoryTest extends TestCase
 
         $this->assertTrue($byCode->has('QA'));
         $this->assertSame('hrm', $byCode['QA']['source']);
+        $this->assertSame('unit', $byCode['QA']['type']);
         $this->assertFalse($byCode->has('OLD'));
+
+        $deptCodes = collect(app(HrmDepartmentDirectory::class)->departments())->pluck('code')->all();
+        $this->assertContains('KT', $deptCodes);
+        $this->assertNotContains('QA', $deptCodes);
     }
 
     public function test_falls_back_when_hrm_api_not_configured(): void

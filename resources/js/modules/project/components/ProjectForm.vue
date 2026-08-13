@@ -6,6 +6,7 @@ import ProgressBar from '@/shared/ui/ProgressBar.vue';
 import FieldTooltip from '@/shared/ui/FieldTooltip.vue';
 import RadioCard from '@/shared/ui/RadioCard.vue';
 import PersonSelect from '@/modules/project/components/PersonSelect.vue';
+import ProjectDepartmentAccessPanel from '@/modules/project/components/ProjectDepartmentAccessPanel.vue';
 import SearchSelect from '@/shared/ui/SearchSelect.vue';
 import SearchMultiSelect from '@/shared/ui/SearchMultiSelect.vue';
 import KbRichTextField from '@/modules/knowledge-base/components/KbRichTextField.vue';
@@ -61,7 +62,11 @@ const statusSelectOptions = computed(() => valueLabelOptions(props.statusOptions
 
 watch(() => form.scope, (s) => {
     if (s !== 'regional') form.scope_regions = [];
-    if (s !== 'departmental') form.scope_departments = [];
+});
+watch(() => form.department_id, (id) => {
+    if (id == null || id === '') return;
+    const n = Number(id);
+    form.scope_departments = (form.scope_departments ?? []).filter((x) => Number(x) !== n);
 });
 
 const submitted = ref(false);
@@ -73,7 +78,6 @@ const liveErrors = computed(() => {
     if (!form.name?.trim()) e.name = 'Tên dự án không được để trống.';
     if (!form.scope) e.scope = 'Phải chọn ít nhất một phạm vi áp dụng.';
     if (form.scope === 'regional' && form.scope_regions.length === 0) e.scope_regions = 'Chọn ít nhất một khu vực.';
-    if (form.scope === 'departmental' && form.scope_departments.length === 0) e.scope_departments = 'Chọn ít nhất một phòng ban.';
     if (form.start_date && form.due_date && form.due_date < form.start_date) e.due_date = 'Ngày kết thúc phải lớn hơn ngày bắt đầu.';
     return e;
 });
@@ -149,7 +153,7 @@ const tracked = computed(() => [
     { key: 'name', label: 'Tên dự án', required: true, filled: !!form.name?.trim() },
     { key: 'code', label: 'Mã dự án', filled: !!form.code?.trim() },
     { key: 'type', label: 'Loại dự án', required: true, filled: !!form.type },
-    { key: 'scope', label: 'Phạm vi áp dụng', required: true, filled: !!form.scope },
+    { key: 'scope', label: 'Phạm vi triển khai', required: true, filled: !!form.scope },
     { key: 'start_date', label: 'Ngày bắt đầu', filled: !!form.start_date },
     { key: 'due_date', label: 'Ngày kết thúc', filled: !!form.due_date },
     { key: 'manager_id', label: 'Chủ dự án', filled: !!form.manager_id },
@@ -170,7 +174,7 @@ const tips = [
     'Tên dự án nên ngắn gọn, dễ nhận diện.',
     'Mã dự án được hệ thống tự sinh — không cần nhập.',
     'Lưu nháp giữ tạm trên trình duyệt — lấy lại ở «Bản nháp đã lưu».',
-    'Thêm thành viên ở trang chi tiết sau khi tạo.',
+    'Phòng phụ trách chủ trì; phòng liên đới là các phòng được kết nối và được xem dự án.',
 ];
 
 const tabDefs = [
@@ -189,7 +193,7 @@ const tabProgress = computed(() => ({
     scope: [
         !!form.scope,
         form.scope !== 'regional' || form.scope_regions.length > 0,
-        form.scope !== 'departmental' || form.scope_departments.length > 0,
+        form.department_id != null && form.department_id !== '',
     ].filter(Boolean).length,
     time: [!!form.start_date, !!form.due_date].filter(Boolean).length,
     people: [!!form.manager_id, !!form.status].filter(Boolean).length,
@@ -656,34 +660,36 @@ const submit = (after = 'close') => {
           <!-- Tab: Phạm vi -->
           <div
             v-show="activeTabMeta.key === 'scope'"
-            class="space-y-4"
+            class="space-y-5"
           >
-            <p class="text-xs text-slate-500">
-              Chọn nơi dự án được áp dụng. <span class="text-danger">*</span>
-            </p>
-            <div
-              class="grid grid-cols-1 gap-3 sm:grid-cols-2"
-              role="radiogroup"
-            >
-              <RadioCard
-                v-for="o in scopeOptions"
-                :key="o.value"
-                v-model="form.scope"
-                :value="o.value"
-                :label="o.label"
-                :description="o.description"
-                :icon="o.icon"
-              />
+            <div>
+              <p class="text-xs text-slate-500">
+                Nơi dự án được triển khai. <span class="text-danger">*</span>
+              </p>
+              <div
+                class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2"
+                role="radiogroup"
+              >
+                <RadioCard
+                  v-for="o in scopeOptions"
+                  :key="o.value"
+                  v-model="form.scope"
+                  :value="o.value"
+                  :label="o.label"
+                  :description="o.description"
+                  :icon="o.icon"
+                />
+              </div>
+              <p
+                v-if="errFor('scope')"
+                class="mt-2 flex items-center gap-1 text-xs text-danger"
+              >
+                <AppIcon
+                  name="close"
+                  :size="12"
+                /> {{ errFor('scope') }}
+              </p>
             </div>
-            <p
-              v-if="errFor('scope')"
-              class="flex items-center gap-1 text-xs text-danger"
-            >
-              <AppIcon
-                name="close"
-                :size="12"
-              /> {{ errFor('scope') }}
-            </p>
 
             <div
               v-if="form.scope === 'regional'"
@@ -712,64 +718,17 @@ const submit = (after = 'close') => {
               </p>
             </div>
 
-            <div
-              v-if="form.scope === 'departmental'"
-              class="rounded-card border border-cyan-200 bg-cyan-50/60 p-4"
-            >
-              <label class="label flex items-center gap-1.5">Phòng ban áp dụng <FieldTooltip text="Gõ để tìm, chọn các phòng ban nằm trong phạm vi dự án." /></label>
-              <SearchMultiSelect
-                v-model="form.scope_departments"
-                :options="departmentOptions"
-                value-key="id"
-                label-key="name"
-                placeholder="Tìm & chọn phòng ban…"
-                search-placeholder="Tìm phòng ban…"
-                :max-chips="12"
-                control-size="md"
-                @update:model-value="touch('scope_departments')"
-              />
-              <p
-                v-if="errFor('scope_departments')"
-                class="mt-2 flex items-center gap-1 text-xs text-danger"
-              >
-                <AppIcon
-                  name="close"
-                  :size="12"
-                /> {{ errFor('scope_departments') }}
-              </p>
-            </div>
-
-            <div class="border-t border-slate-100 pt-4">
-              <label class="label flex items-center gap-1.5">
-                Phòng ban phụ trách
-                <FieldTooltip text="Phòng ban chịu trách nhiệm chính (khác với phạm vi áp dụng)." />
-              </label>
-              <div class="sm:max-w-sm">
-                <SearchSelect
-                  v-model="form.department_id"
-                  :options="departmentOptions"
-                  placeholder="Tìm & chọn phòng ban…"
-                  search-placeholder="Tìm phòng ban…"
-                  @update:model-value="touch('department_id')"
-                />
-              </div>
-              <p
-                v-if="isCreate && !form.department_id"
-                class="mt-1 text-xs text-slate-500"
-              >
-                Nếu không chọn, hệ thống gán phòng mặc định (Phòng Công nghệ / PCN hoặc phòng đang hoạt động đầu tiên).
-              </p>
-              <p
-                v-if="errFor('department_id')"
-                class="mt-1 flex items-center gap-1 text-xs text-danger"
-              >
-                <AppIcon
-                  name="close"
-                  :size="12"
-                />
-                {{ errFor('department_id') }}
-              </p>
-            </div>
+            <ProjectDepartmentAccessPanel
+              :department-options="departmentOptions"
+              :owner-id="form.department_id"
+              :related-ids="form.scope_departments"
+              :owner-error="errFor('department_id')"
+              :related-error="errFor('scope_departments')"
+              @update:owner-id="form.department_id = $event"
+              @update:related-ids="form.scope_departments = $event"
+              @touch-owner="touch('department_id')"
+              @touch-related="touch('scope_departments')"
+            />
           </div>
 
           <!-- Tab: Thời gian -->

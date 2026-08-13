@@ -33,23 +33,26 @@ class EmployeeAuditListBuilder
         $tasksByAssignee = PerformanceTaskScope::groupByAssignee($tasks, $employeeIds);
         $bucketDefs = PerformancePeriodBuckets::forFilter($filter);
 
-        $unitNames = EmployeeOrgUnitResolver::labelsFor($employeeIds);
+        $unitNames = EmployeeOrgUnitResolver::detailsFor($employeeIds);
 
         $employees = Employee::query()
             ->whereIn('id', $employeeIds)
             ->orderBy('full_name')
-            ->get(['id', 'full_name', 'avatar_path', 'role_title']);
+            ->get(['id', 'full_name', 'avatar_path', 'role_title', 'meta']);
 
         $rows = $employees->map(function (Employee $emp) use ($tasksByAssignee, $unitNames, $filter, $bucketDefs) {
             $empTasks = $tasksByAssignee->get($emp->id, collect());
             $metrics = $this->metricsForEmployee($empTasks, $filter);
+            $org = $unitNames[$emp->id] ?? ['label' => null, 'department' => null, 'unit' => null];
 
             return [
                 'id' => $emp->id,
                 'name' => $emp->full_name,
                 'role' => $emp->role_title,
                 'avatar' => PublicMediaUrl::fromPublicDisk($emp->avatar_path),
-                'unitName' => $unitNames[$emp->id] ?? null,
+                'unitName' => $org['label'],
+                'departmentName' => $org['department'],
+                'orgUnitName' => $org['unit'],
                 'periodLabel' => $filter->label,
                 'periodBuckets' => $this->periodBucketsForEmployee($empTasks, $bucketDefs, $filter),
                 'committed' => $metrics['committed'],
