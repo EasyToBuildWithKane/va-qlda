@@ -210,7 +210,7 @@ Kanban Index: mặc định nhóm theo `type`. **super_admin** đổi được �
 
 ### 6.2 Các tab
 
-Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 cột một hàng — icon trong ô vuông + nhãn; badge đếm trên icon (Tài liệu / Test case / Phản hồi).
+Tab strip full-width: mobile 3 cột (icon trên, nhãn dưới, chữ không `truncate`); `sm+` `auto-fit minmax(7.75rem, 1fr)` — tab xuống hàng khi hẹp, nhãn luôn đủ chữ. Badge đếm trên icon (Tài liệu / Vướng mắc / Phản hồi).
 
 | Tab | Key | Component chính |
 |---|---|---|
@@ -222,7 +222,7 @@ Tab strip full-width (`grid` trải đều): mobile 4 cột × 2 hàng; `md+` 8 
 | Vướng mắc | `blockers` | `ProjectBlockerPanel`, `BlockerDataModal` |
 | QA / Test case | `qa` | `ProjectTestCasePanel`, `TestCaseDataModal` |
 | Phản hồi | `feedback` | `ProjectFeedbackPanel` |
-| Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` |
+| Báo cáo tuần | `weekly` | `WeeklyReportWorkspace` — kỳ theo khoảng ngày trên toàn dự án (không kẹp Sprint); AI/heuristic đọc mô tả task + thành viên làm |
 
 `ProjectShowSummaryBar`: 5 KPI (tiến độ, thành viên, công việc, sprint, test case) — emit điều hướng tab.
 
@@ -316,7 +316,7 @@ UI: `ProjectMembers.vue` (avatar trên card/list), `MemberFormModal` — thêm/s
 
 **Resource props thêm:** `preview_snippet` — vài dòng đầu file text (`ProjectAttachment::previewSnippet`, ≤400 ký tự / 8 dòng, bỏ qua file >256KB); `null` với PDF/binary.
 
-**UI tab Tài liệu:** toolbar (`Tải lên` · `Thêm` ▾); breadcrumb là nav chính; thẻ folder lavender + file meta tách ngày/size; layout hai panel (trái tài liệu dự án, phải đính kèm task). Empty: nhãn ngắn + CTA Tải lên khi có quyền. Preview full-screen (`DocumentPreviewPane`): Word = iframe `docx-preview` cuộn liên tục (giống link Google), không pager trang; Excel vẫn phân trang dòng; chi tiết drawer.
+**UI tab Tài liệu:** toolbar (`Tải lên` · `Thêm` ▾); breadcrumb là nav chính; thẻ folder lavender + file meta tách ngày/size; layout hai panel (trái tài liệu dự án, phải đính kèm task). Empty: nhãn ngắn + CTA Tải lên khi có quyền. Preview full-screen (`DocumentPreviewPane`): Word = iframe `docx-preview` cuộn liên tục kiểu tờ giấy (letterhead 2 cột, watermark giữa trang); Excel vẫn phân trang dòng; chi tiết drawer.
 
 Activity: `project_attachment_activities` — log trên `ProjectDocumentsPanel`.
 

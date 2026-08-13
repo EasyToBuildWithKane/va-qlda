@@ -28,16 +28,20 @@ const DOCX_RENDER_OPTIONS = {
 };
 
 /**
- * Canvas trong iframe — cuộn liên tục như Google Docs.
- * Không bọc/scale từng trang (tránh lệch header / footer / watermark).
- * Fit chiều ngang bằng transform cả khối `.docx-fit-inner`.
+ * Canvas trong iframe — tờ giấy A4 trên nền xám, cuộn liên tục.
+ * Không bọc/scale từng trang; không `position:relative` trên header
+ * (watermark VML `position:absolute` phải lấy section làm containing block).
  */
 const DOCX_IFRAME_BASE_STYLES = `
 html, body {
   margin: 0;
   padding: 0;
-  background: #e8edf3;
+  background: #eceff3;
   color: #0f172a;
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 body {
   min-height: 100%;
@@ -54,45 +58,78 @@ body {
 }
 .docx-wrapper {
   background: transparent !important;
-  padding: 20px 12px 28px !important;
+  padding: 28px 24px 40px !important;
   box-sizing: border-box;
   display: flex !important;
   flex-flow: column nowrap !important;
   align-items: center !important;
-  gap: 0;
+  gap: 22px;
   width: max-content;
   max-width: none;
 }
 .docx-wrapper > section.docx {
   background: #fff !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1), 0 10px 28px rgba(15, 23, 42, 0.08);
-  margin: 0 0 20px !important;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow:
+    0 1px 1px rgba(15, 23, 42, 0.04),
+    0 10px 28px rgba(15, 23, 42, 0.08);
+  margin: 0 !important;
   box-sizing: border-box !important;
-  /* Giữ flex thư viện — header / article / footer / watermark đúng lớp */
   display: flex !important;
   flex-flow: column nowrap !important;
   position: relative !important;
   overflow: hidden !important;
 }
-.docx-wrapper > section.docx:last-child {
-  margin-bottom: 0 !important;
-}
 section.docx > article {
   margin-bottom: auto;
   z-index: 1;
+  min-width: 0;
+  max-width: 100%;
   position: relative;
 }
 section.docx > header,
 section.docx > footer {
   z-index: 1;
-  position: relative;
+  min-width: 0;
+  overflow: visible;
+  position: static;
+}
+section.docx > header table td,
+section.docx > header table th,
+section.docx > footer table td,
+section.docx > footer table th {
+  vertical-align: middle;
+  overflow-wrap: break-word;
+}
+section.docx > header p,
+section.docx > footer p {
+  line-height: 1.3;
+}
+.docx-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow: hidden;
+}
+.docx-watermark img,
+.docx-watermark svg {
+  max-width: 56%;
+  max-height: 50%;
+  width: auto !important;
+  height: auto !important;
+  opacity: 0.12;
+  object-fit: contain;
 }
 .docx table {
   border-collapse: collapse;
 }
-.docx img {
-  max-width: 100%;
-  height: auto;
+.docx table td,
+.docx table th {
+  vertical-align: top;
 }
 .docx p {
   margin: 0pt;
@@ -186,6 +223,152 @@ function parseCssLengthPx(value) {
     return num;
 }
 
+function isWrapNoneDrawing(node) {
+    return Boolean(
+        node
+        && parseCssLengthPx(node.style?.width) === 0
+        && node.style?.position === 'relative',
+    );
+}
+
+function lockPageSheetSize(section) {
+    const sheetHeight = section.style.minHeight;
+    if (sheetHeight) section.style.height = sheetHeight;
+}
+
+function polishLetterheadTable(table, padL, padR) {
+    table.style.marginLeft = padL;
+    table.style.marginRight = padR;
+    table.style.width = `calc(100% - ${padL} - ${padR})`;
+    table.style.maxWidth = `calc(100% - ${padL} - ${padR})`;
+    table.style.tableLayout = 'auto';
+    table.style.border = 'none';
+
+    const row = table.querySelector('tr');
+    if (!row) return;
+    const cells = Array.from(row.children).filter((el) => el.tagName === 'TD' || el.tagName === 'TH');
+    if (cells.length === 2 || cells.length === 3) {
+        const left = cells[0];
+        const right = cells[cells.length - 1];
+        left.style.width = '1%';
+        left.style.whiteSpace = 'nowrap';
+        left.style.verticalAlign = 'middle';
+        left.style.paddingRight = '12px';
+        right.style.width = cells.length === 2 ? '99%' : '1%';
+        right.style.whiteSpace = cells.length === 3 ? 'nowrap' : '';
+        right.style.textAlign = 'right';
+        right.style.verticalAlign = 'middle';
+        if (cells.length === 3) {
+            cells[1].style.width = 'auto';
+            cells[1].style.verticalAlign = 'middle';
+        }
+        left.querySelectorAll('img').forEach((img) => {
+            img.style.maxHeight = '88px';
+            img.style.maxWidth = '180px';
+            img.style.width = 'auto';
+            img.style.height = 'auto';
+            img.style.objectFit = 'contain';
+            img.style.display = 'block';
+        });
+        return;
+    }
+
+    cells.forEach((cell) => {
+        cell.style.verticalAlign = 'middle';
+    });
+    table.querySelectorAll('img').forEach((img) => {
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.objectFit = 'contain';
+    });
+}
+
+function collectWatermarkNodes(header) {
+    const nodes = [];
+    header.querySelectorAll('svg').forEach((svg) => {
+        if (svg.closest('table')) return;
+        nodes.push(svg);
+    });
+    header.querySelectorAll('img').forEach((img) => {
+        if (img.closest('table')) return;
+        let parent = img.parentElement;
+        let wrapNone = false;
+        while (parent && parent !== header) {
+            if (isWrapNoneDrawing(parent)) {
+                wrapNone = true;
+                break;
+            }
+            parent = parent.parentElement;
+        }
+        const width = parseCssLengthPx(img.style.width) || img.naturalWidth || 0;
+        const height = parseCssLengthPx(img.style.height) || img.naturalHeight || 0;
+        if (wrapNone || width > 180 || height > 180) nodes.push(img);
+    });
+    return nodes;
+}
+
+function mountWatermarks(section, header) {
+    const nodes = collectWatermarkNodes(header);
+    if (!nodes.length) return;
+
+    let layer = section.querySelector(':scope > .docx-watermark');
+    if (!layer) {
+        layer = section.ownerDocument.createElement('div');
+        layer.className = 'docx-watermark';
+        section.insertBefore(layer, section.firstChild);
+    }
+
+    nodes.forEach((node) => {
+        node.style.position = 'static';
+        node.style.left = '';
+        node.style.top = '';
+        node.style.margin = '0';
+        node.style.transform = 'none';
+        if (node.tagName === 'SVG') {
+            node.removeAttribute('width');
+            node.removeAttribute('height');
+        }
+        layer.appendChild(node);
+    });
+
+    header.querySelectorAll('div').forEach((div) => {
+        if (isWrapNoneDrawing(div) && !div.querySelector('img, svg')) {
+            div.style.display = 'none';
+        }
+    });
+}
+
+/**
+ * Ghim header/footer sát mép trang, letterhead 2 cột, watermark giữa tờ giấy.
+ */
+function polishDocxPreview(doc) {
+    doc.querySelectorAll('section.docx').forEach((section) => {
+        const padL = section.style.paddingLeft || '24px';
+        const padR = section.style.paddingRight || '24px';
+
+        lockPageSheetSize(section);
+
+        const header = section.querySelector(':scope > header');
+        const footer = section.querySelector(':scope > footer');
+
+        [header, footer].filter(Boolean).forEach((zone) => {
+            zone.style.marginLeft = `calc(0px - ${padL})`;
+            zone.style.marginRight = `calc(0px - ${padR})`;
+            zone.style.width = `calc(100% + ${padL} + ${padR})`;
+            zone.style.maxWidth = `calc(100% + ${padL} + ${padR})`;
+            zone.style.boxSizing = 'border-box';
+            zone.style.minWidth = '0';
+
+            if (zone.clientWidth < 8) return;
+            zone.querySelectorAll('table').forEach((table) => {
+                polishLetterheadTable(table, padL, padR);
+            });
+        });
+
+        if (header) mountWatermarks(section, header);
+    });
+}
+
 export function useDocumentPreview(selectedFileRef) {
     const kind = ref('none');
     const loading = ref(false);
@@ -257,7 +440,7 @@ export function useDocumentPreview(selectedFileRef) {
             || inner.scrollWidth
             || 794;
 
-        const gutter = 32;
+        const gutter = 56;
         const available = Math.max(160, (iframe.clientWidth || 0) - gutter);
         let scale = Math.min(1, available / pageWidth);
         if (!Number.isFinite(scale) || scale <= 0) scale = 1;
@@ -352,9 +535,10 @@ export function useDocumentPreview(selectedFileRef) {
 
         await renderAsync(buffer, inner, doc.head, DOCX_RENDER_OPTIONS);
 
-        // Không wrap từng trang — để thư viện giữ header/footer/watermark
+        polishDocxPreview(doc);
         attachDocxResizeObserver();
         await waitForDocxImages(doc);
+        polishDocxPreview(doc);
         scheduleDocxFit();
         setTimeout(scheduleDocxFit, 50);
         setTimeout(scheduleDocxFit, 250);

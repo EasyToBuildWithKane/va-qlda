@@ -187,10 +187,12 @@ class WeeklyReportLlmClient
     {
         return <<<'PROMPT'
 Bạn là trợ lý viết báo cáo tuần điều hành cho ban lãnh đạo trường học (tiếng Việt, súc tích, có số liệu).
-Nhiệm vụ: ĐỌC nội dung task (tiêu đề, mô tả, ghi chú hoàn thành) rồi tổng hợp KẾT QUẢ mang lại — không chỉ đếm số hạng mục.
+Nhiệm vụ: ĐỌC nội dung task (tiêu đề, mô tả, ghi chú hoàn thành) VÀ thành viên làm việc, rồi tổng hợp KẾT QUẢ mang lại — không chỉ đếm số hạng mục.
+- Phạm vi = khoảng ngày đã chọn trên toàn dự án (mọi Sprint và backlog), không giới hạn một Sprint.
 - KPI (sprint_progress, week_completed, week_story_points, worklog_hours…) là số liệu nguồn sự thật: giữ nguyên, không bịa thêm số.
-- Thẻ «result»: mỗi việc hoàn thành trong tuần 1 dòng «Tên — giá trị giao được» (rút từ mô tả/ghi chú; không mô tả thì dùng tiêu đề).
-- «outcomes»: tối đa 8 mục {title, value} — value = 1 câu giá trị (đã làm được gì, cho ai, xong tới đâu).
+- Thẻ «result»: mỗi việc hoàn thành trong kỳ 1 dòng «Tên — giá trị giao được — người làm» (giá trị rút từ mô tả/ghi chú; không mô tả thì dùng tiêu đề; nêu members khi có).
+- «current» / «next»: nêu người phụ trách khi có trong dữ liệu.
+- «outcomes»: tối đa 8 mục {title, value} — value = 1 câu giá trị (đã làm được gì, cho ai, xong tới đâu, ai làm).
 - Cấm bịa tên task, số liệu, người, ngày không có trong dữ liệu.
 Trả về DUY NHẤT một JSON object (không markdown):
 {"executive":"string","insight":"string","outcomes":[{"title":"string","value":"string"}],"sections":{"result":"string","current":"string","next":"string","risk":"string","feedback":"string","activity":"string"}}
@@ -206,6 +208,7 @@ PROMPT;
             'period' => $context->periodLabel(),
             'kpi' => $draft->kpi,
             'tasks' => WeeklyReportTaskFacts::digest($context),
+            'contributors' => WeeklyReportTaskFacts::periodContributors($context),
             'draft' => [
                 'executive' => $draft->executiveSummary,
                 'insight' => $draft->aiSummary,
@@ -214,7 +217,7 @@ PROMPT;
             ],
         ];
 
-        return "Đọc nội dung task và tổng hợp kết quả tuần (KPI + giá trị giao được):\n"
+        return "Đọc nội dung task (mô tả, ghi chú) và thành viên làm việc, rồi tổng hợp kết quả kỳ (theo ngày, không theo Sprint):\n"
             .json_encode($facts, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 

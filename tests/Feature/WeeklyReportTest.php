@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Models\WeeklyReport;
@@ -9,6 +10,7 @@ use App\Support\Enums\SprintStatus;
 use App\Support\Enums\SystemRole;
 use App\Support\Enums\TaskPriority;
 use App\Support\Enums\TaskStatus;
+use App\Support\Enums\WeeklyReportSection;
 use App\Support\Enums\WeeklyReportStatus;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -216,5 +218,69 @@ class WeeklyReportTest extends TestCase
         $this->actingAs($admin, 'system')
             ->get("/projects/{$project->id}/weekly-reports/{$report->id}/export/docx")
             ->assertOk();
+    }
+
+    public function test_generate_includes_tasks_outside_sprint_with_content_and_members(): void
+    {
+        [$project] = $this->projectWithSprint();
+        $member = Employee::factory()->create(['full_name' => 'Nguyễn Văn A']);
+        $helper = Employee::factory()->create(['full_name' => 'Trần Thị B']);
+
+        $oldSprint = $project->sprints()->create([
+            'name' => 'Sprint cũ',
+            'status' => SprintStatus::Completed,
+            'start_date' => Carbon::today()->subWeeks(8),
+            'end_date' => Carbon::today()->subWeeks(6),
+            'sort_order' => 0,
+        ]);
+
+        $backlog = $project->tasks()->create([
+            'title' => 'Việc backlog đang làm',
+            'sprint_id' => null,
+            'status' => TaskStatus::InProgress,
+            'priority' => TaskPriority::High,
+            'description' => '<p>Xây API điểm danh cho giáo viên.</p>',
+            'assignee_id' => $member->id,
+        ]);
+        $backlog->assignees()->sync([$member->id, $helper->id]);
+
+        $done = $project->tasks()->create([
+            'title' => 'Bàn giao module điểm danh',
+            'sprint_id' => $oldSprint->id,
+            'status' => TaskStatus::Done,
+            'priority' => TaskPriority::High,
+            'completed_at' => now(),
+            'description' => '<p>Hoàn thiện module điểm danh.</p>',
+            'completion_note' => 'Đã demo với phòng Đào tạo.',
+            'assignee_id' => $member->id,
+        ]);
+        $done->worklogs()->create([
+            'employee_id' => $member->id,
+            'date' => Carbon::today(),
+            'hours' => 4,
+        ]);
+
+        $start = Carbon::today()->startOfWeek()->toDateString();
+        $end = Carbon::today()->startOfWeek()->addDays(6)->toDateString();
+
+        $this->actingAs($this->admin(), 'system')
+            ->post("/projects/{$project->id}/weekly-reports", [
+                'week_start' => $start,
+                'week_end' => $end,
+            ])
+            ->assertRedirect();
+
+        $report = WeeklyReport::query()->where('project_id', $project->id)->firstOrFail();
+        $report->load('sections');
+        $result = $report->sections->firstWhere('section', WeeklyReportSection::Result)?->content ?? '';
+        $current = $report->sections->firstWhere('section', WeeklyReportSection::Current)?->content ?? '';
+
+        $this->assertStringContainsString('Bàn giao module điểm danh', $result);
+        $this->assertStringContainsString('Đã demo với phòng Đào tạo', $result);
+        $this->assertStringContainsString('Nguyễn Văn A', $result);
+        $this->assertStringContainsString('Việc backlog đang làm', $current);
+        $this->assertStringContainsString('Nguyễn Văn A', $current);
+        $this->assertStringContainsString('Thành viên tham gia', $report->executive_summary);
+        $this->assertStringContainsString('Nguyễn Văn A', $report->executive_summary);
     }
 }

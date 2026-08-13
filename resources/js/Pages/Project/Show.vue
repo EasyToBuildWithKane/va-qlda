@@ -334,7 +334,7 @@ const onSprintSaved = () => {
         aria-label="Tab dự án"
       >
         <div
-          class="mx-auto grid w-full max-w-[100vw] grid-cols-3 gap-0.5 p-1.5 sm:grid-cols-5 md:grid-cols-9 md:gap-1 md:p-2"
+          class="mx-auto grid w-full grid-cols-3 gap-1 p-1.5 sm:grid-cols-[repeat(auto-fit,minmax(7.75rem,1fr))] sm:gap-1 sm:p-2"
           role="tablist"
         >
           <button
@@ -343,7 +343,7 @@ const onSprintSaved = () => {
             type="button"
             role="tab"
             :aria-selected="tab === t.key"
-            class="group relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center transition sm:flex-row sm:gap-1.5 sm:px-2 sm:py-2.5"
+            class="group relative flex min-h-[3.75rem] flex-col items-center justify-center gap-1 rounded-xl px-1.5 py-2 text-center transition"
             :class="tab === t.key
               ? 'bg-brand/[0.08] text-brand shadow-sm ring-1 ring-brand/20 dark:bg-brand/20 dark:text-brand-100 dark:ring-brand/30'
               : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 dark:text-slate-400 dark:hover:bg-slate-800/60 dark:hover:text-slate-200'"
@@ -373,7 +373,7 @@ const onSprintSaved = () => {
               >{{ openFeedbackCount > 99 ? '99+' : openFeedbackCount }}</span>
             </span>
             <span
-              class="max-w-full truncate text-[10px] font-semibold leading-tight sm:text-xs md:text-[13px]"
+              class="w-full px-0.5 text-center text-[11px] font-semibold leading-tight sm:text-xs"
               :class="tab === t.key ? 'text-brand dark:text-brand-100' : ''"
             >{{ t.label }}</span>
           </button>

@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 
 /**
  * Dựng dữ liệu props cho tab "Báo cáo tuần" trên trang Project/Show:
- * tổng quan (sprint + kỳ mặc định + danh sách báo cáo) và chi tiết một kỳ.
+ * tổng quan (kỳ mặc định theo lịch + danh sách báo cáo theo ngày) và chi tiết một kỳ.
  */
 class WeeklyReportPresenter
 {
@@ -36,22 +36,17 @@ class WeeklyReportPresenter
     }
 
     /**
-     * Tổng quan: sprint + kỳ mặc định (T2–CN hiện tại) + danh sách báo cáo đã tạo.
+     * Tổng quan: kỳ mặc định (tuần T2–CN lịch) + toàn bộ báo cáo theo ngày của dự án.
      *
      * @return array<string, mixed>
      */
     public function overview(Project $project): array
     {
         $sprint = $this->activeSprint($project);
-        $current = $this->weekResolver->currentWeek($sprint);
+        $current = $this->weekResolver->calendarWeek();
 
         $reports = WeeklyReport::query()
             ->forProject($project->id)
-            ->when(
-                $sprint,
-                fn ($q) => $q->where('sprint_id', $sprint->id),
-                fn ($q) => $q->whereNull('sprint_id'),
-            )
             ->latestFirst()
             ->get();
 

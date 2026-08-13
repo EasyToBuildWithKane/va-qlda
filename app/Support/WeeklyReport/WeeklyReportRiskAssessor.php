@@ -7,7 +7,7 @@ use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\TaskStatus;
 
 /**
- * Đánh giá rủi ro Sprint → danh sách rủi ro phân mức High / Medium / Low kèm nguyên nhân.
+ * Đánh giá rủi ro kỳ báo cáo → danh sách rủi ro phân mức High / Medium / Low kèm nguyên nhân.
  */
 class WeeklyReportRiskAssessor
 {
@@ -43,8 +43,8 @@ class WeeklyReportRiskAssessor
             ->sortBy('due_date');
         $overdue = $overdueTasks->count();
         if ($overdue > 0) {
-            $sample = $overdueTasks->take(3)->map(function (Task $t) {
-                $who = $t->assignee?->full_name ?? 'Chưa gán';
+            $sample = $overdueTasks->take(3)->map(function (Task $t) use ($context) {
+                $who = implode(', ', WeeklyReportTaskFacts::memberNames($t, $context)) ?: 'Chưa gán';
 
                 return $t->title.' ('.$who.', hạn '.$t->due_date->format('d/m').')';
             })->implode('; ');
@@ -77,7 +77,7 @@ class WeeklyReportRiskAssessor
         if ($progress < 50 && $daysLeft <= 3 && $context->tasks->isNotEmpty()) {
             $risks[] = [
                 'level' => 'high',
-                'label' => 'Tiến độ Sprint thấp so với thời gian còn lại',
+                'label' => 'Tiến độ kỳ thấp so với thời gian còn lại',
                 'reason' => "Mới đạt {$progress}% trong khi sắp hết tuần.",
             ];
         }

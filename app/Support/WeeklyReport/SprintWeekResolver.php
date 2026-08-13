@@ -76,15 +76,25 @@ class SprintWeekResolver
         return $this->currentWeek($sprint);
     }
 
-    /** @return array{week_number:int, start:Carbon, end:Carbon} */
-    private function currentIsoWeek(): array
+    /**
+     * Tuần lịch T2–CN chứa $day (mặc định hôm nay) — không kẹp theo ngày Sprint.
+     *
+     * @return array{week_number:int, start:Carbon, end:Carbon}
+     */
+    public function calendarWeek(?Carbon $day = null): array
     {
-        $start = Carbon::today()->startOfWeek(Carbon::MONDAY);
+        $start = ($day ?? Carbon::today())->copy()->startOfWeek(Carbon::MONDAY);
 
         return [
             'week_number' => (int) $start->isoWeek(),
             'start' => $start->copy()->startOfDay(),
             'end' => $start->copy()->endOfWeek(Carbon::SUNDAY)->startOfDay(),
         ];
+    }
+
+    /** @return array{week_number:int, start:Carbon, end:Carbon} */
+    private function currentIsoWeek(): array
+    {
+        return $this->calendarWeek();
     }
 }

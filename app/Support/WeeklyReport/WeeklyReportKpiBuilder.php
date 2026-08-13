@@ -9,7 +9,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Tính các KPI card hiển thị đầu Dashboard từ dữ liệu Sprint.
+ * Tính các KPI từ dữ liệu kỳ (khoảng ngày trên dự án).
  *
  * @phpstan-type Kpi array<string, int|float|string|null>
  */

@@ -58,13 +58,9 @@ class WeeklyReportService
 
         $report = WeeklyReport::query()
             ->where('project_id', $project->id)
-            ->when(
-                $sprint,
-                fn ($q) => $q->where('sprint_id', $sprint->id),
-                fn ($q) => $q->whereNull('sprint_id'),
-            )
             ->whereDate('week_start', $start->toDateString())
             ->whereDate('week_end', $end->toDateString())
+            ->orderByDesc('id')
             ->first();
 
         if (! $report) {

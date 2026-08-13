@@ -7,7 +7,7 @@ use App\Support\WeeklyReport\Contracts\WeeklyReportGenerator;
 /**
  * Engine sinh báo cáo tuần theo luật (rule-based) — KHÔNG gọi LLM ngoài.
  *
- * Đọc trực tiếp dữ liệu Sprint qua {@see WeeklyReportContext} và tổng hợp thành
+ * Đọc trực tiếp dữ liệu kỳ (khoảng ngày trên dự án) qua {@see WeeklyReportContext} và tổng hợp thành
  * KPI + văn bản báo cáo quản trị tiếng Việt. Đứng sau interface
  * {@see WeeklyReportGenerator} để sau này có thể thay bằng implement gọi Claude API.
  */
@@ -36,6 +36,7 @@ class HeuristicWeeklyReportGenerator implements WeeklyReportGenerator
                 'feedback' => $feedback,
                 'engine' => 'heuristic',
                 'outcomes' => WeeklyReportTaskFacts::heuristicOutcomes($context),
+                'contributors' => WeeklyReportTaskFacts::periodContributors($context),
             ],
             sections: $narrative['sections'],
         );

@@ -14,8 +14,8 @@ class WeeklyReportExportPresenter
     private const KPI_LABELS = [
         'week_completed' => ['Hoàn thành tuần', ''],
         'week_story_points' => ['Điểm story tuần', ' SP'],
-        'sprint_progress' => ['Tiến độ Sprint', '%'],
-        'completed_tasks' => ['Hoàn thành Sprint', ''],
+        'sprint_progress' => ['Tiến độ kỳ', '%'],
+        'completed_tasks' => ['Hoàn thành trong kỳ', ''],
         'total_tasks' => ['Tổng công việc', ''],
         'remaining_tasks' => ['Còn lại', ''],
         'in_progress' => ['Đang làm', ''],

@@ -142,6 +142,9 @@ defineExpose({ reload, textContent, kind });
           :size="22"
           class="animate-spin text-brand"
         />
+        <p class="text-sm">
+          Đang mở tài liệu…
+        </p>
       </div>
 
       <div
@@ -373,7 +376,7 @@ defineExpose({ reload, textContent, kind });
     min-height: 0;
     width: 100%;
     overflow: hidden;
-    background: #e8edf3;
+    background: #eceff3;
 }
 
 .doc-preview-docx__iframe,
@@ -384,7 +387,7 @@ defineExpose({ reload, textContent, kind });
     width: 100%;
     height: calc(100% + 2px);
     border: 0;
-    background: #e8edf3;
+    background: #eceff3;
 }
 
 .doc-preview-google {

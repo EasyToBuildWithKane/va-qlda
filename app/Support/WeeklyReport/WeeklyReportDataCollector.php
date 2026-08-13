@@ -9,11 +9,12 @@ use App\Models\ProjectActivity;
 use App\Models\Sprint;
 use App\Models\Task;
 use App\Models\Worklog;
+use App\Support\Enums\TaskStatus;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Gom toàn bộ dữ liệu nguồn cho một tuần báo cáo từ Sprint hiện tại:
+ * Gom dữ liệu nguồn theo khoảng ngày trên toàn dự án (không kẹp Sprint):
  * Tasks, Worklogs, Activity, Test case (Blocker) và Phản hồi (Feedback).
  */
 class WeeklyReportDataCollector
@@ -28,7 +29,8 @@ class WeeklyReportDataCollector
         $start = $weekStart->copy()->startOfDay();
         $end = $weekEnd->copy()->endOfDay();
 
-        $tasks = $this->tasks($project, $sprint);
+        $worklogs = $this->worklogs($project, $start, $end);
+        $tasks = $this->tasks($project, $start, $end, $worklogs->pluck('task_id')->unique()->all());
         $taskIds = $tasks->pluck('id')->all();
 
         return new WeeklyReportContext(
@@ -38,39 +40,64 @@ class WeeklyReportDataCollector
             weekStart: $weekStart,
             weekEnd: $weekEnd,
             tasks: $tasks,
-            worklogs: $this->worklogs($taskIds, $start, $end),
+            worklogs: $worklogs,
             activities: $this->activities($project, $start, $end),
             blockers: $this->blockers($project, $taskIds),
             feedbacks: $this->feedbacks($project, $start, $end),
         );
     }
 
-    /** @return Collection<int, Task> */
-    private function tasks(Project $project, ?Sprint $sprint): Collection
+    /**
+     * Task giao với kỳ: đang làm / review / bị chặn, hoàn thành hoặc cập nhật trong kỳ,
+     * có hạn / bắt đầu trong kỳ, quá hạn, hoặc có giờ công trong kỳ — mọi Sprint và backlog.
+     *
+     * @param  array<int, int>  $worklogTaskIds
+     * @return Collection<int, Task>
+     */
+    private function tasks(Project $project, Carbon $start, Carbon $end, array $worklogTaskIds): Collection
     {
-        $query = Task::query()
-            ->with(['assignee:id,full_name', 'epic:id,name'])
-            ->where('project_id', $project->id);
+        $startDate = $start->toDateString();
+        $endDate = $end->toDateString();
 
-        if ($sprint) {
-            $query->where('sprint_id', $sprint->id);
-        } else {
-            $query->whereNull('sprint_id');
-        }
+        return Task::query()
+            ->with([
+                'assignee:id,full_name',
+                'assignees:id,full_name',
+                'epic:id,name',
+                'sprint:id,name',
+            ])
+            ->where('project_id', $project->id)
+            ->where(function ($q) use ($start, $end, $startDate, $endDate, $worklogTaskIds) {
+                $q->whereIn('status', [
+                    TaskStatus::InProgress->value,
+                    TaskStatus::InReview->value,
+                    TaskStatus::Blocked->value,
+                ])
+                    ->orWhereBetween('completed_at', [$start, $end])
+                    ->orWhereBetween('updated_at', [$start, $end])
+                    ->orWhereBetween('created_at', [$start, $end])
+                    ->orWhereBetween('start_date', [$startDate, $endDate])
+                    ->orWhereBetween('due_date', [$startDate, $endDate])
+                    ->orWhere(function ($overdue) use ($endDate) {
+                        $overdue->whereNotNull('due_date')
+                            ->whereDate('due_date', '<', $endDate)
+                            ->where('status', '!=', TaskStatus::Done->value);
+                    });
 
-        return $query->orderBy('order_column')->get();
+                if ($worklogTaskIds !== []) {
+                    $q->orWhereIn('id', $worklogTaskIds);
+                }
+            })
+            ->orderBy('order_column')
+            ->get();
     }
 
     /** @return Collection<int, Worklog> */
-    private function worklogs(array $taskIds, Carbon $start, Carbon $end): Collection
+    private function worklogs(Project $project, Carbon $start, Carbon $end): Collection
     {
-        if ($taskIds === []) {
-            return collect();
-        }
-
         return Worklog::query()
-            ->with('employee:id,full_name')
-            ->whereIn('task_id', $taskIds)
+            ->with(['employee:id,full_name', 'task:id,title,project_id'])
+            ->whereHas('task', fn ($q) => $q->where('project_id', $project->id))
             ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
             ->get();
     }
@@ -87,7 +114,7 @@ class WeeklyReportDataCollector
     }
 
     /**
-     * Test case còn mở (bất kể thời điểm) + test case gắn task trong Sprint.
+     * Test case còn mở (bất kể thời điểm) + test case gắn task trong kỳ.
      *
      * @return Collection<int, Blocker>
      */

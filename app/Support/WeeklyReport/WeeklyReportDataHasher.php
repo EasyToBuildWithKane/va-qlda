@@ -3,7 +3,7 @@
 namespace App\Support\WeeklyReport;
 
 /**
- * Sinh hash ổn định từ dữ liệu nguồn của tuần → phát hiện Sprint thay đổi
+ * Sinh hash ổn định từ dữ liệu nguồn của kỳ → phát hiện dữ liệu đã đổi
  * sau lần generate gần nhất ("Regenerate available").
  */
 class WeeklyReportDataHasher

@@ -9,10 +9,10 @@ use App\Support\Enums\TaskStatus;
 use Illuminate\Support\Collection;
 
 /**
- * Sinh văn bản báo cáo quản trị (tiếng Việt) từ dữ liệu Sprint.
+ * Sinh văn bản báo cáo quản trị (tiếng Việt) từ dữ liệu kỳ (khoảng ngày trên dự án).
  *
- * Nguyên tắc: mỗi dòng gắn thực thể cụ thể + meta (assignee, hạn, ưu tiên, ngày);
- * thẻ «Kết quả» chỉ lấy việc trong cửa sổ tuần — không đổ full Sprint.
+ * Nguyên tắc: mỗi dòng gắn thực thể cụ thể + meta (thành viên, hạn, ưu tiên, ngày);
+ * thẻ «Kết quả» chỉ lấy việc trong cửa sổ ngày — không kẹp Sprint, không đổ backlog cũ.
  */
 class WeeklyReportNarrator
 {
@@ -47,7 +47,6 @@ class WeeklyReportNarrator
         $highRisks = (int) $risk['summary']['high'];
         $weekDone = $this->tasksCompletedInWeek($context)->count();
         $hours = (float) $kpi['worklog_hours'];
-        $sprintName = $context->sprint?->name ?? 'ngoài Sprint';
         $weekLabel = $this->weekLabel($context);
 
         $pace = match (true) {
@@ -58,7 +57,7 @@ class WeeklyReportNarrator
         };
 
         $parts = [];
-        $parts[] = "{$sprintName} — {$weekLabel}: đạt khoảng {$progress}% kế hoạch ({$done}/{$total} hạng mục, còn {$remaining}), {$pace}.";
+        $parts[] = "Kỳ {$weekLabel}: đạt khoảng {$progress}% kế hoạch ({$done}/{$total} hạng mục trong kỳ, còn {$remaining}), {$pace}.";
 
         if ($weekDone > 0) {
             $parts[] = "Trong tuần hoàn thành {$weekDone} công việc.";
@@ -68,6 +67,12 @@ class WeeklyReportNarrator
 
         if ($hours > 0) {
             $parts[] = "Công sức ghi nhận: {$hours} giờ.";
+        }
+
+        $contributors = WeeklyReportTaskFacts::periodContributors($context);
+        if ($contributors !== []) {
+            $names = collect($contributors)->pluck('name')->implode(', ');
+            $parts[] = "Thành viên tham gia: {$names}.";
         }
 
         if ((int) $kpi['critical_bugs'] === 0 && (int) $kpi['blocked'] === 0) {
@@ -139,7 +144,7 @@ class WeeklyReportNarrator
         if ($signals === []) {
             $weekDone = $this->tasksCompletedInWeek($context)->count();
             $hours = (float) $kpi['worklog_hours'];
-            $bits = ["tiến độ Sprint {$kpi['sprint_progress']}%"];
+            $bits = ["tiến độ kỳ {$kpi['sprint_progress']}%"];
             if ($weekDone > 0) {
                 $bits[] = "hoàn thành {$weekDone} hạng mục trong tuần";
             }
@@ -152,7 +157,7 @@ class WeeklyReportNarrator
         }
 
         return 'Điểm cần chú ý nhất '.$this->weekLabel($context).': '.$this->joinNatural($signals).'. '
-            .'Đề nghị ưu tiên tháo gỡ các hạng mục trên để bảo đảm cam kết Sprint.';
+            .'Đề nghị ưu tiên tháo gỡ các hạng mục trên để bảo đảm cam kết kỳ này.';
     }
 
     private function result(WeeklyReportContext $context, array $kpi): string
@@ -164,7 +169,7 @@ class WeeklyReportNarrator
         foreach ($completedInWeek->take(10) as $task) {
             $prefix = $task->is_milestone ? 'Đạt mốc' : 'Hoàn thành';
             $at = $task->completed_at ?? $task->updated_at;
-            $meta = $this->taskMeta($task, [
+            $meta = $this->taskMeta($context, $task, [
                 $at ? 'ngày '.$at->format('d/m') : null,
             ]);
             $value = WeeklyReportTaskFacts::plain($task->completion_note, 140)
@@ -185,7 +190,7 @@ class WeeklyReportNarrator
 
         foreach ($progressThisWeek->take(5) as $task) {
             $h = $hoursByTask->get($task->id, 0);
-            $meta = $this->taskMeta($task, [$h > 0 ? "{$h} giờ" : null]);
+            $meta = $this->taskMeta($context, $task, [$h > 0 ? "{$h} giờ" : null]);
             $lines[] = "Có tiến độ ghi nhận trong tuần: {$task->title}{$meta}.";
         }
 
@@ -223,7 +228,7 @@ class WeeklyReportNarrator
             ->sortByDesc(fn (Task $t) => $t->priority->weight());
 
         foreach ($active->take(8) as $task) {
-            $meta = $this->taskMeta($task, [
+            $meta = $this->taskMeta($context, $task, [
                 $task->priority->label() !== 'Trung bình' ? 'ƯT '.$task->priority->label() : null,
                 $task->due_date ? 'hạn '.$task->due_date->format('d/m') : null,
             ]);
@@ -236,7 +241,7 @@ class WeeklyReportNarrator
 
         foreach ($this->overdueTasks($context)->take(4) as $task) {
             $days = $task->due_date?->startOfDay()->diffInDays(now()->startOfDay()) ?? 0;
-            $meta = $this->taskMeta($task, [
+            $meta = $this->taskMeta($context, $task, [
                 'quá '.max(1, (int) $days).' ngày',
                 $task->due_date ? 'hạn '.$task->due_date->format('d/m') : null,
             ]);
@@ -244,14 +249,14 @@ class WeeklyReportNarrator
         }
 
         if ($lines === []) {
-            $lines[] = "Sprint đạt khoảng {$kpi['sprint_progress']}% kế hoạch, velocity ~{$kpi['team_velocity']}%, chưa có hạng mục đang làm / bị chặn.";
+            $lines[] = "Kỳ báo cáo đạt khoảng {$kpi['sprint_progress']}% kế hoạch, velocity ~{$kpi['team_velocity']}%, chưa có hạng mục đang làm / bị chặn.";
             if ((int) $kpi['critical_bugs'] === 0) {
                 $lines[] = 'Hệ thống ổn định, không ghi nhận lỗi nghiêm trọng.';
             }
         } else {
             $inProgress = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::InProgress)->count();
             $inReview = $context->tasks->filter(fn (Task $t) => $t->status === TaskStatus::InReview)->count();
-            $lines[] = "Tiến độ Sprint: {$kpi['sprint_progress']}% ({$kpi['completed_tasks']}/{$kpi['total_tasks']})"
+            $lines[] = "Tiến độ kỳ: {$kpi['sprint_progress']}% ({$kpi['completed_tasks']}/{$kpi['total_tasks']})"
                 ." — đang làm {$inProgress}, review {$inReview}, bị chặn {$kpi['blocked']}, vướng mắc mở {$kpi['open_issues']}.";
         }
 
@@ -260,7 +265,7 @@ class WeeklyReportNarrator
             $lines[] = "Rủi ro cao cần theo dõi: {$labels}.";
         }
 
-        return $this->bullets($lines, 'Tình hình Sprint ổn định, chưa có vấn đề cần lưu ý.');
+        return $this->bullets($lines, 'Tình hình kỳ báo cáo ổn định, chưa có vấn đề cần lưu ý.');
     }
 
     private function next(WeeklyReportContext $context, array $feedback): string
@@ -272,7 +277,7 @@ class WeeklyReportNarrator
             ->sortByDesc(fn (Task $t) => $t->priority->weight());
 
         foreach ($blockedFirst->take(3) as $task) {
-            $meta = $this->taskMeta($task, ['ƯT '.$task->priority->label()]);
+            $meta = $this->taskMeta($context, $task, ['ƯT '.$task->priority->label()]);
             $lines[] = "Ưu tiên tháo chặn: {$task->title}{$meta}.";
         }
 
@@ -288,7 +293,7 @@ class WeeklyReportNarrator
                 TaskStatus::Todo => 'Bắt đầu',
                 default => 'Tiếp tục',
             };
-            $meta = $this->taskMeta($task, [
+            $meta = $this->taskMeta($context, $task, [
                 'ƯT '.$task->priority->label(),
                 $task->due_date ? 'hạn '.$task->due_date->format('d/m') : null,
             ]);
@@ -341,7 +346,7 @@ class WeeklyReportNarrator
         $overdue = $this->overdueTasks($context)->take(3);
         if ($overdue->isNotEmpty() && ! collect($risk['risks'])->contains(fn ($r) => str_contains($r['label'], 'quá hạn'))) {
             foreach ($overdue as $task) {
-                $assignee = $task->assignee?->full_name ?? 'Chưa gán';
+                $assignee = implode(', ', WeeklyReportTaskFacts::memberNames($task, $context)) ?: 'Chưa gán';
                 $lines[] = '[Cao] Quá hạn: '.$task->title.' — Phụ trách: '.$assignee
                     .($task->due_date ? ', hạn '.$task->due_date->format('d/m/Y') : '');
             }
@@ -444,11 +449,13 @@ class WeeklyReportNarrator
     /**
      * @param  array<int, string|null>  $extra
      */
-    private function taskMeta(Task $task, array $extra = []): string
+    private function taskMeta(WeeklyReportContext $context, Task $task, array $extra = []): string
     {
+        $members = WeeklyReportTaskFacts::memberNames($task, $context);
+
         $bits = array_values(array_filter([
-            $task->assignee?->full_name,
-            $task->epic?->name ? 'Epic: '.$task->epic->name : null,
+            $members !== [] ? implode(', ', $members) : null,
+            $task->relationLoaded('epic') && $task->epic?->name ? 'Epic: '.$task->epic->name : null,
             $task->story_points !== null && (float) $task->story_points > 0
                 ? rtrim(rtrim(number_format((float) $task->story_points, 1, '.', ''), '0'), '.').' SP'
                 : null,

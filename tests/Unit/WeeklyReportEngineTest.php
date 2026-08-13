@@ -3,10 +3,12 @@
 namespace Tests\Unit;
 
 use App\Models\Blocker;
+use App\Models\Employee;
 use App\Models\Feedback;
 use App\Models\Project;
 use App\Models\Sprint;
 use App\Models\Task;
+use App\Models\Worklog;
 use App\Support\WeeklyReport\Contracts\WeeklyReportGenerator;
 use App\Support\WeeklyReport\HeuristicWeeklyReportGenerator;
 use App\Support\WeeklyReport\WeeklyReportContext;
@@ -28,6 +30,16 @@ class WeeklyReportEngineTest extends TestCase
             'status' => 'todo', 'priority' => 'medium', 'story_points' => 3, 'due_date' => null,
         ], $a));
 
+        $assigneeA = (new Employee)->forceFill(['id' => 10, 'full_name' => 'Nguyễn Văn A']);
+        $assigneeB = (new Employee)->forceFill(['id' => 11, 'full_name' => 'Trần Thị B']);
+        $moduleA = $mk(['id' => 1, 'title' => 'Module A', 'status' => 'done', 'is_milestone' => true, 'completed_at' => Carbon::parse('2026-06-24'), 'description' => '<p>Bàn giao module A cho UAT.</p>', 'completion_note' => 'Đã demo với phòng Đào tạo.']);
+        $moduleA->setRelation('assignee', $assigneeA);
+        $moduleA->setRelation('assignees', collect([$assigneeA, $assigneeB]));
+
+        $worklog = (new Worklog)->forceFill(['id' => 1, 'task_id' => 1, 'employee_id' => 10, 'hours' => 4]);
+        $worklog->setRelation('employee', $assigneeA);
+        $worklog->setRelation('task', $moduleA);
+
         return new WeeklyReportContext(
             project: (new Project)->forceFill(['id' => 1, 'name' => 'Demo', 'code' => 'D']),
             sprint: (new Sprint)->forceFill(['id' => 1, 'name' => 'Sprint 12', 'status' => 'active']),
@@ -35,12 +47,12 @@ class WeeklyReportEngineTest extends TestCase
             weekStart: Carbon::parse('2026-06-22'),
             weekEnd: Carbon::parse('2026-06-28'),
             tasks: collect([
-                $mk(['id' => 1, 'title' => 'Module A', 'status' => 'done', 'is_milestone' => true, 'completed_at' => Carbon::parse('2026-06-24'), 'description' => '<p>Bàn giao module A cho UAT.</p>', 'completion_note' => 'Đã demo với phòng Đào tạo.']),
+                $moduleA,
                 $mk(['id' => 2, 'title' => 'Module B', 'status' => 'done', 'completed_at' => Carbon::parse('2026-06-26')]),
                 $mk(['id' => 3, 'title' => 'Tích hợp', 'status' => 'blocked', 'priority' => 'urgent']),
                 $mk(['id' => 4, 'title' => 'Tài liệu', 'status' => 'todo', 'due_date' => Carbon::parse('2026-06-25')]),
             ]),
-            worklogs: collect(),
+            worklogs: collect([$worklog]),
             activities: collect(),
             blockers: collect([
                 (new Blocker)->forceFill(['id' => 1, 'title' => 'Chờ UAT', 'severity' => 'high', 'status' => 'open']),
@@ -76,10 +88,14 @@ class WeeklyReportEngineTest extends TestCase
         $this->assertArrayHasKey('Module A', $done->all());
         $this->assertStringContainsString('Bàn giao module A', $done['Module A']['description']);
         $this->assertStringContainsString('phòng Đào tạo', $done['Module A']['completion_note']);
+        $this->assertContains('Nguyễn Văn A', $done['Module A']['members']);
+        $this->assertContains('Trần Thị B', $done['Module A']['members']);
+        $this->assertSame('Nguyễn Văn A', $digest['contributors'][0]['name']);
 
         $byTitle = collect($outcomes)->firstWhere('title', 'Module A');
         $this->assertNotNull($byTitle);
         $this->assertStringContainsString('phòng Đào tạo', $byTitle['value']);
+        $this->assertContains('Nguyễn Văn A', $byTitle['members']);
     }
 
     public function test_feedback_classifier_buckets(): void
@@ -133,8 +149,10 @@ class WeeklyReportEngineTest extends TestCase
         $sections = $narrative['sections'];
 
         $this->assertStringContainsString('Module A', $sections['result']);
+        $this->assertStringContainsString('Nguyễn Văn A', $sections['result']);
         $this->assertStringContainsString('Module B', $sections['result']);
         $this->assertStringContainsString('ngày 24/06', $sections['result']);
+        $this->assertStringContainsString('Thành viên tham gia', $narrative['executive']);
         $this->assertStringContainsString('Tích hợp', $sections['current']);
         $this->assertStringContainsString('Vướng mắc:', $sections['current']);
         $this->assertStringContainsString('Tài liệu', $sections['next']);
@@ -228,7 +246,9 @@ class WeeklyReportEngineTest extends TestCase
 
             return str_contains($request->url(), '/v1/chat/completions')
                 && str_contains($payload, 'Module A')
-                && str_contains($payload, 'completed_this_week');
+                && str_contains($payload, 'completed_this_week')
+                && str_contains($payload, 'Nguyễn Văn A')
+                && str_contains($payload, 'contributors');
         });
     }
 

@@ -1,20 +1,23 @@
 # Báo cáo tuần (Weekly Reports)
 
 Tab **"Báo cáo tuần"** trên `/projects/{project}?tab=weekly` — Executive Weekly Dashboard
-tự tổng hợp Sprint thành báo cáo quản trị. Người dùng kiểm tra → chỉnh sửa → gửi duyệt → duyệt.
+tự tổng hợp công việc **theo khoảng ngày trên toàn dự án** (mọi Sprint + backlog), không kẹp
+phạm vi Sprint đang chạy. Người dùng kiểm tra → chỉnh sửa → gửi duyệt → duyệt.
 
 Trên tab **Tổng quan** (`?tab=overview`), cùng `WeeklyReportWorkspace` được nhúng **full width ngay dưới
 khối «Hồ sơ dự án»** (`embedded`) — chọn khoảng ngày / tạo / lưu giữ `tab=overview` (prop `activeTab` +
 `tab` trên request redirect).
 
-UI tab: chọn từ ngày–đến ngày → **KPI hoàn thành kỳ** (số hạng mục, story points, giờ công) → tóm tắt điều hành + giá trị giao được (`outcomes`) → 3 thẻ → rủi ro → lịch sử phiên bản.
+UI tab: chọn từ ngày–đến ngày → 3 thẻ (kết quả / hiện tại / tiếp theo) → rủi ro → lịch sử phiên bản.
+Tóm tắt điều hành, nhận định và KPI vẫn được engine sinh và đưa vào file xuất PDF/DOCX, không hiện trên tab.
 
-LLM đọc **mô tả + ghi chú hoàn thành** của task, không chỉ tiêu đề.
+LLM (và bản heuristic) đọc **mô tả + ghi chú hoàn thành** của task **và thành viên làm**
+(assignee, assignees, người ghi giờ trong kỳ) — không chỉ tiêu đề.
 
 ## Engine (heuristic + LLM tuỳ chọn)
 
 Hệ thống **luôn** tính KPI / rủi ro / phân loại phản hồi bằng engine heuristic (rule-based)
-đọc trực tiếp dữ liệu Sprint. Phần văn bản (tóm tắt điều hành, nhận định, 6 thẻ) được
+đọc dữ liệu kỳ (khoảng ngày). Phần văn bản (tóm tắt điều hành, nhận định, 6 thẻ) được
 **viết lại bằng LLM** khi Super Admin bật AI và lưu API key tại **`/settings/ai`**.
 
 Thiếu key, tắt AI, hoặc API lỗi → giữ bản heuristic (không chặn tạo báo cáo).
@@ -31,24 +34,29 @@ Xem [`SYSTEM_CONFIG.md`](SYSTEM_CONFIG.md) tab **Trí tuệ nhân tạo**.
 
 | Lớp engine (`app/Support/WeeklyReport/`) | Vai trò |
 |---|---|
-| `WeeklyReportDataCollector` | Gom Task/Worklog/Activity/Blocker/Feedback trong cửa sổ tuần |
-| `WeeklyReportKpiBuilder` | KPI: tiến độ Sprint, **hoàn thành tuần**, story points, giờ công, overdue… |
-| `WeeklyReportTaskFacts` | Đọc mô tả + ghi chú hoàn thành; việc done trong tuần; digest cho LLM |
-| `WeeklyReportNarrator` | Sinh văn bản tiếng Việt; kết quả tuần kèm giá trị từ mô tả/ghi chú |
+| `WeeklyReportDataCollector` | Gom Task/Worklog/Activity/Blocker/Feedback **giao với khoảng ngày** (không lọc `sprint_id`) |
+| `WeeklyReportKpiBuilder` | KPI: tiến độ kỳ, **hoàn thành trong kỳ**, story points, giờ công, overdue… |
+| `WeeklyReportTaskFacts` | Đọc mô tả + ghi chú hoàn thành + thành viên làm; việc done trong kỳ; digest cho LLM |
+| `WeeklyReportNarrator` | Sinh văn bản tiếng Việt; kết quả kỳ kèm giá trị và người làm |
 | `WeeklyReportRiskAssessor` | Rủi ro High/Medium/Low + nguyên nhân |
 | `WeeklyReportFeedbackClassifier` | Phân loại phản hồi: Tích cực/Góp ý/Phàn nàn/Lỗi/Yêu cầu thay đổi |
-| `WeeklyReportDataHasher` | Hash dữ liệu → phát hiện "dữ liệu Sprint đã đổi" |
-| `SprintWeekResolver` | Kỳ mặc định (bucket 7 ngày T2–CN) khi chưa chọn khoảng ngày |
-| `WeeklyReportLlmClient` | LLM đọc nội dung task rồi viết lại kết quả/outcomes; không bịa số liệu |
+| `WeeklyReportDataHasher` | Hash dữ liệu → phát hiện "dữ liệu kỳ đã đổi" |
+| `SprintWeekResolver` | Kỳ mặc định = tuần lịch T2–CN (`calendarWeek`); `weekByNumber` còn dùng bucket Sprint khi POST `week_number` |
+| `WeeklyReportLlmClient` | LLM đọc nội dung task + thành viên rồi viết lại kết quả/outcomes; không bịa số liệu |
 | `LlmWeeklyReportGenerator` | Ghép heuristic + LLM; fallback khi API lỗi |
 
 ## Kỳ báo cáo (khoảng ngày)
 
 Người dùng chọn **Từ ngày → Đến ngày** khi tạo báo cáo (tối đa 31 ngày). Kỳ mặc định trên UI
-là tuần T2–CN chứa hôm nay (`SprintWeekResolver::currentWeek`). Cùng khoảng ngày + Sprint
-đã có báo cáo → mở lại / tạo lại nội dung, không nhân bản.
+là tuần T2–CN chứa hôm nay (`SprintWeekResolver::calendarWeek`) — **không** kẹp ngày bắt đầu/kết thúc Sprint.
+Cùng khoảng ngày trên dự án đã có báo cáo → mở lại / tạo lại nội dung, không nhân bản (lookup theo
+`project_id` + `week_start` + `week_end`, không theo Sprint).
 
-`week_number` vẫn lưu nội bộ (số thứ tự kỳ trong Sprint) cho mã `WR-…-Wn`; giao diện và
+Task được gom khi giao với kỳ: đang làm / review / bị chặn, hoàn thành hoặc cập nhật trong kỳ,
+có hạn hoặc ngày bắt đầu trong kỳ, quá hạn, hoặc có giờ công trong kỳ — gồm việc **ngoài Sprint**
+và việc thuộc Sprint khác.
+
+`week_number` vẫn lưu nội bộ (số thứ tự kỳ) cho mã `WR-…-Wn`; giao diện và
 thông báo dùng nhãn khoảng ngày.
 
 POST `store` nhận `week_start` + `week_end` (bắt buộc). `week_number` vẫn được chấp nhận
@@ -56,19 +64,19 @@ POST `store` nhận `week_start` + `week_end` (bắt buộc). `week_number` vẫ
 
 ### Nội dung chi tiết (task-centric + meta)
 
-Mỗi dòng gắn thực thể cụ thể kèm meta khi có: **assignee · Epic · story points · ưu tiên · hạn · ngày hoàn thành**.
+Mỗi dòng gắn thực thể cụ thể kèm meta khi có: **thành viên làm · Epic · story points · ưu tiên · hạn · ngày hoàn thành**.
 
 | Phần | Nguồn dữ liệu |
 |---|---|
-| **Tóm tắt điều hành** | Sprint + khoảng ngày, % tiến độ, số hoàn thành trong kỳ, giờ công, blocked / critical / overdue, rủi ro cao |
+| **Tóm tắt điều hành** | Khoảng ngày, % tiến độ kỳ, số hoàn thành trong kỳ, giờ công, **thành viên tham gia**, blocked / critical / overdue, rủi ro cao |
 | **Nhận định** | Tín hiệu cụ thể (tên task quá hạn / bị chặn, test case, yêu cầu thay đổi) — không chỉ đếm số |
-| **Kết quả thực hiện** | Task `done` trong **cửa sổ tuần** + mô tả/ghi chú hoàn thành (giá trị giao được); worklog; không đổ full Sprint khi tuần trống |
-| **Outcomes (AI)** | `meta.outcomes`: title + 1 câu giá trị rút từ nội dung task |
-| **Tình hình hiện tại** | `in_progress` / `in_review` / `blocked` (+ ƯT, hạn, assignee); test case (mức · task · phụ trách); quá hạn (+ số ngày); dòng tổng hợp trạng thái |
+| **Kết quả thực hiện** | Task `done` trong **cửa sổ ngày** + mô tả/ghi chú hoàn thành + người làm; worklog; không đổ full Sprint khi kỳ trống |
+| **Outcomes (AI)** | `meta.outcomes`: title + 1 câu giá trị rút từ nội dung task (+ members) |
+| **Tình hình hiện tại** | `in_progress` / `in_review` / `blocked` (+ ƯT, hạn, thành viên); test case (mức · task · phụ trách); quá hạn (+ số ngày); dòng tổng hợp trạng thái |
 | **Kế hoạch tiếp theo** | Tháo chặn trước → tiếp tục/bắt đầu theo ưu tiên → test case còn mở → yêu cầu thay đổi → sắp tới hạn 7 ngày |
-| **Rủi ro** | Test case theo severity + task gắn; quá hạn / bị chặn kèm tên mẫu; tổng hợp high/medium/low |
+| **Rủi ro** | Test case theo severity + task gắn; quá hạn / bị chặn kèm tên mẫu và người phụ trách; tổng hợp high/medium/low |
 | **Phản hồi** | Đếm theo nhóm + tối đa 3 tiêu đề mẫu / nhóm; điểm TB nếu có |
-| **Hoạt động** | Sự kiện tuần kèm `d/m H:i`, tối đa 10 dòng |
+| **Hoạt động** | Sự kiện kỳ kèm `d/m H:i`, tối đa 10 dòng |
 
 Sau khi sửa engine, bấm **Tạo lại** (hoặc **Dữ liệu đã đổi — Tạo lại**) trên báo cáo tuần để áp dụng.
 
@@ -107,7 +115,7 @@ POST   .../submit · /approve · /reject                             chuyển tr
 GET    .../export/pdf · /export/docx                               xuất file
 ```
 
-Tab nạp dữ liệu qua props của `ProjectController@show`: `weeklyReports` (sprint + `default_start`/`default_end` + danh sách báo cáo theo khoảng ngày)
+Tab nạp dữ liệu qua props của `ProjectController@show`: `weeklyReports` (kỳ mặc định lịch + danh sách báo cáo theo khoảng ngày của **cả dự án**)
 luôn có; `weeklyReport` (chi tiết) nạp khi URL có `?wr={id}` (partial reload Inertia).
 
 ## Thông báo & Audit
@@ -124,7 +132,7 @@ brand `#9A0036`) + `phpoffice/phpword` (DOCX). Dữ liệu chuẩn hoá bởi `W
 
 ## Cơ sở dữ liệu
 
-- `weekly_reports` — unique DB `(project, sprint, week_number)`; tạo mới tìm theo khoảng ngày rồi gán `week_number` tuần tự. Chứa executive_summary, ai_summary,
+- `weekly_reports` — unique DB `(project, sprint, week_number)`; tạo mới tìm theo khoảng ngày trên dự án rồi gán `week_number` tuần tự. Chứa executive_summary, ai_summary,
   kpi_snapshot (json), meta (json: risk + feedback), data_hash, các mốc `*_at`/`*_by`.
 - `weekly_report_sections` — 6 section (result/current/next/risk/feedback/activity); thẻ editable có `is_edited`.
 - `weekly_report_versions` — snapshot mỗi lần chuyển trạng thái.

@@ -3,8 +3,6 @@ import { computed, toRef } from 'vue';
 import { useWeeklyReport } from '@/composables/useWeeklyReport';
 import WeeklyReportTimelineNav from './WeeklyReportTimelineNav.vue';
 import WeeklyReportHeader from './WeeklyReportHeader.vue';
-import WeeklyReportExecutiveCard from './WeeklyReportExecutiveCard.vue';
-import WeeklyReportKpiStrip from './WeeklyReportKpiStrip.vue';
 import WeeklyReportSectionCard from './WeeklyReportSectionCard.vue';
 import WeeklyReportRiskCard from './WeeklyReportRiskCard.vue';
 import WeeklyReportVersionPanel from './WeeklyReportVersionPanel.vue';
@@ -22,8 +20,8 @@ const props = defineProps({
 });
 
 const {
-    processing, report, sectionList, sprint, reports, periodStart, periodEnd,
-    draft, editing, dirty, selectReport, selectPeriod, generateForPeriod, regenerate,
+    processing, report, sectionList, periodStart, periodEnd,
+    draft, editing, dirty, selectPeriod, generateForPeriod, regenerate,
     startEdit, cancelEdit, save, submit, approve, reject,
 } = useWeeklyReport(props.projectId, {
     overview: toRef(props, 'overview'),
@@ -57,13 +55,8 @@ function onExport(format) {
   >
     <div class="shrink-0 border-b border-slate-200/80 dark:border-slate-800">
       <WeeklyReportTimelineNav
-        :sprint="sprint"
-        :reports="reports"
         :period-start="periodStart"
         :period-end="periodEnd"
-        :active-report-id="report?.id ?? null"
-        :hide-sprint-scope="embedded"
-        @select-report="selectReport"
         @update-period="selectPeriod"
       />
     </div>
@@ -95,19 +88,6 @@ function onExport(format) {
           @submit="submit"
           @approve="approve"
           @reject="reject"
-        />
-
-        <WeeklyReportKpiStrip :kpi="report.kpi" />
-
-        <WeeklyReportExecutiveCard
-          :executive-summary="report.executive_summary"
-          :ai-summary="report.ai_summary"
-          :model-value="draft.executive_summary"
-          :editing="editing"
-          :can-edit="canEdit"
-          :outcomes="report.meta?.outcomes ?? []"
-          @update:model-value="(v) => (draft.executive_summary = v)"
-          @edit="startEdit"
         />
 
         <div class="grid gap-4 lg:grid-cols-3">

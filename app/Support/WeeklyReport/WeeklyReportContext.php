@@ -14,11 +14,11 @@ use Illuminate\Support\Collection;
 final class WeeklyReportContext
 {
     /**
-     * @param  Collection<int, \App\Models\Task>  $tasks  Toàn bộ task của Sprint
-     * @param  Collection<int, \App\Models\Worklog>  $worklogs  Worklog trong cửa sổ tuần
-     * @param  Collection<int, \App\Models\ProjectActivity>  $activities  Hoạt động trong tuần
-     * @param  Collection<int, \App\Models\Blocker>  $blockers  Test case liên quan Sprint
-     * @param  Collection<int, \App\Models\Feedback>  $feedbacks  Phản hồi của dự án trong tuần
+     * @param  Collection<int, \App\Models\Task>  $tasks  Task giao với khoảng ngày (mọi Sprint + backlog)
+     * @param  Collection<int, \App\Models\Worklog>  $worklogs  Worklog trong cửa sổ ngày
+     * @param  Collection<int, \App\Models\ProjectActivity>  $activities  Hoạt động trong kỳ
+     * @param  Collection<int, \App\Models\Blocker>  $blockers  Test case liên quan
+     * @param  Collection<int, \App\Models\Feedback>  $feedbacks  Phản hồi của dự án trong kỳ
      */
     public function __construct(
         public readonly Project $project,
