@@ -31,6 +31,8 @@ Sidebar nhóm **Báo cáo** (`App\Support\Navigation`):
 | Lịch sử báo cáo | `/daily-reports` | Dashboard lọc + thẻ/bảng | mọi role đăng nhập |
 | Chờ phê duyệt | `/daily-reports/review` | Hàng chờ chấm | admin, lead |
 
+Brief sản phẩm trang Today: **`docs/DAILY_REPORT_TODAY.md`**.
+
 Trang chi tiết: `/daily-reports/{id}` (`DailyReport/Show.vue`); binding chấp nhận thêm `uuid` cho link thông báo cũ.
 
 ---
@@ -64,6 +66,7 @@ app/Policies/DailyReportPolicy.php
 | `ScoreReportUseCase` | Chấm 5 chiều → `ScoringService` → `reviewed` + bản ghi score |
 | `RejectReportUseCase` | `submitted` → `draft` + `review_notes` |
 | `SyncDailyReportSpawnedTasksUseCase` | Task ad-hoc trong JSON → bảng `tasks` (`source=daily`) |
+| `SyncDailyReportRoutineTasksUseCase` | Khối sentinel `id=-1` → `routine_tasks` (UUID); thay `_localKey` / placeholder |
 
 **Exception:** `DailyReportException` — controller bắt và flash tiếng Việt.
 
@@ -76,8 +79,8 @@ app/Policies/DailyReportPolicy.php
 | `Domain/DailyReport/Models/DailyReport` | UUID, cast `projects`, `task_status_snapshot`, `ReportStatus` |
 | `Domain/DailyReport/Models/DailyReportScore` | 1–1 với báo cáo đã chấm |
 | `Domain/DailyReport/Services/ScoringService` | Tổng có trọng số + bonus Kaizen → `Grade` (nhận rubric đã resolve) |
-| `Domain/DailyReport/Support/ReportProjectSync` | Đồng bộ `projects` JSON ↔ `project_id` legacy |
-| `Domain/DailyReport/Support/ReportProjectTaskStatus` | Snapshot trạng thái task lúc submit |
+| `Domain/DailyReport/Support/ReportProjectSync` | Đồng bộ `projects` JSON ↔ `project_id` legacy; `ROUTINE_PROJECT_ID = -1` |
+| `Domain/DailyReport/Support/ReportProjectTaskStatus` | Snapshot trạng thái task **và** routine task lúc submit |
 | `Support/DailyReport/DailyReportScoringResolver` | Resolve trọng số theo `employee.meta.department_code` → bảng Workspace hoặc fallback config |
 | `Models/DailyReport/DailyReportScoringConfig` | Trọng số / `kaizen_bonus_max` theo phòng ban |
 | `Support/DailyReportCalendar` | Múi giờ `config('daily_report.timezone')`, «hôm nay» nghiệp vụ |
@@ -180,11 +183,16 @@ Chi tiết đồng bộ, filter, export: **`docs/DAILY_REPORT_PROJECTS.md`**.
 
 ### 6.3 Đồng bộ task
 
-1. **Báo cáo → Task:** `SyncDailyReportSpawnedTasksUseCase` tạo/cập nhật task `source=daily`, `daily_report_id`, sau khi user có quyền `contribute` trên dự án.
-2. **Task sprint → Báo cáo:** listener `SyncTaskStatusToDaily` (event `TaskStatusChanged`, status `done`) cập nhật `task_status_snapshot` báo cáo **ngày hiện tại** (timezone báo cáo) của assignee — lỗi được log, không làm fail request task.
-   - Snapshot lúc nộp đã **đóng băng** qua `ReportProjectTaskStatus::freezeIntoReport()` trong `SubmitDailyReportUseCase`. Nếu báo cáo đã `submitted`/`reviewed`, listener vẫn ghi nhưng **đánh dấu `synced_after_submit = true`** trên entry — không âm thầm đổi snapshot mà người chấm đã thấy lúc nộp.
+1. **Báo cáo → Task dự án:** `SyncDailyReportSpawnedTasksUseCase` tạo/cập nhật task `source=daily`, `daily_report_id`, sau khi user có quyền `contribute` trên dự án. **Bỏ qua** `project_id <= 0` (sentinel routine).
+2. **Báo cáo → Việc thường xuyên:** `SyncDailyReportRoutineTasksUseCase` (gọi ngay sau spawn) đọc khối `{id: -1}` → upsert `va_prd_routine_tasks`, thay id tạm/`_localKey` bằng UUID thật. UI nhập báo cáo không đổi (`ProjectSelect` tab «Công việc thường xuyên»).
+3. **Task sprint → Báo cáo:** listener `SyncTaskStatusToDaily` (event `TaskStatusChanged`, status `done`) cập nhật `task_status_snapshot` báo cáo **ngày hiện tại** (timezone báo cáo) của assignee — lỗi được log, không làm fail request task.
+   - Snapshot lúc nộp đã **đóng băng** qua `ReportProjectTaskStatus::freezeIntoReport()` trong `SubmitDailyReportUseCase` (lookup `Task` cho dự án thật; lookup `RoutineTask` cho sentinel `-1`). Nếu báo cáo đã `submitted`/`reviewed`, listener vẫn ghi nhưng **đánh dấu `synced_after_submit = true`** trên entry — không âm thầm đổi snapshot mà người chấm đã thấy lúc nộp.
+4. **Routine board → Báo cáo hôm nay:** `ToggleRoutineTaskStatusUseCase` cập nhật `projects[].tasks[].status` trên báo cáo draft ngày hiện tại khi đổi status tại `/routine-tasks`.
 
-Migration: `2026_06_12_110000_add_task_daily_report_sync_fields.php`.
+Migration task sync: `2026_06_12_110000_add_task_daily_report_sync_fields.php`.  
+Migration routine: `2026_08_13_140000_create_routine_tasks_table.php`. Backfill: `php artisan routine-tasks:backfill`.
+
+Trang quản lý: `/routine-tasks` (sidebar nhóm Báo cáo). Chi tiết module: `docs/FRONTEND_STRUCTURE.md` §6.6b.
 
 ---
 
@@ -264,6 +272,7 @@ Dashboard hub: panel tuân thủ báo cáo — `WorkDashboardController` + `Dail
 | `tests/Feature/DailyReportTest.php` | CRUD, submit, review, policy |
 | `tests/Feature/DailyReportRecallTest.php` | Rút lại: owner/ngày hợp lệ, quá ngày, không phải owner, sai trạng thái |
 | `tests/Feature/DailyReportTaskSyncTest.php` | Spawn task + snapshot |
+| `tests/Feature/RoutineTaskTest.php` | CRUD / toggle / reorder / policy + sync routine từ báo cáo ngày |
 | `tests/Unit/ScoringServiceTest.php` | Trọng số, grade, trend |
 | `tests/Unit/DailyReportFieldContentTest.php` | Sanitize HTML allowlist (XSS, javascript: href, unwrap, UTF-8) |
 | `tests/e2e/daily-report.spec.js` | Luồng Playwright |
@@ -276,8 +285,8 @@ Chạy: `php artisan test --filter=DailyReport` · E2E: `npm run test:e2e` (CI).
 
 - [ ] Mutation → Use Case mới hoặc mở rộng Use Case hiện có; không nhét rule vào `Project` model
 - [ ] FormRequest + message tiếng Việt; policy ability hoặc ownership
-- [ ] Có `projects` → `ReportProjectSync::applyToPayload()`
-- [ ] Route tĩnh trước `{report}`; cập nhật `docs/API_STRUCTURE.md`
+- [ ] Có `projects` → `ReportProjectSync::applyToPayload()`; routine sentinel vẫn `-1` — sync qua `SyncDailyReportRoutineTasksUseCase`, **không** sửa core `isLinkableProjectId()`
+- [ ] Route tĩnh trước `{report}` / `{routineTask}`; cập nhật `docs/API_STRUCTURE.md`
 - [ ] Cột DB mới → migration + `DATABASE_STRUCTURE.md`
 - [ ] UI Index → KPI strip + toolbar chuẩn nếu thêm bảng/lọc
 - [ ] Không placeholder `—` trên UI (`empty-display` rule)

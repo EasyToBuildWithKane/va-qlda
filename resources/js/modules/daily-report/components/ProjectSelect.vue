@@ -1,5 +1,6 @@
 <script setup>
 import { computed, ref } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import { useConfirmDelete } from '@/composables/useConfirmClose';
 import TaskStatusBadge from '@/Components/TaskStatusBadge.vue';
 import { createSpawnLocalKey } from '@/modules/daily-report/utils/spawnLocalKey';
@@ -147,7 +148,12 @@ const addRoutineTask = () => {
     if (!title) return;
     setRoutineTasks([
         ...routineTasks.value,
-        { id: 0, title, status: 'todo' },
+        {
+            id: 0,
+            title,
+            status: 'todo',
+            _localKey: createSpawnLocalKey(),
+        },
     ]);
     routineDraft.value = '';
 };
@@ -334,6 +340,12 @@ const removeRoutineTask = (taskIndex) => {
         </h3>
         <p class="mt-0.5 text-xs text-slate-500">
           Việc lặp lại hằng ngày (họp, email, vận hành…) — <strong class="font-medium text-slate-600">không</strong> gắn với dự án cụ thể, vẫn được ghi nhận trong báo cáo.
+          <Link
+            href="/routine-tasks"
+            class="ml-1 font-medium text-brand hover:underline"
+          >
+            Xem tiến độ toàn bộ →
+          </Link>
         </p>
       </div>
 

@@ -388,6 +388,13 @@ class Navigation
                         'roles' => ['admin', 'lead', 'member'],
                     ],
                     [
+                        'label' => 'Việc thường xuyên',
+                        'icon' => 'list',
+                        'href' => '/routine-tasks',
+                        'status' => 'live',
+                        'roles' => ['admin', 'lead', 'member'],
+                    ],
+                    [
                         'label' => 'Lịch sử báo cáo',
                         'icon' => 'report-history',
                         'href' => '/daily-reports',

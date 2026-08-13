@@ -258,6 +258,26 @@ Department ──→ Employee ──→ SystemAccount
 
 ---
 
+### 3.8b va_prd_routine_tasks
+
+Personal checklist «Công việc thường xuyên» — không gắn Project/Sprint/cost. Được sync từ khối sentinel `projects[].id = -1` trong báo cáo ngày.
+
+| Column | Type | Nullable | Description |
+|---|---|---|---|
+| id | uuid | NO | PK |
+| employee_id | bigint UNSIGNED | NO | FK → employees (cascade) |
+| title | varchar(255) | NO | |
+| description | text | YES | |
+| status | varchar(20) | NO | todo / in_progress / done (subset of TaskStatus) |
+| position | int UNSIGNED | NO | Thứ tự thủ công, default 0 |
+| completed_at | timestamp | YES | Set khi status = done |
+| created_at | timestamp | YES | |
+| updated_at | timestamp | YES | |
+
+**Indexes:** `employee_id`, `(employee_id, status)`, `(employee_id, position)`
+
+---
+
 ### 3.9 va_prd_task_assignees (Pivot)
 
 | Column | Type | Description |

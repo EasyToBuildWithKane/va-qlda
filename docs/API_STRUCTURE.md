@@ -53,7 +53,7 @@ routes/api.php      ← Rỗng (chưa sử dụng)
 | GET | `/` | redirect | auth | Redirect → `/dashboard` (guest `/` → middleware auth → `/login`). Landing CN tạm ẩn. |
 | GET | `/dashboard` | HubDashboardController (invokable) | auth | Trang tổng quan: chào mừng, `summary` (KPI strip), xu hướng hoạt động, tuân thủ báo cáo, cảnh báo, lưới module (chi tiết công việc tại `/work`) |
 | GET | `/work` | WorkDashboardController (invokable) | auth | Dashboard công việc cá nhân (`work-dashboard`) |
-| GET | `/my-work` | MyWorkController (invokable) | auth | Việc của tôi — Inertia `MyWork/Index` (self / `?member=` / `?scope=team`) |
+| GET | `/my-work` | MyWorkController (invokable) | auth | Việc của tôi — Inertia `MyWork/Index` (self / `?member=` / `?scope=team`). Query: `q` (tên việc / mã·tên dự án), `project_id`, `priority`, `status`, `source`, `milestone=1`, `due_from`, `due_to` |
 | GET | `/my-work/member/{employee}` | MyWorkController@memberTasks | auth | JSON buckets + summary cho modal «Xem nhanh» thành viên (`my-work.member`) |
 
 ### 2.2.3 Hiệu suất & Audit
@@ -128,6 +128,17 @@ Chi tiết merge section: [`docs/CONGNGHE_CONTENT.md`](CONGNGHE_CONTENT.md).
 | POST | `/daily-reports/review/bulk-reject` | DailyReportReviewController@bulkReject | auth | Trả lại hàng loạt (max 50) |
 | POST | `/daily-reports/{report}/score` | DailyReportReviewController@score | auth | Chấm điểm |
 | POST | `/daily-reports/{report}/reject` | DailyReportReviewController@reject | auth | Từ chối / trả về |
+
+### 2.3b Routine tasks (việc thường xuyên)
+
+| Method | URI | Controller | Auth | Description |
+|---|---|---|---|---|
+| GET | `/routine-tasks` | RoutineTaskController@index | auth | Checklist cá nhân — Inertia `RoutineTask/Index` (`q`, `status`, `employee` cho lead/admin) |
+| POST | `/routine-tasks` | RoutineTaskController@store | auth | Tạo việc thường xuyên (owner) |
+| POST | `/routine-tasks/reorder` | RoutineTaskController@reorder | auth | Sắp xếp lại `position` (owner) |
+| PUT | `/routine-tasks/{routineTask}` | RoutineTaskController@update | auth | Sửa tiêu đề / mô tả / status |
+| POST | `/routine-tasks/{routineTask}/toggle-status` | RoutineTaskController@toggleStatus | auth | Cycle todo → in_progress → done; sync vào báo cáo hôm nay (draft) |
+| DELETE | `/routine-tasks/{routineTask}` | RoutineTaskController@destroy | auth | Xoá |
 
 ### 2.4 Projects
 

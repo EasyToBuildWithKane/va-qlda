@@ -4,6 +4,7 @@ namespace App\Providers;
 
 // use Illuminate\Support\Facades\Gate;
 use App\Domain\DailyReport\Models\DailyReport;
+use App\Domain\RoutineTask\Models\RoutineTask;
 use App\Models\AiAccount;
 use App\Models\Blocker;
 use App\Models\CongngheSection;
@@ -41,6 +42,7 @@ use App\Policies\EvaluationTemplatePolicy;
 use App\Policies\FeedbackPolicy;
 use App\Policies\KbArticlePolicy;
 use App\Policies\ProjectPolicy;
+use App\Policies\RoutineTaskPolicy;
 use App\Policies\SystemSettingPolicy;
 use App\Policies\TaskPolicy;
 use App\Policies\TestCasePolicy;
@@ -61,6 +63,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         DailyReport::class => DailyReportPolicy::class,
+        RoutineTask::class => RoutineTaskPolicy::class,
         Project::class => ProjectPolicy::class,
         Task::class => TaskPolicy::class,
         Department::class => DepartmentPolicy::class,

@@ -61,6 +61,7 @@ resources/js/
 ├── modules/                  ← Feature modules (Phase 2+) — mỗi module có components/ (+ composables/, config/ khi cần):
 │   ├── project/                  ← components (ProjectCard, Sprint/, TaskDetail/, Dashboard/), config/
 │   ├── daily-report/             ← components (GradePill, ScoringPanel, ReportCard, …), config/reportConfig.js, composables/
+│   ├── routine-task/             ← Việc thường xuyên: SummaryBar, Card, useRoutineTasks
 │   ├── knowledge-base/           ← components (KbArticleHero, KbRichTextField, KbBlogSidebar, …), composables/
 │   ├── contract/                 ← CLM: components (*SummaryBar, charts), composables, config
 │   ├── credential/               ← Kho mật khẩu: components, composables
@@ -116,8 +117,9 @@ AppChrome.vue (persistent shell)
 | Auth | `Pages/Auth/Login.vue` |
 | Congnghe (landing `/congnghe`) | `Pages/Congnghe/Index.vue` + `partials/*` — **không** `AppLayout`; hero: `HeroSection.vue` + `HeroTechOrbit.vue` (3 vòng quỹ đạo stack công nghệ sau mascot); `CongnghePageShell.vue` cho form/chi tiết người gửi (prop Inertia `chrome`: `nav` + `footer` từ `CongngheContentRepository::portalChrome()`); header `CongngheNavbar.vue` + menu `CongngheUserMenu.vue` (đề xuất đã gửi, hồ sơ, đăng xuất); form `Proposal.vue`; **người gửi:** `MyProposals.vue` (`CongngheMyProposalsSummaryBar.vue`, `congnghe-portal-*` theme), `MyProposalShow.vue` (`/congnghe/de-xuat-cua-toi`) — cổng Congnghe, **không** sidebar Workspace; **quản lý (admin/lead):** `Pages/Congnghe/Proposals/Index.vue` (`CongngheSoftwareProposalsSummaryBar.vue`, datagrid toolbar chuẩn), `Show.vue` (`CongngheSoftwareProposalSheet.vue` — layout phiếu + xem trước đính kèm) — `AppLayout`, sidebar nhóm «Quản trị» → «Đề xuất phần mềm» |
 | Dashboard | **`Hub.vue`** (`/dashboard` — welcome, `HubDashboardSummaryBar`, trend, compliance, module grid) · **`Work.vue`** (`/work`) · `Index.vue` — **`TaskProgressStatsSection`**, **`DailyReportCompliancePanel`**, `ProjectProgressCard`, biểu đồ xu hướng & trạng thái dự án |
-| MyWork | **`Index.vue`** (`/my-work`) — bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn; `partials/MyWorkTaskCard` (lưới 3 cột, meta trong card 2×3); `partials/MyWorkTaskDetailModal` (`max-w-5xl` + `Modal fitViewport`, layout 5–5: header badge riêng, meta chip không trùng badge/nguồn, nhân sự); team: `MemberWorkModal`, `TeamWorkDepartmentLanes`; composable `useMyWork` |
+| MyWork | **`Index.vue`** (`/my-work`) — bucket Quá hạn/Hôm nay/Sắp tới/Chưa hạn; segmented **Thẻ / Bảng** + nhóm Theo hạn · Theo dự án · Tất cả; `partials/MyWorkTaskCard` (lưới 3 cột) và `partials/MyWorkTaskTable` + `MyWorkTaskListRow` (cột dính tiêu đề/thao tác, sắp xếp header, chọn cột `config/columns.js`); toolbar Lọc/Cột/Xuất + lọc nguồn/mốc/hạn; `partials/MyWorkTaskDetailModal` (`max-w-5xl` + `Modal fitViewport`, layout 5–5); team: `MemberWorkModal`, `TeamWorkDepartmentLanes`, `TeamRoster` (chọn cột); composable `useMyWork` |
 | DailyReport | `Today`, `History`, `Show`, `Review` |
+| RoutineTask | **`Index.vue`** (`/routine-tasks`) — checklist cá nhân nhóm theo status; `RoutineTaskSummaryBar` (KPI 5 thẻ); toolbar tìm + Lọc; tạo nhanh; `modules/routine-task/` |
 | Project | `Index`, `Create`, `Edit`, `Show` — chi tiết UX/tab → `docs/PROJECT_MANAGEMENT.md`. `Show`: 9 tab (overview, documents, timeline, board, sprints, blockers, qa, feedback, weekly); strip icon-trên/nhãn-dưới, `auto-fit minmax(7.75rem)` — không cắt chữ. Props bổ sung: `testCases` (`TestCaseResource[]`), `testSuites` (`TestSuiteResource[]`), `testCaseSummary`. Tab `blockers` dùng `ProjectBlockerPanel` (KPI strip nhúng); tab `qa` dùng `ProjectTestCasePanel` stub (`modules/testcase/components/`) |
 | Blocker / Feedback | `Index`, `Show` (Feedback) — Index: **`FeedbackSummaryBar`** (dải KPI `kpi-strip` / `kpi-card`, lọc nhanh scope/status; rule `kpi-summary-strip`) + datagrid toolbar (Lọc/Cột), `FilterDatePicker` khoảng ngày, `FeedbackListRowActions` |
 | TestCase (QA) | `Pages/TestCase/Index.vue` (planned) — datagrid toolbar, KPI strip `{total, ready, pass, fail, not_run}`, lọc theo project/suite/priority/status/last_result; Inertia props `testCases`, `summary`, `options`, `can.create`; thực thi qua `POST /test-cases/{id}/execute` |
@@ -215,6 +217,18 @@ Trang lịch sử (`Pages/DailyReport/History.vue`) — dashboard SaaS:
 | `ReportCard.vue` | Thẻ báo cáo: header (avatar, chức vụ, thời gian, điểm), dự án + task (badge trạng thái), các mục HORENSO thu gọn (`.rich-content`) |
 
 Bộ lọc: shared datagrid (`DatagridToolbarSearch` `hide-label`, `FilterDatePicker` + key `date_range`, grid `xl:grid-cols-6`, `SearchMultiSelect` `control-size="md"`). Nhóm **Ngày / Tuần / Tháng** + **Thẻ / Bảng** (`DatagridSegmentedControl`). Toolbar **không sticky**; lọc hiển thị opt-in (`default: false`, `useVisibleFilterControls`); trạng thái lọc trên URL. Xuất Excel 7 sheet — `useDailyReportHistoryExport`.
+
+### 6.6b Routine Task — `modules/routine-task/`
+
+Personal checklist «Việc thường xuyên» (`/routine-tasks`) — không đụng Project domain.
+
+| Path | Vai trò |
+|---|---|
+| `components/RoutineTaskSummaryBar.vue` | KPI strip 5 thẻ (tổng / cần làm / đang làm / hoàn thành / tiến độ %) |
+| `components/RoutineTaskCard.vue` | Card item — toggle status, inline edit title, xoá |
+| `composables/useRoutineTasks.js` | Inertia create / update / toggle / delete / reorder |
+
+`Pages/RoutineTask/Index.vue` — nhóm theo status; toolbar tìm + Lọc; tạo nhanh. Sync từ báo cáo ngày qua `SyncDailyReportRoutineTasksUseCase` (sentinel `projects[].id = -1`).
 
 ### 6.7 Notifications — `modules/notifications/` + `Components/Notifications/`
 

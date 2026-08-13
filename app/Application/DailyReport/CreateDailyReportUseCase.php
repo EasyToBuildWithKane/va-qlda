@@ -13,6 +13,7 @@ class CreateDailyReportUseCase
 {
     public function __construct(
         private readonly SyncDailyReportSpawnedTasksUseCase $syncSpawnedTasks,
+        private readonly SyncDailyReportRoutineTasksUseCase $syncRoutineTasks,
     ) {}
 
     /**
@@ -34,6 +35,8 @@ class CreateDailyReportUseCase
             'status' => ReportStatus::Draft,
         ]);
 
-        return $this->syncSpawnedTasks->execute($report, $actor);
+        $report = $this->syncSpawnedTasks->execute($report, $actor);
+
+        return $this->syncRoutineTasks->execute($report, $actor);
     }
 }

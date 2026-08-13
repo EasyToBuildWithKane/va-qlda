@@ -11,6 +11,7 @@ class UpdateDailyReportUseCase
 {
     public function __construct(
         private readonly SyncDailyReportSpawnedTasksUseCase $syncSpawnedTasks,
+        private readonly SyncDailyReportRoutineTasksUseCase $syncRoutineTasks,
     ) {}
 
     /**
@@ -27,6 +28,8 @@ class UpdateDailyReportUseCase
             ),
         );
 
-        return $this->syncSpawnedTasks->execute($report->refresh(), $actor);
+        $report = $this->syncSpawnedTasks->execute($report->refresh(), $actor);
+
+        return $this->syncRoutineTasks->execute($report, $actor);
     }
 }

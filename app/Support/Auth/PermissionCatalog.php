@@ -69,6 +69,9 @@ final class PermissionCatalog
             'daily_report' => ['label' => 'Báo cáo ngày', 'icon' => 'daily', 'group' => 'Công việc', 'abilities' => [
                 'view' => 'Xem', 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa', 'review' => 'Duyệt / Chấm điểm',
             ]],
+            'routine_task' => ['label' => 'Việc thường xuyên', 'icon' => 'list', 'group' => 'Công việc', 'abilities' => [
+                'view' => 'Xem danh sách nhân viên', 'manage' => 'Quản lý hộ (lead/admin)',
+            ]],
             'feedback' => ['label' => 'Phản hồi', 'icon' => 'feedback', 'group' => 'Công việc', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
             ]],
@@ -236,6 +239,7 @@ final class PermissionCatalog
                 'blocker.create', 'blocker.update', 'blocker.delete', 'blocker.comment',
                 'testcase.view', 'testcase.create', 'testcase.update', 'testcase.delete', 'testcase.execute',
                 'daily_report.view', 'daily_report.create', 'daily_report.review',
+                'routine_task.view',
                 'feedback.create', 'feedback.update',
                 'weekly_report.view', 'weekly_report.generate', 'weekly_report.update', 'weekly_report.export',
                 'my_work.view_team', 'my_work.act_team',

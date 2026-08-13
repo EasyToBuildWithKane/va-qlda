@@ -26,6 +26,7 @@ Route::middleware(['auth'])->group(function () {
         'congnghe',        // Phòng Công Nghệ landing + đề xuất phần mềm
         'platform',        // performance, onboarding, notifications, audit
         'daily-reports',   // báo cáo ngày
+        'routine-tasks',   // việc thường xuyên (personal checklist)
         'projects',        // dự án, sprint, task, worklog, member
         'blockers',        // vướng mắc (Blocker)
         'test-cases',      // QA / test case
