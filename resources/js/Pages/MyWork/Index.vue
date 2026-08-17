@@ -14,7 +14,6 @@ import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import FilterDatePicker from '@/shared/ui/FilterDatePicker.vue';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
-import MyWorkSummaryBar from './partials/MyWorkSummaryBar.vue';
 import MyWorkTeamSummaryBar from './partials/MyWorkTeamSummaryBar.vue';
 import MyWorkTaskCard from './partials/MyWorkTaskCard.vue';
 import MyWorkTaskTable from './partials/MyWorkTaskTable.vue';
@@ -461,17 +460,6 @@ function onTeamQuickFilter({ highlight }) {
     teamFilters.highlight = highlight ?? 'all';
 }
 
-function onSelfQuickFilter({ highlight }) {
-    bucketHighlight.value = highlight ?? '';
-    if (highlight === 'overdue') openState.overdue = true;
-    if (highlight === 'today') openState.today = true;
-    if (highlight === 'open') {
-        openState.overdue = true;
-        openState.today = true;
-        openState.upcoming = true;
-    }
-}
-
 // ── Scope navigation ─────────────────────────────────────────────────────────
 function onScope(scope) {
     goTo({ scope });
@@ -688,14 +676,6 @@ function onScope(scope) {
 
     <!-- ═══ SELF / MEMBER ═══ -->
     <template v-else>
-      <MyWorkSummaryBar
-        v-if="summary"
-        :summary="summary"
-        :active-highlight="bucketHighlight"
-        :heading="mode === 'member' ? 'Tổng quan công việc' : 'Tổng quan việc của tôi'"
-        @quick-filter="onSelfQuickFilter"
-      />
-
       <div class="card overflow-visible">
         <div class="border-b border-slate-100 px-5 py-4">
           <div class="flex w-full min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">

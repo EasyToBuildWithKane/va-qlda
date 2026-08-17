@@ -10,7 +10,7 @@ import AppIcon from '@/Components/AppIcon.vue';
 import DatagridSegmentedControl from '@/shared/ui/DatagridSegmentedControl.vue';
 import EmptyState from '@/shared/ui/EmptyState.vue';
 import Avatar from '@/shared/ui/Avatar.vue';
-import { useProjectCalendar } from '@/composables/useProjectCalendar';
+import { useProjectCalendar, CALENDAR_STATUS_PALETTE, MILESTONE_PALETTE } from '@/composables/useProjectCalendar';
 
 const props = defineProps({
     project: { type: Object, required: true },
@@ -45,7 +45,6 @@ const filters = reactive({
 const {
     events,
     kpis,
-    legend,
     hasScheduledData,
     hasVisibleEvents,
     hasActiveFilters,
@@ -111,32 +110,26 @@ const VIEW_ITEMS = [
     { key: 'listMonth', label: 'Danh sách', icon: 'list', title: 'Danh sách theo tháng' },
 ];
 
+// Cùng một nguồn màu với event trên lịch — chip nào, màu ô đó, không lệch tông.
+const TONE_SLATE = { main: '#475569', soft: '#f1f5f9' };
+const TONE_AMBER = { main: '#d97706', soft: '#fef3c7' };
+
 const kpiChips = computed(() => {
     const k = kpis.value;
     const chips = [
-        { key: null, label: 'Tổng', value: k.total, tone: 'slate' },
-        { key: 'inProgress', label: 'Đang làm', value: k.inProgress, tone: 'sky' },
-        { key: 'completed', label: 'Hoàn thành', value: k.completed, tone: 'emerald' },
-        { key: 'overdue', label: 'Quá hạn', value: k.overdue, tone: k.overdue ? 'rose' : 'muted' },
+        { key: null, label: 'Tổng', value: k.total, palette: TONE_SLATE },
+        { key: 'inProgress', label: 'Đang làm', value: k.inProgress, palette: CALENDAR_STATUS_PALETTE.in_progress },
+        { key: 'completed', label: 'Hoàn thành', value: k.completed, palette: CALENDAR_STATUS_PALETTE.done },
+        { key: 'overdue', label: 'Quá hạn', value: k.overdue, palette: CALENDAR_STATUS_PALETTE.blocked },
     ];
     if (k.milestones) {
-        chips.push({ key: 'milestones', label: 'Mốc', value: k.milestones, tone: 'violet', prefix: '◆' });
+        chips.push({ key: 'milestones', label: 'Mốc', value: k.milestones, palette: MILESTONE_PALETTE, prefix: '◆' });
     }
     if (k.unscheduled) {
-        chips.push({ key: 'unscheduled', label: 'Chưa lịch', value: k.unscheduled, tone: 'amber' });
+        chips.push({ key: 'unscheduled', label: 'Chưa lịch', value: k.unscheduled, palette: TONE_AMBER });
     }
     return chips;
 });
-
-const KPI_TONE = {
-    slate: { chip: 'bg-slate-100 text-slate-600', active: 'bg-slate-800 text-white ring-slate-800', dot: 'bg-slate-400' },
-    sky: { chip: 'bg-sky-50 text-sky-700', active: 'bg-sky-600 text-white ring-sky-600', dot: 'bg-sky-500' },
-    emerald: { chip: 'bg-emerald-50 text-emerald-700', active: 'bg-emerald-600 text-white ring-emerald-600', dot: 'bg-emerald-500' },
-    rose: { chip: 'bg-rose-50 text-rose-700', active: 'bg-rose-600 text-white ring-rose-600', dot: 'bg-rose-500' },
-    muted: { chip: 'bg-slate-100 text-slate-400', active: 'bg-slate-600 text-white ring-slate-600', dot: 'bg-slate-300' },
-    violet: { chip: 'bg-violet-50 text-violet-700', active: 'bg-violet-600 text-white ring-violet-600', dot: 'bg-violet-500' },
-    amber: { chip: 'bg-amber-50 text-amber-700', active: 'bg-amber-500 text-white ring-amber-500', dot: 'bg-amber-400' },
-};
 
 const activeFilterCount = computed(() => {
     let n = 0;
@@ -594,7 +587,7 @@ function openCreate() {
         </button>
       </div>
 
-      <!-- KPI quick filters -->
+      <!-- KPI quick filters (đồng thời là chú thích màu — không lặp với event trên lịch) -->
       <div
         class="mt-2.5 flex flex-wrap items-center gap-1.5"
         role="group"
@@ -604,12 +597,11 @@ function openCreate() {
           v-for="chip in kpiChips"
           :key="String(chip.key)"
           type="button"
-          class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-medium transition ring-1 ring-transparent"
-          :class="[
-            filters.kpi === chip.key
-              ? KPI_TONE[chip.tone].active
-              : `${KPI_TONE[chip.tone].chip} hover:ring-slate-200`,
-          ]"
+          class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset transition"
+          :style="filters.kpi === chip.key
+            ? { backgroundColor: chip.palette.main, color: '#fff', borderColor: chip.palette.main }
+            : { backgroundColor: chip.palette.soft, color: chip.palette.text || chip.palette.main }"
+          :class="filters.kpi === chip.key ? 'ring-transparent' : 'ring-black/[0.03] hover:ring-black/[0.06]'"
           :aria-pressed="filters.kpi === chip.key"
           @click="toggleKpi(chip.key)"
         >
@@ -620,7 +612,7 @@ function openCreate() {
           <span
             v-else
             class="h-1.5 w-1.5 shrink-0 rounded-full"
-            :class="filters.kpi === chip.key ? 'bg-white/90' : KPI_TONE[chip.tone].dot"
+            :style="{ backgroundColor: filters.kpi === chip.key ? 'rgba(255,255,255,0.9)' : chip.palette.main }"
           />
           <span class="opacity-90">{{ chip.label }}</span>
           <span class="font-semibold tabular-nums">{{ chip.value }}</span>
@@ -633,38 +625,13 @@ function openCreate() {
         >
           Xóa tất cả lọc
         </button>
+        <span
+          v-if="canContribute"
+          class="ml-auto hidden text-[11px] text-slate-400 sm:inline"
+        >
+          Kéo thả để đổi ngày · Bấm ô trống để tạo task
+        </span>
       </div>
-    </div>
-
-    <!-- Legend -->
-    <div
-      v-if="legend.length && hasVisibleEvents"
-      class="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-slate-100 bg-white/80 px-4 py-1.5"
-    >
-      <span class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">Chú thích</span>
-      <span
-        v-for="item in legend"
-        :key="item.value"
-        class="inline-flex items-center gap-1.5 text-[11px] font-medium text-slate-600"
-      >
-        <span
-          v-if="item.milestone"
-          class="text-[11px] leading-none"
-          :style="{ color: item.color }"
-        >◆</span>
-        <span
-          v-else
-          class="h-2.5 w-2.5 rounded-sm"
-          :style="{ backgroundColor: item.color }"
-        />
-        {{ item.label }}
-      </span>
-      <span
-        v-if="canContribute"
-        class="ml-auto hidden text-[11px] text-slate-400 sm:inline"
-      >
-        Kéo thả để đổi ngày · Bấm ô trống để tạo task
-      </span>
     </div>
 
     <!-- Body: calendar + unscheduled rail -->
@@ -939,6 +906,7 @@ function openCreate() {
 
 .pc-calendar .fc .fc-scrollgrid {
     border-radius: 0;
+    border-color: var(--pc-line);
 }
 
 .pc-calendar .fc .fc-col-header-cell {
@@ -952,6 +920,15 @@ function openCreate() {
     text-transform: uppercase;
     letter-spacing: 0.04em;
     color: #94a3b8;
+}
+
+.pc-calendar .fc .fc-daygrid-day.fc-day-other {
+    background-color: #fbfcfe;
+}
+
+.pc-calendar .fc .fc-daygrid-day.fc-day-sat,
+.pc-calendar .fc .fc-daygrid-day.fc-day-sun {
+    background-color: #fafafa;
 }
 
 .pc-calendar .fc .fc-daygrid-day.fc-day-today {
@@ -976,11 +953,12 @@ function openCreate() {
     background: var(--pc-brand);
     color: #fff;
     font-weight: 700;
+    box-shadow: 0 2px 6px rgba(154, 0, 54, 0.28);
 }
 
 .pc-calendar .fc .fc-day-sat .fc-daygrid-day-number,
 .pc-calendar .fc .fc-day-sun .fc-daygrid-day-number {
-    color: #94a3b8;
+    color: #a1a9b8;
 }
 
 .pc-calendar .fc .fc-day-today.fc-day-sat .fc-daygrid-day-number,
@@ -991,20 +969,21 @@ function openCreate() {
 /* Event chips */
 .pc-calendar .fc-daygrid-event,
 .pc-calendar .fc-timegrid-event {
-    border-radius: 8px;
+    border-radius: 7px;
     border-width: 1px;
+    border-left-width: 3px;
     border-style: solid;
     padding: 0;
-    margin: 1px 2px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
+    margin: 1.5px 3px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
     white-space: normal;
     cursor: pointer;
 }
 
 .pc-calendar .fc-daygrid-event:hover,
 .pc-calendar .fc-timegrid-event:hover {
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.14);
+    box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.18);
     transform: translateY(-1px);
     z-index: 3;
 }
@@ -1035,7 +1014,7 @@ function openCreate() {
     flex-shrink: 0;
     font-size: 10px;
     line-height: 1;
-    color: #7c3aed;
+    color: var(--pc-brand);
 }
 
 .pc-ev-title {
@@ -1095,15 +1074,15 @@ function openCreate() {
 }
 
 .pc-ev--milestone {
-    background-image: linear-gradient(0deg, rgba(124, 58, 237, 0.05), rgba(124, 58, 237, 0.05));
+    background-image: linear-gradient(0deg, rgba(154, 0, 54, 0.04), rgba(154, 0, 54, 0.04));
 }
 
 .pc-ev--milestone .pc-ev-title {
-    color: #5b21b6;
+    color: var(--pc-brand);
 }
 
 .pc-ev--overdue {
-    box-shadow: 0 0 0 1px #fecaca, 0 1px 2px rgba(239, 68, 68, 0.16);
+    box-shadow: 0 0 0 1px #fda4af, 0 1px 2px rgba(225, 29, 72, 0.16);
 }
 
 .pc-ev--done .pc-ev-title {

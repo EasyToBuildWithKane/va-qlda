@@ -7,7 +7,6 @@ import BlockerFormModal from '@/modules/project/components/BlockerFormModal.vue'
 import BlockerRecheckModal from '@/modules/project/components/BlockerRecheckModal.vue';
 import BlockerDataModal from '@/modules/project/components/Dashboard/BlockerDataModal.vue';
 import BlockerInlineDetail from '@/modules/project/components/Dashboard/BlockerInlineDetail.vue';
-import BlockerSummaryBar from '@/modules/project/components/BlockerSummaryBar.vue';
 import {
     BLOCKER_TABLE_COLUMNS,
     loadBlockerTableColumns,
@@ -71,7 +70,6 @@ const search = table.search;
 const filterStatus = table.filterStatus;
 const filterSeverity = table.filterSeverity;
 const filterOwner = table.filterOwner;
-const filterRecheckPending = table.filterRecheckPending;
 
 const {
     visibleFilters,
@@ -152,18 +150,6 @@ const fixedColCount = computed(() => {
     return n + visibleColumns.value.length;
 });
 
-// ── KPI summary (computed from blockers for embedded strip) ──
-const embeddedSummary = computed(() => {
-    const s = props.blockerSummary;
-    if (s && (s.open !== undefined || s.critical !== undefined)) return s;
-    const all = props.blockers;
-    const open = all.filter((b) => !TERMINAL_STATUS.has(b.status?.value)).length;
-    const critical = all.filter((b) => b.severity?.value === 'critical' && !TERMINAL_STATUS.has(b.status?.value)).length;
-    const resolved = all.filter((b) => TERMINAL_STATUS.has(b.status?.value)).length;
-    const recheck_pending = all.filter((b) => b.recheck_pending).length;
-    return { open, critical, resolved, recheck_pending };
-});
-
 const setActionBtnRef = (rowId, el) => {
     if (el) actionBtnRefs.value[rowId] = el;
     else delete actionBtnRefs.value[rowId];
@@ -205,25 +191,6 @@ const menuRecheck = (row) => {
     recheckOpen.value = true;
 };
 const menuDelete = async (row) => { closeActionMenu(); await removeOne(row); };
-
-const onKpiQuickFilter = (payload) => {
-    filterRecheckPending.value = false;
-    if (payload?.recheck_pending === '1') {
-        filterStatus.value = 'all';
-        filterSeverity.value = 'all';
-        filterRecheckPending.value = true;
-    } else if (payload?.status === 'active') {
-        filterStatus.value = 'active';
-        filterSeverity.value = payload.severity || 'all';
-    } else if (payload?.status === 'resolved') {
-        filterStatus.value = 'resolved';
-        filterSeverity.value = 'all';
-    } else {
-        filterStatus.value = payload?.status || 'all';
-        filterSeverity.value = payload?.severity || 'all';
-    }
-    table.page.value = 1;
-};
 
 const onRecheckClosed = () => {
     const hadTarget = Boolean(recheckTarget.value);
@@ -386,14 +353,6 @@ defineExpose({ scrollHere, openCreate, openImport });
     class="w-full min-w-0 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-elevation-1 transition ring-2 dark:border-slate-700/80 dark:bg-slate-900 dark:shadow-none"
     :class="highlight ? 'ring-brand/30' : 'ring-transparent'"
   >
-    <!-- ── KPI strip nhúng (chỉ layout=page) ── -->
-    <BlockerSummaryBar
-      v-if="layout === 'page'"
-      :summary="embeddedSummary"
-      class="shrink-0 border-b border-slate-100 dark:border-slate-800"
-      @quick-filter="onKpiQuickFilter"
-    />
-
     <!-- ── Header + toolbar ── -->
     <div class="border-b border-slate-100 px-4 py-3 dark:border-slate-800 sm:px-5 sm:py-4">
       <div

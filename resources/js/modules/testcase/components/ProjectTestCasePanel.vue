@@ -16,7 +16,6 @@ import { useDialog } from '@/composables/useDialog';
 import { useToast } from '@/shared/composables/useToast';
 import { date } from '@/composables/useFormat';
 import { displayOrEmpty } from '@/shared/utils/emptyDisplay';
-import TestCaseSummaryBar from '@/modules/testcase/components/TestCaseSummaryBar.vue';
 import TestCaseFormModal from '@/modules/testcase/components/TestCaseFormModal.vue';
 import TestCaseExecuteModal from '@/modules/testcase/components/TestCaseExecuteModal.vue';
 import TestCaseDataModal from '@/modules/testcase/components/TestCaseDataModal.vue';
@@ -104,14 +103,6 @@ const filterForm = reactive({
     owner_id: '',
 });
 
-const activeQuickFilter = ref('');
-
-function applyQuickFilter(payload) {
-    filterForm.status = payload.status ?? '';
-    filterForm.last_result = payload.last_result ?? '';
-    activeQuickFilter.value = payload.status || payload.last_result || '';
-}
-
 function clearFilters() {
     filterForm.q = '';
     filterForm.status = '';
@@ -119,7 +110,6 @@ function clearFilters() {
     filterForm.suite_id = '';
     filterForm.last_result = '';
     filterForm.owner_id = '';
-    activeQuickFilter.value = '';
 }
 
 const filteredTestCases = computed(() => {
@@ -271,14 +261,6 @@ const suiteOptions = computed(() => props.testSuites.map((s) => ({ value: s.id, 
 
 <template>
   <div class="flex h-full min-h-0 w-full min-w-0 flex-col">
-    <!-- KPI Strip -->
-    <TestCaseSummaryBar
-      :summary="summary"
-      :filters="{ status: filterForm.status, last_result: filterForm.last_result }"
-      class="mb-5"
-      @quick-filter="applyQuickFilter"
-    />
-
     <!-- Main card -->
     <div class="card flex min-h-0 flex-1 flex-col overflow-hidden">
       <!-- Toolbar -->

@@ -326,8 +326,11 @@ const onSprintSaved = () => {
       />
     </template>
 
-    <!-- Full-height flex column -->
-    <div class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50">
+    <!-- Full-height flex column (thu nhỏ 90%, tương đương Ctrl+- một nấc) -->
+    <div
+      class="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-slate-50"
+      style="zoom: 90%;"
+    >
       <!-- ── Tab strip: full-width, trải đều ── -->
       <nav
         class="shrink-0 border-b border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900"

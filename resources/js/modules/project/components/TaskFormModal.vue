@@ -11,7 +11,6 @@ import TaskFormBulkPanel from '@/modules/project/components/TaskFormBulkPanel.vu
 import TaskEnumChipRow from '@/modules/project/components/TaskEnumChipRow.vue';
 import Badge from '@/shared/ui/Badge.vue';
 import ProgressBar from '@/shared/ui/ProgressBar.vue';
-import { date } from '@/composables/useFormat';
 import { taskProgressFromStatus } from '@/shared/utils/taskProgress';
 import { useModalFormDraft, shallowPickDraft, draftHasMeaningfulContent } from '@/composables/useModalFormDraft';
 import {
@@ -168,9 +167,10 @@ const modalTitle = computed(() => {
 
 const modalMaxWidth = computed(() => {
     if (createMode.value === 'bulk' && !isEditing.value) return 'max-w-5xl';
-    if (isEditing.value) return 'max-w-5xl';
-    return 'max-w-4xl';
+    return 'max-w-7xl';
 });
+
+const modalFitViewport = computed(() => !(createMode.value === 'bulk' && !isEditing.value));
 
 const handleKeydown = (e) => {
     if (!props.show) return;
@@ -290,13 +290,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
     :dirty="modalDirty"
     :title="modalTitle"
     :max-width="modalMaxWidth"
+    :fit-viewport="modalFitViewport"
     :on-save-draft="saveDraftOnClose"
     @close="emit('close')"
   >
     <!-- Mode tabs (create only) -->
     <div
       v-if="!isEditing"
-      class="mb-3 flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-900/50"
+      class="mb-3 flex shrink-0 rounded-lg border border-slate-200 bg-slate-50 p-0.5 dark:border-slate-700 dark:bg-slate-900/50"
     >
       <button
         type="button"
@@ -345,201 +346,225 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
       @dirty-change="bulkDirty = $event"
     />
 
-    <!-- Single create / edit -->
+    <!-- Single create / edit — form ngang 3 cột, gọn trong viewport -->
     <form
       v-else
-      class="space-y-4"
+      class="flex min-h-0 flex-1 flex-col"
       @submit.prevent="submit"
     >
       <div
         v-if="isEditing"
-        class="rounded-xl border border-brand/15 bg-gradient-to-br from-brand/[0.06] via-white to-slate-50 p-4 dark:border-brand/25 dark:from-brand/10 dark:via-slate-900 dark:to-slate-900/80"
+        class="mb-3 flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border border-brand/15 bg-brand/[0.04] px-3 py-2 dark:border-brand/25 dark:bg-brand/10"
       >
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div class="min-w-0 space-y-1">
-            <p
-              v-if="task.parent"
-              class="text-xs text-slate-500"
-            >
-              Công việc con của
-              <span class="font-medium text-slate-700 dark:text-slate-300">#{{ task.parent.id }} {{ task.parent.title }}</span>
-            </p>
-            <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <span class="inline-flex items-center gap-1 rounded-md bg-white/80 px-2 py-0.5 font-medium dark:bg-slate-800/80">
-                <AppIcon
-                  name="sprint"
-                  :size="13"
-                  class="text-brand"
-                />
-                {{ editSprintLabel }}
-              </span>
-              <span v-if="form.start_date || form.due_date">
-                {{ date(form.start_date) || '—' }} → {{ date(form.due_date) || '—' }}
-              </span>
-              <span v-if="form.estimate_hours != null">{{ form.estimate_hours }}h ước tính</span>
-            </div>
-          </div>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <Badge
-              v-if="editStatusMeta"
-              :label="editStatusMeta.label"
-              :color="editStatusMeta.color"
-            />
-            <Badge
-              v-if="editPriorityMeta"
-              :label="editPriorityMeta.label"
-              :color="editPriorityMeta.color"
-            />
-          </div>
-        </div>
-        <div class="mt-3 flex items-center gap-3">
-          <ProgressBar
-            :value="displayProgress"
-            :show-label="false"
-            class="min-w-0 flex-1"
-          />
-          <span class="shrink-0 text-sm font-semibold tabular-nums text-brand">{{ displayProgress }}%</span>
-        </div>
-      </div>
-
-      <div>
-        <label class="label">Tiêu đề <span class="text-rose-500">*</span></label>
-        <input
-          v-model="form.title"
-          type="text"
-          class="input"
-          :class="isEditing ? 'text-base font-medium' : ''"
-          placeholder="Mô tả ngắn công việc…"
-          autofocus
-        >
-        <p
-          v-if="form.errors.title"
-          class="mt-1 text-xs text-danger"
-        >
-          {{ form.errors.title }}
-        </p>
-      </div>
-
-      <div
-        v-if="isEditing"
-        class="space-y-3 rounded-xl border border-slate-200/80 bg-slate-50/50 p-3.5 dark:border-slate-700 dark:bg-slate-900/40"
-      >
-        <div>
-          <label class="label mb-1.5">Trạng thái</label>
-          <TaskEnumChipRow
-            :model-value="form.status"
-            :options="statusOptions"
-            aria-label="Trạng thái công việc"
-            @update:model-value="onEditStatusPick"
-          />
-        </div>
-        <div>
-          <label class="label mb-1.5">Ưu tiên</label>
-          <TaskEnumChipRow
-            v-model="form.priority"
-            :options="priorityOptions"
-            aria-label="Ưu tiên công việc"
-          />
-        </div>
-      </div>
-
-      <div class="grid gap-6 lg:grid-cols-2 lg:gap-x-8">
-        <div class="space-y-3">
-          <div>
-            <label class="label">Mô tả</label>
-            <textarea
-              v-model="form.description"
-              :rows="isEditing ? 5 : 5"
-              class="input min-h-[7.5rem] resize-y lg:min-h-[10rem]"
-              placeholder="Yêu cầu, tiêu chí hoàn thành…"
-            />
-          </div>
-
-          <div
-            v-if="!isEditing"
-            class="grid gap-3 sm:grid-cols-2"
+        <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+          <span
+            v-if="task.parent"
+            class="truncate"
           >
-            <div>
-              <label class="label">Trạng thái <span class="text-rose-500">*</span></label>
-              <SearchSelect
-                v-model="form.status"
-                :options="statusSelectOptions"
-                placeholder="Trạng thái…"
-                :clearable="false"
-                @update:model-value="syncProgressFromStatus"
-              />
-            </div>
-            <div>
-              <label class="label">Ưu tiên <span class="text-rose-500">*</span></label>
-              <SearchSelect
-                v-model="form.priority"
-                :options="prioritySelectOptions"
-                placeholder="Ưu tiên…"
-                :clearable="false"
-              />
-            </div>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label class="label">Sprint</label>
-              <SearchSelect
-                v-model="form.sprint_id"
-                :options="sprints"
-                placeholder="Chọn sprint…"
-                search-placeholder="Tìm sprint…"
-              />
-            </div>
-            <div>
-              <label class="label">Giai đoạn</label>
-              <SearchSelect
-                v-model="form.phase"
-                :options="phaseSelectOptions"
-                placeholder="Phase…"
-                :clearable="false"
-              />
-            </div>
+            Con của <span class="font-medium text-slate-700 dark:text-slate-300">#{{ task.parent.id }} {{ task.parent.title }}</span>
+          </span>
+          <span class="inline-flex items-center gap-1 font-medium text-slate-700 dark:text-slate-300">
+            <AppIcon
+              name="sprint"
+              :size="13"
+              class="text-brand"
+            />
+            {{ editSprintLabel }}
+          </span>
+        </div>
+        <div class="flex shrink-0 items-center gap-2">
+          <Badge
+            v-if="editStatusMeta"
+            :label="editStatusMeta.label"
+            :color="editStatusMeta.color"
+          />
+          <Badge
+            v-if="editPriorityMeta"
+            :label="editPriorityMeta.label"
+            :color="editPriorityMeta.color"
+          />
+          <div class="flex items-center gap-1.5">
+            <ProgressBar
+              :value="displayProgress"
+              :show-label="false"
+              class="w-16"
+            />
+            <span class="text-xs font-semibold tabular-nums text-brand">{{ displayProgress }}%</span>
           </div>
         </div>
+      </div>
 
-        <div class="space-y-3 lg:border-l lg:border-slate-100 lg:pl-8 dark:lg:border-slate-800">
-          <div class="grid gap-3 sm:grid-cols-2">
+      <!-- Vùng cuộn: 3 cột ngang -->
+      <div class="min-h-0 flex-1 overflow-y-auto pr-0.5">
+        <div class="grid gap-x-6 gap-y-3 lg:grid-cols-3">
+          <!-- Cột 1: Nội dung -->
+          <div class="space-y-3">
             <div>
-              <label class="label">Ngày bắt đầu</label>
+              <label class="label">Tiêu đề <span class="text-rose-500">*</span></label>
               <input
-                v-model="form.start_date"
-                type="date"
+                v-model="form.title"
+                type="text"
                 class="input"
-              >
-            </div>
-            <div>
-              <label class="label">Ngày kết thúc</label>
-              <input
-                v-model="form.due_date"
-                type="date"
-                class="input"
+                placeholder="Mô tả ngắn công việc…"
+                autofocus
               >
               <p
-                v-if="form.errors.due_date"
+                v-if="form.errors.title"
                 class="mt-1 text-xs text-danger"
               >
-                {{ form.errors.due_date }}
+                {{ form.errors.title }}
               </p>
             </div>
-            <div class="sm:col-span-2">
-              <label class="label">Ước lượng (giờ)</label>
-              <input
-                v-model="form.estimate_hours"
-                type="number"
-                step="0.5"
-                min="0"
-                class="input max-w-xs"
-                placeholder="8"
-              >
+            <div>
+              <label class="label">Mô tả</label>
+              <textarea
+                v-model="form.description"
+                rows="6"
+                class="input min-h-[9rem] resize-y"
+                placeholder="Yêu cầu, tiêu chí hoàn thành…"
+              />
+            </div>
+            <div v-if="isEditing">
+              <label class="label mb-1.5">Trạng thái</label>
+              <TaskEnumChipRow
+                :model-value="form.status"
+                :options="statusOptions"
+                aria-label="Trạng thái công việc"
+                @update:model-value="onEditStatusPick"
+              />
+            </div>
+            <div v-if="isEditing">
+              <label class="label mb-1.5">Ưu tiên</label>
+              <TaskEnumChipRow
+                v-model="form.priority"
+                :options="priorityOptions"
+                aria-label="Ưu tiên công việc"
+              />
             </div>
           </div>
 
-          <div class="space-y-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+          <!-- Cột 2: Lịch trình & phân loại -->
+          <div class="space-y-3 lg:border-l lg:border-slate-100 lg:pl-6 dark:lg:border-slate-800">
+            <div
+              v-if="!isEditing"
+              class="grid grid-cols-2 gap-3"
+            >
+              <div>
+                <label class="label">Trạng thái <span class="text-rose-500">*</span></label>
+                <SearchSelect
+                  v-model="form.status"
+                  :options="statusSelectOptions"
+                  placeholder="Trạng thái…"
+                  :clearable="false"
+                  @update:model-value="syncProgressFromStatus"
+                />
+              </div>
+              <div>
+                <label class="label">Ưu tiên <span class="text-rose-500">*</span></label>
+                <SearchSelect
+                  v-model="form.priority"
+                  :options="prioritySelectOptions"
+                  placeholder="Ưu tiên…"
+                  :clearable="false"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="label">Sprint</label>
+                <SearchSelect
+                  v-model="form.sprint_id"
+                  :options="sprints"
+                  placeholder="Chọn sprint…"
+                  search-placeholder="Tìm sprint…"
+                />
+              </div>
+              <div>
+                <label class="label">Giai đoạn</label>
+                <SearchSelect
+                  v-model="form.phase"
+                  :options="phaseSelectOptions"
+                  placeholder="Phase…"
+                  :clearable="false"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="label">Ngày bắt đầu</label>
+                <input
+                  v-model="form.start_date"
+                  type="date"
+                  class="input"
+                >
+              </div>
+              <div>
+                <label class="label">Ngày kết thúc</label>
+                <input
+                  v-model="form.due_date"
+                  type="date"
+                  class="input"
+                >
+                <p
+                  v-if="form.errors.due_date"
+                  class="mt-1 text-xs text-danger"
+                >
+                  {{ form.errors.due_date }}
+                </p>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="label">Ước lượng (giờ)</label>
+                <input
+                  v-model="form.estimate_hours"
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  class="input"
+                  placeholder="8"
+                >
+              </div>
+              <div>
+                <label class="label">Story points</label>
+                <input
+                  v-model="form.story_points"
+                  type="number"
+                  step="1"
+                  min="0"
+                  class="input"
+                  placeholder="—"
+                >
+              </div>
+            </div>
+
+            <div
+              v-if="dependencyOptions.length"
+              class="border-t border-slate-100 pt-3 dark:border-slate-800"
+            >
+              <label class="label">Phụ thuộc vào</label>
+              <div class="mt-1.5 grid max-h-28 gap-1.5 overflow-y-auto">
+                <label
+                  v-for="t in dependencyOptions"
+                  :key="t.id"
+                  class="flex cursor-pointer items-start gap-2 rounded-md border border-slate-100 px-2 py-1.5 text-xs text-slate-600 transition hover:border-brand/30 dark:border-slate-700 dark:hover:border-brand/40"
+                >
+                  <input
+                    v-model="form.dependencies"
+                    type="checkbox"
+                    :value="t.id"
+                    class="mt-0.5 rounded accent-brand"
+                  >
+                  <span class="min-w-0 leading-snug">{{ t.title }}</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cột 3: Nhân sự -->
+          <div class="space-y-3 lg:border-l lg:border-slate-100 lg:pl-6 dark:lg:border-slate-800">
             <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
               Nhân sự
             </p>
@@ -551,51 +576,27 @@ onUnmounted(() => document.removeEventListener('keydown', handleKeydown));
                 placeholder="Thêm người thực hiện…"
               />
             </div>
-            <div class="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label class="label">Người giao việc</label>
-                <PersonSelect
-                  v-model="form.reporter_id"
-                  :options="employees"
-                  placeholder="Người giao…"
-                />
-              </div>
-              <div>
-                <label class="label">Người duyệt</label>
-                <PersonSelect
-                  v-model="form.reviewer_id"
-                  :options="employees"
-                  placeholder="Người duyệt…"
-                />
-              </div>
+            <div>
+              <label class="label">Người giao việc</label>
+              <PersonSelect
+                v-model="form.reporter_id"
+                :options="employees"
+                placeholder="Người giao…"
+              />
             </div>
-          </div>
-
-          <div
-            v-if="dependencyOptions.length"
-            class="border-t border-slate-100 pt-3 dark:border-slate-800"
-          >
-            <label class="label">Phụ thuộc vào</label>
-            <div class="mt-1.5 grid max-h-36 gap-1.5 overflow-y-auto">
-              <label
-                v-for="t in dependencyOptions"
-                :key="t.id"
-                class="flex cursor-pointer items-start gap-2 rounded-md border border-slate-100 px-2 py-1.5 text-xs text-slate-600 transition hover:border-brand/30 dark:border-slate-700 dark:hover:border-brand/40"
-              >
-                <input
-                  v-model="form.dependencies"
-                  type="checkbox"
-                  :value="t.id"
-                  class="mt-0.5 rounded accent-brand"
-                >
-                <span class="min-w-0 leading-snug">{{ t.title }}</span>
-              </label>
+            <div>
+              <label class="label">Người duyệt</label>
+              <PersonSelect
+                v-model="form.reviewer_id"
+                :options="employees"
+                placeholder="Người duyệt…"
+              />
             </div>
           </div>
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
+      <div class="mt-3 flex shrink-0 justify-end gap-2 border-t border-slate-100 pt-3 dark:border-slate-800">
         <button
           type="button"
           class="btn-ghost"
