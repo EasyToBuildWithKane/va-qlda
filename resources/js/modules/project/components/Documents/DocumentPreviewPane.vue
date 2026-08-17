@@ -37,7 +37,30 @@ const {
     xlsxRowLabel,
     nextXlsxPage,
     prevXlsxPage,
+    docxSrcdoc,
+    zoom,
+    autoFit,
+    canZoom,
+    zoomIn,
+    zoomOut,
+    resetZoom,
 } = useDocumentPreview(fileRef);
+
+const zoomPercent = computed(() => `${Math.round(zoom.value * 100)}%`);
+
+/** Link tải xuống — ép `Content-Disposition: attachment` phía server. */
+const downloadUrl = computed(() => {
+    const raw = props.file?.url;
+    if (!raw) return '';
+    if (props.file?.is_external_link) return raw;
+    return `${raw}${raw.includes('?') ? '&' : '?'}download=1`;
+});
+
+const canOpenNewTab = computed(() => Boolean(props.file?.url));
+
+const showToolbar = computed(() =>
+    Boolean(props.file) && !loading.value && !error.value && kind.value !== 'none',
+);
 
 const draft = computed({
     get: () => textContent.value,
@@ -133,6 +156,76 @@ defineExpose({ reload, textContent, kind });
       v-else
       class="flex min-h-0 flex-1 flex-col"
     >
+      <div
+        v-if="showToolbar"
+        class="doc-preview-toolbar"
+      >
+        <div
+          v-if="canZoom"
+          class="doc-preview-toolbar__group"
+        >
+          <button
+            type="button"
+            class="doc-preview-toolbar__btn"
+            title="Thu nhỏ"
+            :disabled="zoom <= 0.4"
+            @click="zoomOut"
+          >
+            <AppIcon
+              name="minus"
+              :size="14"
+            />
+          </button>
+          <button
+            type="button"
+            class="doc-preview-toolbar__zoom tabular-nums"
+            title="Vừa khung"
+            @click="resetZoom"
+          >
+            {{ autoFit ? 'Vừa khung' : zoomPercent }}
+          </button>
+          <button
+            type="button"
+            class="doc-preview-toolbar__btn"
+            title="Phóng to"
+            :disabled="zoom >= 2"
+            @click="zoomIn"
+          >
+            <AppIcon
+              name="plus"
+              :size="14"
+            />
+          </button>
+        </div>
+
+        <div class="doc-preview-toolbar__spacer" />
+
+        <a
+          v-if="canOpenNewTab"
+          :href="file.url"
+          target="_blank"
+          rel="noopener"
+          class="doc-preview-toolbar__btn"
+          title="Mở tab mới"
+        >
+          <AppIcon
+            name="external-link"
+            :size="14"
+          />
+        </a>
+        <a
+          v-if="downloadUrl"
+          :href="downloadUrl"
+          class="doc-preview-toolbar__btn"
+          title="Tải xuống"
+        >
+          <AppIcon
+            name="download"
+            :size="14"
+          />
+        </a>
+      </div>
+
       <div
         v-if="loading"
         class="flex min-h-0 flex-1 flex-col items-center justify-center gap-2 text-slate-500"
@@ -249,6 +342,7 @@ defineExpose({ reload, textContent, kind });
           :ref="setDocxIframe"
           class="doc-preview-docx__iframe"
           title="Xem trước Word"
+          :srcdoc="docxSrcdoc"
         />
       </div>
 
@@ -470,48 +564,162 @@ defineExpose({ reload, textContent, kind });
     background: #fff;
 }
 
-.xlsx-preview-scroll :deep(.xlsx-preview-table) {
-    width: max-content;
-    min-width: 100%;
+/*
+ * Bảng Excel giữ định dạng gốc: độ rộng cột do <colgroup> quyết định,
+ * màu/border/căn lề do style inline của từng ô. CSS ở đây chỉ dựng khung
+ * lưới + thanh tiêu đề A/B/C và 1/2/3 kiểu Excel — không ghi đè style ô.
+ */
+.xlsx-preview-scroll :deep(.xr-table) {
     border-collapse: separate;
     border-spacing: 0;
+    table-layout: fixed;
+    width: max-content;
     font-size: 13px;
     line-height: 1.35;
     color: #0f172a;
+    background: #fff;
 }
 
-.xlsx-preview-scroll :deep(.xlsx-preview-table th),
-.xlsx-preview-scroll :deep(.xlsx-preview-table td) {
-    border-right: 1px solid #e2e8f0;
-    border-bottom: 1px solid #e2e8f0;
-    padding: 0.5rem 0.75rem;
-    vertical-align: top;
-    text-align: left;
-    white-space: nowrap;
-    max-width: 16rem;
-}
-
-.xlsx-preview-scroll :deep(.xlsx-preview-table th) {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-    background: #f8fafc;
-    font-weight: 700;
-    color: #334155;
-    border-bottom-color: #cbd5e1;
-    box-shadow: 0 1px 0 #cbd5e1;
-}
-
-.xlsx-preview-scroll :deep(.xlsx-preview-table td.xlsx-row-alt),
-.xlsx-preview-scroll :deep(.xlsx-preview-table tr.xlsx-row-alt td) {
-    background: #f8fafc;
-}
-
-.xlsx-preview-scroll :deep(.xlsx-preview-table th span),
-.xlsx-preview-scroll :deep(.xlsx-preview-table td span) {
-    display: block;
+.xlsx-preview-scroll :deep(.xr-table td) {
+    padding: 3px 6px;
+    vertical-align: middle;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 15rem;
+    white-space: nowrap;
+    background-clip: padding-box;
+}
+
+.xlsx-preview-scroll :deep(.xr-grid td) {
+    border-right: 1px solid #e8ecf1;
+    border-bottom: 1px solid #e8ecf1;
+}
+
+/* Thanh nhãn cột A/B/C — dính trên khi cuộn dọc */
+.xlsx-preview-scroll :deep(.xr-colhead),
+.xlsx-preview-scroll :deep(.xr-corner) {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    height: 22px;
+    padding: 2px 6px;
+    background: #f1f5f9;
+    border-right: 1px solid #cbd5e1;
+    border-bottom: 1px solid #cbd5e1;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+    user-select: none;
+}
+
+/* Nhãn dòng 1/2/3 — dính trái khi cuộn ngang */
+.xlsx-preview-scroll :deep(.xr-rowhead) {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    width: 44px;
+    min-width: 44px;
+    padding: 2px 6px;
+    background: #f1f5f9;
+    border-right: 1px solid #cbd5e1;
+    border-bottom: 1px solid #e8ecf1;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-align: center;
+    user-select: none;
+}
+
+/* Góc trái trên phải nằm trên cả hai thanh */
+.xlsx-preview-scroll :deep(.xr-corner) {
+    left: 0;
+    z-index: 3;
+    width: 44px;
+    min-width: 44px;
+}
+
+.xlsx-preview-scroll :deep(.xr-gutter) {
+    width: 44px;
+}
+
+.doc-preview-toolbar {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.375rem;
+    border-bottom: 1px solid rgb(226 232 240);
+    background: rgb(248 250 252);
+    padding: 0.375rem 0.625rem;
+}
+
+:global(.dark) .doc-preview-toolbar {
+    border-bottom-color: rgb(51 65 85);
+    background: rgb(15 23 42);
+}
+
+.doc-preview-toolbar__group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+}
+
+.doc-preview-toolbar__spacer {
+    flex: 1 1 auto;
+}
+
+.doc-preview-toolbar__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    height: 1.75rem;
+    min-width: 1.75rem;
+    padding: 0 0.375rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    color: rgb(71 85 105);
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.doc-preview-toolbar__btn:hover:not(:disabled) {
+    background: rgb(226 232 240);
+    color: rgb(15 23 42);
+}
+
+.doc-preview-toolbar__btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.4;
+}
+
+:global(.dark) .doc-preview-toolbar__btn {
+    color: rgb(203 213 225);
+}
+
+:global(.dark) .doc-preview-toolbar__btn:hover:not(:disabled) {
+    background: rgb(51 65 85);
+    color: #fff;
+}
+
+.doc-preview-toolbar__zoom {
+    min-width: 4.5rem;
+    height: 1.75rem;
+    padding: 0 0.5rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgb(71 85 105);
+    transition: background 0.15s;
+}
+
+.doc-preview-toolbar__zoom:hover {
+    background: rgb(226 232 240);
+}
+
+:global(.dark) .doc-preview-toolbar__zoom {
+    color: rgb(203 213 225);
+}
+
+:global(.dark) .doc-preview-toolbar__zoom:hover {
+    background: rgb(51 65 85);
 }
 </style>
