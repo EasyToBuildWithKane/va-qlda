@@ -5,7 +5,6 @@ import AppIcon from '@/Components/AppIcon.vue';
 import SprintFormModal from '@/modules/project/components/SprintFormModal.vue';
 import TaskFormModal from '@/modules/project/components/TaskFormModal.vue';
 import SprintListView from '@/modules/project/components/Sprint/SprintListView.vue';
-import SprintCalendarView from '@/modules/project/components/Sprint/SprintCalendarView.vue';
 import TaskDetailPanel from '@/modules/project/components/Sprint/TaskDetailPanel.vue';
 import SprintDataModal from '@/modules/project/components/Sprint/SprintDataModal.vue';
 import TaskCompleteModal from '@/modules/project/components/Sprint/TaskCompleteModal.vue';
@@ -64,10 +63,6 @@ const filteredBacklogTasks = computed(() => filterRootTasks(table.filtered.value
 const listWorkspaceEmpty = computed(() => !props.sprints.length && !filteredBacklogTasks.value.length);
 const listSearchEmpty = computed(() => listWorkspaceEmpty.value && globalSearch.value.trim().length > 0);
 
-const calendarEmpty = computed(() => !table.filtered.value.length);
-const calendarSearchEmpty = computed(() => calendarEmpty.value && globalSearch.value.trim().length > 0);
-
-const viewMode = ref('list');
 const dataModalOpen = ref(false);
 const dataModalTab = ref('import');
 const expandedSprints = ref(new Set());
@@ -199,11 +194,6 @@ const onReconcileFix = (issue) => {
     }
 };
 
-const viewModes = [
-    { key: 'list', label: 'Danh sách', icon: 'template' },
-    { key: 'calendar', label: 'Lịch', icon: 'calendar' },
-];
-
 const emailSprintId = computed(() => {
     const fromExpanded = props.sprints.find((s) => expandedSprints.value.has(s.id));
     if (fromExpanded?.id != null) {
@@ -320,22 +310,6 @@ onBeforeUnmount(() => {
             placeholder="Tìm task, sprint, người phụ trách, ID…"
           >
         </div>
-        <div class="flex rounded-lg border border-slate-200 p-0.5 dark:border-slate-600">
-          <button
-            v-for="vm in viewModes"
-            :key="vm.key"
-            type="button"
-            class="rounded-md px-2 py-1 text-xs font-medium transition"
-            :class="viewMode === vm.key ? 'bg-brand text-white' : 'text-slate-500 hover:text-slate-800'"
-            :title="vm.label"
-            @click="viewMode = vm.key"
-          >
-            <AppIcon
-              :name="vm.icon"
-              :size="14"
-            />
-          </button>
-        </div>
         <button
           type="button"
           class="btn-ghost border border-slate-200 text-xs dark:border-slate-600"
@@ -419,7 +393,7 @@ onBeforeUnmount(() => {
     <!-- Main content -->
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
       <EmptyState
-        v-if="viewMode === 'list' && listWorkspaceEmpty"
+        v-if="listWorkspaceEmpty"
         :icon="listSearchEmpty ? 'search' : 'sprint'"
         :title="listSearchEmpty ? 'Không tìm thấy kết quả' : 'Chưa có sprint'"
         :description="listSearchEmpty
@@ -432,7 +406,7 @@ onBeforeUnmount(() => {
       />
 
       <SprintListView
-        v-else-if="viewMode === 'list'"
+        v-else
         :sprints="sprints"
         :all-tasks="tasks"
         :tasks-by-sprint="filteredTasksBySprint"
@@ -453,25 +427,6 @@ onBeforeUnmount(() => {
         @delete-sprint="removeSprint"
         @delete-task="removeTask"
         @reorder-sprints="reorderSprints"
-      />
-
-      <EmptyState
-        v-else-if="calendarEmpty"
-        :icon="calendarSearchEmpty ? 'search' : 'calendar'"
-        :title="calendarSearchEmpty ? 'Không tìm thấy task' : 'Chưa có task trên lịch'"
-        :description="calendarSearchEmpty
-          ? 'Không có task phù hợp từ khóa tìm kiếm.'
-          : (canContribute
-            ? 'Thêm task có hạn (due date) trong tháng hiện tại để xem trên lịch.'
-            : 'Task có hạn trong tháng sẽ hiển thị trên lịch.')"
-        :action="canContribute && !calendarSearchEmpty ? 'Thêm task' : null"
-        @action="openTaskModal()"
-      />
-
-      <SprintCalendarView
-        v-else
-        :tasks="table.filtered.value"
-        @open-task="openTask"
       />
     </div>
 

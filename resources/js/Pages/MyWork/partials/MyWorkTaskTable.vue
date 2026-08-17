@@ -18,7 +18,7 @@ const emit = defineEmits(['sort', 'change-status', 'log-work', 'open']);
 
 const SORTABLE = new Set([
     'title', 'project', 'status', 'priority', 'due_date', 'progress',
-    'logged_today', 'estimate', 'sprint', 'phase', 'source', 'start_date',
+    'logged_today', 'estimate', 'phase', 'source', 'start_date',
     'story_points', 'actual_hours', 'milestone', 'sla', 'epic', 'parent',
     'assignee', 'reporter', 'reviewer',
 ]);
@@ -116,14 +116,6 @@ function headerClass(key) {
             @click="onSort('estimate')"
           >
             Dự kiến{{ sortMark('estimate') }}
-          </th>
-          <th
-            v-if="showCol('sprint')"
-            class="min-w-[8rem] px-3 py-2.5 sm:px-4"
-            :class="headerClass('sprint')"
-            @click="onSort('sprint')"
-          >
-            Sprint{{ sortMark('sprint') }}
           </th>
           <th
             v-if="showCol('phase')"

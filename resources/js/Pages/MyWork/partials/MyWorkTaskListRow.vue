@@ -246,13 +246,6 @@ function onRowKeydown(e) {
     </td>
 
     <td
-      v-if="isColVisible('sprint')"
-      class="min-w-[8rem] max-w-[12rem] px-3 py-2.5 align-middle text-xs text-slate-600 sm:px-4"
-    >
-      <span class="line-clamp-2">{{ displayOrEmpty(task.sprint?.name ?? task.phase?.label, EMPTY_LABELS.notUpdated) }}</span>
-    </td>
-
-    <td
       v-if="isColVisible('phase')"
       class="min-w-[7rem] px-3 py-2.5 align-middle sm:px-4"
     >

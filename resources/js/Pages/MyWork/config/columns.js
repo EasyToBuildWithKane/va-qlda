@@ -7,7 +7,6 @@ export const MY_WORK_TABLE_COLUMNS = [
     { key: 'progress', label: 'Tiến độ' },
     { key: 'logged_today', label: 'Giờ hôm nay' },
     { key: 'estimate', label: 'Dự kiến' },
-    { key: 'sprint', label: 'Sprint' },
     { key: 'phase', label: 'Giai đoạn', default: false },
     { key: 'source', label: 'Nguồn', default: false },
     { key: 'start_date', label: 'Ngày bắt đầu', default: false },

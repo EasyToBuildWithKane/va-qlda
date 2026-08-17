@@ -38,11 +38,59 @@ class ProjectAttachmentController extends Controller
             abort(404);
         }
 
-        return Storage::disk('public')->response(
+        $disk = Storage::disk('public');
+
+        // `?download=1` ép tải xuống; mặc định `inline` để iframe (PDF/ảnh) hiển thị
+        // được thay vì bị trình duyệt tải về.
+        //
+        // CHỈ inline những định dạng không thực thi được. SVG/HTML tải lên mà
+        // trả inline sẽ chạy <script> ngay trên origin của app (stored XSS,
+        // đánh cắp session) — bắt buộc ép tải xuống.
+        $disposition = ($request->boolean('download') || ! self::isInlineSafe($attachment))
+            ? 'attachment'
+            : 'inline';
+
+        return $disk->response(
             $attachment->path,
             $attachment->original_name,
-            ['Content-Type' => $attachment->mime_type ?? 'application/octet-stream'],
+            [
+                'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
+                'Content-Length' => (string) $disk->size($attachment->path),
+                // Chặn trình duyệt tự đoán MIME khác với header (XSS qua file upload).
+                'X-Content-Type-Options' => 'nosniff',
+                // File đã thay đổi thì URL không đổi, nên phải revalidate mỗi lần.
+                'Cache-Control' => 'private, no-cache, must-revalidate',
+            ],
+            $disposition,
         );
+    }
+
+    /**
+     * Định dạng an toàn để hiển thị trực tiếp trong iframe/ảnh.
+     * Loại trừ SVG, HTML và mọi thứ có thể chứa script.
+     */
+    private static function isInlineSafe(ProjectAttachment $attachment): bool
+    {
+        $ext = strtolower((string) pathinfo($attachment->original_name, PATHINFO_EXTENSION));
+        $mime = strtolower((string) $attachment->mime_type);
+
+        // SVG mang được <script>; HTML thì hiển nhiên.
+        $blockedExts = ['svg', 'svgz', 'html', 'htm', 'xhtml', 'xml', 'mhtml'];
+        if (in_array($ext, $blockedExts, true)) {
+            return false;
+        }
+        if (str_contains($mime, 'svg') || str_contains($mime, 'html') || str_contains($mime, 'xml')) {
+            return false;
+        }
+
+        // Chỉ ảnh raster + PDF cần hiển thị trực tiếp; DOCX/XLSX được đọc qua
+        // fetch() nên disposition không ảnh hưởng.
+        $inlineExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp', 'avif', 'pdf'];
+
+        // Mime `image/*` còn lại chắc chắn không phải SVG — đã loại ở trên.
+        return in_array($ext, $inlineExts, true)
+            || $mime === 'application/pdf'
+            || str_starts_with($mime, 'image/');
     }
 
     public function store(StoreProjectAttachmentRequest $request, Project $project): RedirectResponse

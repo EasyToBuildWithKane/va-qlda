@@ -2,20 +2,21 @@ import { computed, toValue } from 'vue';
 import { isTaskOverdue } from '@/composables/useTaskTimeliness';
 
 /**
- * Bảng màu lịch theo trạng thái công việc.
+ * Bảng màu lịch theo trạng thái công việc — dùng chung cho KPI chips, event
+ * trên calendar và mọi nơi khác cần thể hiện trạng thái để tránh lệch tông.
  * main: viền + chấm · soft: nền · text: chữ.
  */
 export const CALENDAR_STATUS_PALETTE = {
-    todo: { main: '#64748b', soft: '#f1f5f9', text: '#334155' },
-    in_progress: { main: '#0ea5e9', soft: '#e0f2fe', text: '#075985' },
-    in_review: { main: '#f59e0b', soft: '#fef3c7', text: '#92400e' },
-    done: { main: '#10b981', soft: '#d1fae5', text: '#065f46' },
-    blocked: { main: '#ef4444', soft: '#fee2e2', text: '#991b1b' },
-    on_hold: { main: '#a855f7', soft: '#f3e8ff', text: '#6b21a8' },
+    todo: { main: '#64748b', soft: '#f1f5f9', text: '#475569' },
+    in_progress: { main: '#0284c7', soft: '#e0f2fe', text: '#075985' },
+    in_review: { main: '#d97706', soft: '#fef3c7', text: '#92400e' },
+    done: { main: '#059669', soft: '#d1fae5', text: '#065f46' },
+    blocked: { main: '#e11d48', soft: '#ffe4e6', text: '#9f1239' },
+    on_hold: { main: '#7c3aed', soft: '#ede9fe', text: '#5b21b6' },
 };
 
-const FALLBACK_PALETTE = { main: '#64748b', soft: '#f1f5f9', text: '#334155' };
-export const MILESTONE_PALETTE = { main: '#7c3aed', soft: '#ede9fe', text: '#5b21b6' };
+const FALLBACK_PALETTE = { main: '#64748b', soft: '#f1f5f9', text: '#475569' };
+export const MILESTONE_PALETTE = { main: '#9a0036', soft: '#fdf2f6', text: '#9a0036' };
 
 const parseDate = (x) => (x ? new Date(`${x}T00:00:00`) : null);
 
