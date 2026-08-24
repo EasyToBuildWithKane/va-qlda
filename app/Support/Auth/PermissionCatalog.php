@@ -110,6 +110,7 @@ final class PermissionCatalog
             // ── Tổ chức & Nhân sự ────────────────────────────────────
             'department' => ['label' => 'Phòng ban', 'icon' => 'department', 'group' => 'Tổ chức', 'abilities' => [
                 'create' => 'Tạo', 'update' => 'Sửa', 'delete' => 'Xóa',
+                'view_scope' => 'Xem toàn bộ dữ liệu phòng ban',
             ]],
             'employee' => ['label' => 'Hồ sơ nhân sự', 'icon' => 'members', 'group' => 'Tổ chức', 'abilities' => [
                 'update' => 'Sửa hồ sơ (mọi người)',
@@ -220,6 +221,38 @@ final class PermissionCatalog
     }
 
     /**
+     * Default grant set shared identically by manager / deputy_manager /
+     * team_leader (the three managerial roles are intentionally undifferentiated
+     * — same grants as the historical `lead` role, plus department-wide view scope).
+     *
+     * @return array<int, string>
+     */
+    private static function managerialKeys(): array
+    {
+        return [
+            'project.view', 'project.create', 'project.update', 'project.manage', 'project.contribute',
+            'blocker.create', 'blocker.update', 'blocker.delete', 'blocker.comment',
+            'testcase.view', 'testcase.create', 'testcase.update', 'testcase.delete', 'testcase.execute',
+            'daily_report.view', 'daily_report.create', 'daily_report.review',
+            'routine_task.view',
+            'feedback.create', 'feedback.update',
+            'weekly_report.view', 'weekly_report.generate', 'weekly_report.update', 'weekly_report.export',
+            'my_work.view_team', 'my_work.act_team',
+            'contract.view', 'contract.create', 'contract.update', 'contract.delete', 'contract.manage', 'contract.import', 'contract.export',
+            'vendor.view', 'vendor.create', 'vendor.update', 'vendor.delete',
+            'ai_account.create', 'ai_account.update', 'ai_account.delete', 'ai_account.renew',
+            'ai_account.view_password', 'ai_account.share', 'ai_account.manage_access',
+            'ai_account.trigger_reminder',
+            'credential.create',
+            'department.create', 'department.update', 'department.view_scope',
+            'kb.create', 'kb.update', 'kb.delete', 'kb.publish',
+            'congnghe.manage_proposals',
+            'performance.view',
+            'workspace.hub.view',
+        ];
+    }
+
+    /**
      * Default role → permission grants. Mirrors the historical policy behaviour
      * so enabling the matrix causes no regression; super_admin is unconditional.
      *
@@ -234,27 +267,9 @@ final class PermissionCatalog
         return [
             'super_admin' => ['*'],
             'admin' => self::adminKeys(),
-            'lead' => [
-                'project.view', 'project.create', 'project.update', 'project.manage', 'project.contribute',
-                'blocker.create', 'blocker.update', 'blocker.delete', 'blocker.comment',
-                'testcase.view', 'testcase.create', 'testcase.update', 'testcase.delete', 'testcase.execute',
-                'daily_report.view', 'daily_report.create', 'daily_report.review',
-                'routine_task.view',
-                'feedback.create', 'feedback.update',
-                'weekly_report.view', 'weekly_report.generate', 'weekly_report.update', 'weekly_report.export',
-                'my_work.view_team', 'my_work.act_team',
-                'contract.view', 'contract.create', 'contract.update', 'contract.delete', 'contract.manage', 'contract.import', 'contract.export',
-                'vendor.view', 'vendor.create', 'vendor.update', 'vendor.delete',
-                'ai_account.create', 'ai_account.update', 'ai_account.delete', 'ai_account.renew',
-                'ai_account.view_password', 'ai_account.share', 'ai_account.manage_access',
-                'ai_account.trigger_reminder',
-                'credential.create',
-                'department.create', 'department.update',
-                'kb.create', 'kb.update', 'kb.delete', 'kb.publish',
-                'congnghe.manage_proposals',
-                'performance.view',
-                'workspace.hub.view',
-            ],
+            'manager' => self::managerialKeys(),
+            'deputy_manager' => self::managerialKeys(),
+            'team_leader' => self::managerialKeys(),
             'member' => [
                 'daily_report.create',
                 'blocker.create', 'blocker.comment',

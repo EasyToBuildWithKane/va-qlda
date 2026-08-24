@@ -19,7 +19,7 @@ class DailyReportReviewQueueTest extends TestCase
 
     private function lead(): SystemAccount
     {
-        return SystemAccount::factory()->role(SystemRole::Lead)->create();
+        return SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
     }
 
     public function test_review_filters_queue_today_on_server(): void

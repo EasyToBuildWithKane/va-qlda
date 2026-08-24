@@ -33,7 +33,7 @@ final class SettingsSchema
     public const MATRIX_KEY = 'permissions.role_grants';
 
     /** Roles the super admin may edit in the matrix — "super_admin" stays full-access. */
-    public const EDITABLE_ROLES = ['admin', 'lead', 'member', 'viewer'];
+    public const EDITABLE_ROLES = ['admin', 'manager', 'deputy_manager', 'team_leader', 'member', 'viewer'];
 
     public const LOCKED_ROLE = 'super_admin';
 

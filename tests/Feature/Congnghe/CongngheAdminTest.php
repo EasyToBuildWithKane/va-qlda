@@ -33,7 +33,7 @@ class CongngheAdminTest extends TestCase
     public static function nonAdminRoles(): array
     {
         return [
-            'lead' => [SystemRole::Lead],
+            'team_leader' => [SystemRole::TeamLeader],
             'member' => [SystemRole::Member],
             'viewer' => [SystemRole::Viewer],
         ];

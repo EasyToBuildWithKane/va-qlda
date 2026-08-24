@@ -26,22 +26,22 @@ class PermissionMatrixTest extends TestCase
 
     public function test_matrix_grant_controls_delete_ability(): void
     {
-        $lead = $this->account(SystemRole::Lead);
+        $lead = $this->account(SystemRole::TeamLeader);
         $contract = new Contract;
 
-        // Grant contract.delete to lead → policy allows.
-        config(['va_permissions.role_grants' => ['lead' => ['contract.delete']]]);
+        // Grant contract.delete to team_leader → policy allows.
+        config(['va_permissions.role_grants' => ['team_leader' => ['contract.delete']]]);
         $this->assertTrue(Gate::forUser($lead)->allows('delete', $contract));
 
         // Revoke it → policy denies.
-        config(['va_permissions.role_grants' => ['lead' => []]]);
+        config(['va_permissions.role_grants' => ['team_leader' => []]]);
         $this->assertFalse(Gate::forUser($lead)->allows('delete', $contract));
     }
 
     public function test_module_wildcard_grants_every_ability(): void
     {
-        $lead = $this->account(SystemRole::Lead);
-        config(['va_permissions.role_grants' => ['lead' => ['department.*']]]);
+        $lead = $this->account(SystemRole::TeamLeader);
+        config(['va_permissions.role_grants' => ['team_leader' => ['department.*']]]);
 
         $this->assertTrue(Gate::forUser($lead)->allows('create', Department::class));
         $this->assertTrue(Gate::forUser($lead)->allows('delete', new Department));

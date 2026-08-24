@@ -29,6 +29,11 @@ class ProjectTest extends TestCase
         return SystemAccount::factory()->role(SystemRole::Member)->create();
     }
 
+    private function teamLeader(): SystemAccount
+    {
+        return SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
+    }
+
     private function viewer(): SystemAccount
     {
         return SystemAccount::factory()->role(SystemRole::Viewer)->create();
@@ -177,7 +182,7 @@ class ProjectTest extends TestCase
         $this->assertEqualsCanonicalizing([$partner->id, $other->id], $project->relatedDepartmentIds());
     }
 
-    public function test_member_in_related_department_can_view_project(): void
+    public function test_team_leader_in_related_department_can_view_project(): void
     {
         $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
         $partner = $this->makeDepartment('HV', 'Phòng Học vụ');
@@ -188,10 +193,10 @@ class ProjectTest extends TestCase
             'scope_departments' => [$partner->id],
         ]);
 
-        $relatedAccount = $this->member();
+        $relatedAccount = $this->teamLeader();
         $partner->members()->attach($relatedAccount->employee_id, ['is_active' => true]);
 
-        $outsiderAccount = $this->member();
+        $outsiderAccount = $this->teamLeader();
         $outsider->members()->attach($outsiderAccount->employee_id, ['is_active' => true]);
 
         $this->actingAs($relatedAccount, 'system')
@@ -213,8 +218,55 @@ class ProjectTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_owner_department_member_can_view_without_being_project_member(): void
+    public function test_member_in_related_department_cannot_view_project(): void
     {
+        // Option A (2026-08-24): member/viewer no longer inherit department-wide
+        // audience visibility — only department.view_scope holders (manager/
+        // deputy_manager/team_leader/admin) do. A plain member in the partner
+        // department, with no manager/member relationship to the project, sees
+        // nothing — this closes what was previously unintended over-exposure.
+        $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
+        $partner = $this->makeDepartment('HV', 'Phòng Học vụ');
+
+        $project = Project::factory()->create([
+            'department_id' => $owner->id,
+            'scope_departments' => [$partner->id],
+        ]);
+
+        $relatedAccount = $this->member();
+        $partner->members()->attach($relatedAccount->employee_id, ['is_active' => true]);
+
+        $this->actingAs($relatedAccount, 'system')
+            ->get('/projects')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->where('projects.meta.total', 0));
+
+        $this->actingAs($relatedAccount, 'system')
+            ->get("/projects/{$project->id}")
+            ->assertForbidden();
+    }
+
+    public function test_owner_department_team_leader_can_view_without_being_project_member(): void
+    {
+        $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
+        $project = Project::factory()->create([
+            'department_id' => $owner->id,
+            'scope_departments' => [],
+        ]);
+
+        $account = $this->teamLeader();
+        $owner->members()->attach($account->employee_id, ['is_active' => true]);
+
+        $this->actingAs($account, 'system')
+            ->get("/projects/{$project->id}")
+            ->assertOk();
+    }
+
+    public function test_owner_department_member_cannot_view_without_being_project_member(): void
+    {
+        // Option A: same department but not a manager/member of the project —
+        // a plain member no longer gets department-wide visibility (unchanged
+        // for team_leader/manager/deputy_manager/admin, see test above).
         $owner = $this->makeDepartment('PCN', 'Phòng Công nghệ');
         $project = Project::factory()->create([
             'department_id' => $owner->id,
@@ -226,7 +278,7 @@ class ProjectTest extends TestCase
 
         $this->actingAs($account, 'system')
             ->get("/projects/{$project->id}")
-            ->assertOk();
+            ->assertForbidden();
     }
 
     public function test_member_cannot_create_project(): void

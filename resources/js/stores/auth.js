@@ -13,12 +13,13 @@ export const useAuthStore = defineStore('auth', () => {
     const isSuperAdmin = computed(() => role.value === 'super_admin');
     // Admin-tier = super_admin or admin (super is a superset of admin).
     const isAdmin = computed(() => role.value === 'admin' || role.value === 'super_admin');
-    const isLead = computed(() => role.value === 'lead');
+    // Managerial tier = manager/deputy_manager/team_leader (kế thừa "lead" cũ, không phân biệt lẫn nhau).
+    const isManagerTier = computed(() => ['manager', 'deputy_manager', 'team_leader'].includes(role.value));
     const isMember = computed(() => role.value === 'member');
     const isViewer = computed(() => role.value === 'viewer');
 
     const isAtLeast = (minRole) => {
-        const hierarchy = ['viewer', 'member', 'lead', 'admin', 'super_admin'];
+        const hierarchy = ['viewer', 'member', 'team_leader', 'deputy_manager', 'manager', 'admin', 'super_admin'];
         return hierarchy.indexOf(role.value) >= hierarchy.indexOf(minRole);
     };
 
@@ -29,7 +30,7 @@ export const useAuthStore = defineStore('auth', () => {
         displayName,
         isSuperAdmin,
         isAdmin,
-        isLead,
+        isManagerTier,
         isMember,
         isViewer,
         isAtLeast,

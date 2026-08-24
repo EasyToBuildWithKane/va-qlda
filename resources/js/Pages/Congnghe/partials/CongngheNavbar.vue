@@ -40,7 +40,9 @@ const userRole = computed(() => {
     const role = authUser.value?.role;
     if (role === 'super_admin') return 'Super Admin';
     if (role === 'admin') return 'Quản trị';
-    if (role === 'lead') return 'Trưởng nhóm';
+    if (role === 'manager') return 'Trưởng phòng';
+    if (role === 'deputy_manager') return 'Phó phòng';
+    if (role === 'team_leader') return 'Trưởng nhóm';
     if (role === 'member') return 'Thành viên';
     if (role === 'viewer') return 'Xem';
     return role ?? '';

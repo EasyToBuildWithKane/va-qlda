@@ -33,7 +33,7 @@ class HubDashboardController extends Controller
         $account = Auth::guard('system')->user();
 
         $isAdminTier = $account->isAdminTier();
-        $isLeadTier = $account->isLeadTier();
+        $isLeadTier = $account->isManagerTier();
         $isMemberTier = $account->isMemberTier();
         $isSuper = $account->isSuperAdmin();
 

@@ -11,7 +11,7 @@ export function useSmartContext(context, role) {
         const r = role.value;
 
         // Quản lý mới: chưa có gì → dẫn tạo dự án đầu tiên.
-        if (!c.hasProject && (r === 'super_admin' || r === 'admin' || r === 'lead')) {
+        if (!c.hasProject && (r === 'super_admin' || r === 'admin' || r === 'manager' || r === 'deputy_manager' || r === 'team_leader')) {
             return {
                 key: 'create_project',
                 icon: 'projects',
@@ -20,7 +20,7 @@ export function useSmartContext(context, role) {
                 action: { label: 'Tạo dự án', href: '/projects/create' },
             };
         }
-        if (c.hasProject && !c.hasSprint && (r === 'super_admin' || r === 'admin' || r === 'lead')) {
+        if (c.hasProject && !c.hasSprint && (r === 'super_admin' || r === 'admin' || r === 'manager' || r === 'deputy_manager' || r === 'team_leader')) {
             return {
                 key: 'create_sprint',
                 icon: 'sprint',
@@ -38,7 +38,7 @@ export function useSmartContext(context, role) {
                 action: { label: 'Mở dự án', href: '/projects' },
             };
         }
-        if (!c.hasTeamMembers && (r === 'super_admin' || r === 'admin' || r === 'lead')) {
+        if (!c.hasTeamMembers && (r === 'super_admin' || r === 'admin' || r === 'manager' || r === 'deputy_manager' || r === 'team_leader')) {
             return {
                 key: 'add_members',
                 icon: 'members',

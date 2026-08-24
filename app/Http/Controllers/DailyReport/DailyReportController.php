@@ -19,6 +19,7 @@ use App\Models\SystemAccount;
 use App\Support\DailyReportCalendar;
 use App\Support\DailyReportFieldContent;
 use App\Support\DailyReportTimeline;
+use App\Support\Department\DepartmentScope;
 use App\Support\Enums\Grade;
 use App\Support\Enums\ReportStatus;
 use App\Support\Enums\SystemRole;
@@ -47,6 +48,9 @@ class DailyReportController extends Controller
 
         $account = $request->user();
         $isMember = $account->role === SystemRole::Member;
+        $deptEmployeeIds = $this->isDepartmentScoped($account)
+            ? DepartmentScope::employeeIdsInOwnDepartment($account)
+            : null;
 
         $query = $this->historyReportsQuery($request, $account);
 
@@ -59,6 +63,13 @@ class DailyReportController extends Controller
 
         $reports = $query->paginate($perPage)->withQueryString();
 
+        $employees = $isMember ? collect() : Options::employees();
+        if ($deptEmployeeIds !== null && $deptEmployeeIds !== []) {
+            // Chưa xác định được phòng ban thì giữ nguyên danh sách đầy đủ
+            // (đồng bộ với fallback mở trong historyReportsQuery()).
+            $employees = $employees->filter(fn ($e) => in_array($e['id'], $deptEmployeeIds, true))->values();
+        }
+
         return Inertia::render('DailyReport/History', [
             'reports' => DailyReportResource::collection($reports),
             'summary' => $summary,
@@ -70,7 +81,7 @@ class DailyReportController extends Controller
             'grades' => collect(Grade::cases())
                 ->map(fn (Grade $g) => ['value' => $g->value, 'label' => $g->label()]),
             'projects' => Options::projects(),
-            'employees' => $isMember ? [] : Options::employees(),
+            'employees' => $employees,
             'canFilterEmployee' => ! $isMember,
             'canReview' => $account->allows('daily_report.review'),
         ]);
@@ -107,6 +118,9 @@ class DailyReportController extends Controller
     private function historyReportsQuery(Request $request, SystemAccount $account, bool $withDates = true): Builder
     {
         $isMember = $account->role === SystemRole::Member;
+        $deptEmployeeIds = $this->isDepartmentScoped($account)
+            ? DepartmentScope::employeeIdsInOwnDepartment($account)
+            : null;
 
         $query = DailyReport::query()
             ->with(['employee', 'score'])
@@ -121,6 +135,18 @@ class DailyReportController extends Controller
             } else {
                 $query->where('employee_id', $account->employee_id);
             }
+        } elseif ($deptEmployeeIds !== null && $deptEmployeeIds !== []) {
+            // manager/deputy_manager/team_leader: mặc định thấy cả phòng ban,
+            // vẫn được thu hẹp bằng employee_id/employee_ids nhưng chỉ trong
+            // phạm vi phòng ban của chính họ (không thể "chọn" phòng ban khác
+            // qua query param). Nếu chưa xác định được phòng ban (chưa có dữ
+            // liệu HRM/pivot) thì rơi về hành vi mở như trước — tránh khoá
+            // trắng một tài khoản chỉ vì thiếu dữ liệu đồng bộ.
+            $requested = $this->employeeIdFilter($request);
+            $scoped = $requested !== []
+                ? array_values(array_intersect($requested, $deptEmployeeIds))
+                : $deptEmployeeIds;
+            $query->whereIn('employee_id', $scoped === [] ? [0] : $scoped);
         } elseif ($employeeIds = $this->employeeIdFilter($request)) {
             $query->whereIn('employee_id', $employeeIds);
         }
@@ -160,6 +186,19 @@ class DailyReportController extends Controller
         }
 
         return $query;
+    }
+
+    /**
+     * manager/deputy_manager/team_leader mặc định bị giới hạn xem báo cáo
+     * trong phòng ban của mình; admin-tier và viewer giữ nguyên hành vi mở
+     * (không giới hạn) như trước — xem Section 5 kế hoạch cho lý do.
+     */
+    private function isDepartmentScoped(SystemAccount $account): bool
+    {
+        return $account->role !== SystemRole::Member
+            && $account->role !== SystemRole::Viewer
+            && ! $account->isAdminTier()
+            && $account->allows('department.view_scope');
     }
 
     /**

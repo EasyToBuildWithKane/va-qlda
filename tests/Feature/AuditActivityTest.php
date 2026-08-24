@@ -21,7 +21,7 @@ class AuditActivityTest extends TestCase
 
     public function test_project_activity_logger_and_feed_include_task_events(): void
     {
-        $account = SystemAccount::factory()->role(SystemRole::Lead)->create();
+        $account = SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
         $project = Project::factory()->create();
         $task = Task::create([
             'project_id' => $project->id,
@@ -95,7 +95,7 @@ class AuditActivityTest extends TestCase
         $target = SystemAccount::factory()->role(SystemRole::Member)->create();
 
         $this->actingAs($super, 'system')
-            ->put("/settings/accounts/{$target->id}/role", ['role' => SystemRole::Lead->value])
+            ->put("/settings/accounts/{$target->id}/role", ['role' => SystemRole::TeamLeader->value])
             ->assertRedirect();
 
         $this->assertDatabaseHas('security_audit_logs', [

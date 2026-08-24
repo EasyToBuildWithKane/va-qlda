@@ -248,7 +248,7 @@ class CongngheTest extends TestCase
 
     public function test_lead_can_view_proposals_index(): void
     {
-        $account = SystemAccount::factory()->role(SystemRole::Lead)->create();
+        $account = SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
 
         $this->actingAs($account, 'system')
             ->get(route('congnghe.proposals.index'))
@@ -361,7 +361,7 @@ class CongngheTest extends TestCase
         Mail::fake();
         $dept = $this->createActiveDepartment();
         $member = SystemAccount::factory()->role(SystemRole::Member)->create();
-        $lead = SystemAccount::factory()->role(SystemRole::Lead)->create();
+        $lead = SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
 
         $this->actingAs($member, 'system')
             ->post('/congnghe/de-xuat', [

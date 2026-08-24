@@ -25,7 +25,7 @@ class BootstrapAdminRolesTest extends TestCase
             'va_permissions.role_grants' => [
                 'super_admin' => ['*'],
                 'admin' => ['contract.manage', 'project.create'],
-                'lead' => ['project.manage', 'contract.*'],
+                'team_leader' => ['project.manage', 'contract.*'],
                 'member' => ['daily_report.submit'],
             ],
         ]);
@@ -41,9 +41,9 @@ class BootstrapAdminRolesTest extends TestCase
     public function test_role_allows_respects_module_wildcard(): void
     {
         // 'contract.*' grants every contract ability …
-        $this->assertTrue(Permissions::roleAllows(SystemRole::Lead, 'contract.delete'));
+        $this->assertTrue(Permissions::roleAllows(SystemRole::TeamLeader, 'contract.delete'));
         // … but does not leak into other modules.
-        $this->assertFalse(Permissions::roleAllows(SystemRole::Lead, 'vendor.delete'));
+        $this->assertFalse(Permissions::roleAllows(SystemRole::TeamLeader, 'vendor.delete'));
         // Exact grant only matches itself.
         $this->assertTrue(Permissions::roleAllows(SystemRole::Admin, 'project.create'));
         $this->assertFalse(Permissions::roleAllows(SystemRole::Admin, 'project.delete'));

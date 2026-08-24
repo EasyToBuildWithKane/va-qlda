@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Domain\DailyReport\Models\DailyReport;
 use App\Domain\DailyReport\Models\DailyReportScore;
 use App\Http\Resources\DailyReportResource;
+use App\Models\Department;
+use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
 use App\Support\DailyReportCalendar;
@@ -27,7 +29,7 @@ class DailyReportTest extends TestCase
 
     private function lead(): SystemAccount
     {
-        return SystemAccount::factory()->role(SystemRole::Lead)->create();
+        return SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
     }
 
     public function test_projects_json_syncs_legacy_project_id(): void
@@ -398,6 +400,33 @@ class DailyReportTest extends TestCase
             ->assertInertia(fn ($page) => $page
                 ->component('DailyReport/History')
                 ->has('reports.data', 2));
+    }
+
+    public function test_team_leader_with_resolvable_department_defaults_to_department_scope(): void
+    {
+        $dept = Department::query()->create([
+            'code' => 'PCN', 'name' => 'Phòng Công nghệ', 'color' => 'brand', 'sort_order' => 1, 'is_active' => true,
+        ]);
+        $leadEmployee = Employee::factory()->create(['meta' => ['department_code' => 'PCN']]);
+        $lead = SystemAccount::factory()->role(SystemRole::TeamLeader)->forEmployee($leadEmployee)->create();
+
+        $inDept = Employee::factory()->create(['is_active' => true, 'meta' => ['department_code' => 'PCN']]);
+        $outsider = Employee::factory()->create(['is_active' => true, 'meta' => ['department_code' => 'KT']]);
+
+        DailyReport::factory()->create(['employee_id' => $inDept->id]);
+        DailyReport::factory()->create(['employee_id' => $outsider->id]);
+
+        // No filter → defaults to whole department, not the full roster.
+        $this->actingAs($lead, 'system')
+            ->get(route('daily-reports.index'))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('reports.data', 1));
+
+        // Cannot escape the department via employee_id, even for a real employee.
+        $this->actingAs($lead, 'system')
+            ->get(route('daily-reports.index', ['employee_id' => $outsider->id]))
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page->has('reports.data', 0));
     }
 
     public function test_export_data_returns_full_filtered_set(): void

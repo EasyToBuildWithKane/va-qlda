@@ -81,10 +81,16 @@ class SystemAccount extends Authenticatable
         return $this->hasRole(SystemRole::SuperAdmin, SystemRole::Admin);
     }
 
-    /** super_admin, admin or lead — the supervisory tier. */
-    public function isLeadTier(): bool
+    /** super_admin, admin, manager, deputy_manager or team_leader — the managerial tier. */
+    public function isManagerTier(): bool
     {
-        return $this->hasRole(SystemRole::SuperAdmin, SystemRole::Admin, SystemRole::Lead);
+        return $this->hasRole(
+            SystemRole::SuperAdmin,
+            SystemRole::Admin,
+            SystemRole::Manager,
+            SystemRole::DeputyManager,
+            SystemRole::TeamLeader,
+        );
     }
 
     /** Any contributing role (everyone except viewer). */
@@ -93,7 +99,9 @@ class SystemAccount extends Authenticatable
         return $this->hasRole(
             SystemRole::SuperAdmin,
             SystemRole::Admin,
-            SystemRole::Lead,
+            SystemRole::Manager,
+            SystemRole::DeputyManager,
+            SystemRole::TeamLeader,
             SystemRole::Member,
         );
     }

@@ -138,7 +138,7 @@ class RoutineTaskTest extends TestCase
     {
         $owner = Employee::factory()->create();
         $lead = Employee::factory()->create();
-        $account = $this->accountFor($lead, SystemRole::Lead);
+        $account = $this->accountFor($lead, SystemRole::TeamLeader);
 
         RoutineTask::query()->create([
             'employee_id' => $owner->id,

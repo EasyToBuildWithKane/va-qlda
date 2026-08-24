@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
     {
         $people = [
             ['code' => 'EMP-001', 'name' => 'Nguyễn Quản Trị', 'email' => 'admin@vaschools.edu.vn',  'title' => 'Tech Lead',  'username' => 'admin',  'role' => SystemRole::Admin],
-            ['code' => 'EMP-002', 'name' => 'Trần Trưởng Nhóm', 'email' => 'lead@vaschools.edu.vn',   'title' => 'Team Lead',  'username' => 'lead',   'role' => SystemRole::Lead],
+            ['code' => 'EMP-002', 'name' => 'Trần Trưởng Nhóm', 'email' => 'lead@vaschools.edu.vn',   'title' => 'Team Lead',  'username' => 'lead',   'role' => SystemRole::TeamLeader],
             ['code' => 'EMP-003', 'name' => 'Lê Lập Trình',     'email' => 'member@vaschools.edu.vn', 'title' => 'Developer',  'username' => 'member', 'role' => SystemRole::Member],
             ['code' => 'EMP-004', 'name' => 'Phạm Giám Đốc',    'email' => 'viewer@vaschools.edu.vn', 'title' => 'Board',      'username' => 'viewer', 'role' => SystemRole::Viewer],
         ];

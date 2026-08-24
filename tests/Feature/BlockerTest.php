@@ -26,7 +26,7 @@ class BlockerTest extends TestCase
 
     private function lead(): SystemAccount
     {
-        return SystemAccount::factory()->role(SystemRole::Lead)->create();
+        return SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
     }
 
     private function member(): SystemAccount

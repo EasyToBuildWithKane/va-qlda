@@ -1,7 +1,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-const HIERARCHY = ['viewer', 'member', 'lead', 'admin', 'super_admin'];
+const HIERARCHY = ['viewer', 'member', 'team_leader', 'deputy_manager', 'manager', 'admin', 'super_admin'];
 
 export function usePermission() {
     const page = usePage();
@@ -43,9 +43,9 @@ export function usePermission() {
         const defaults = {
             view: isAtLeast('viewer'),
             create: isAtLeast('member'),
-            update: isAtLeast('lead'),
+            update: isAtLeast('team_leader'),
             delete: isAtLeast('admin'),
-            manage: isAtLeast('lead'),
+            manage: isAtLeast('team_leader'),
             contribute: isAtLeast('member'),
         };
 

@@ -208,7 +208,7 @@ class DailyReportTaskSyncTest extends TestCase
         Carbon::setTestNow(Carbon::parse('2026-06-12 16:00:00'));
 
         $member = SystemAccount::factory()->role(SystemRole::Member)->create();
-        $lead = SystemAccount::factory()->role(SystemRole::Lead)->create();
+        $lead = SystemAccount::factory()->role(SystemRole::TeamLeader)->create();
         $project = Project::factory()->create();
 
         $report = DailyReport::factory()->submitted()->create([

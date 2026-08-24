@@ -112,7 +112,7 @@ class MyWorkTest extends TestCase
     {
         $leadEmp = Employee::factory()->create();
         $memberEmp = Employee::factory()->create();
-        $lead = $this->accountFor($leadEmp, SystemRole::Lead);
+        $lead = $this->accountFor($leadEmp, SystemRole::TeamLeader);
         $this->addTeamMember($this->ledTeam($leadEmp), $memberEmp);
 
         $this->actingAs($lead, 'system')
@@ -128,7 +128,7 @@ class MyWorkTest extends TestCase
     {
         $leadEmp = Employee::factory()->create();
         $stranger = Employee::factory()->create();
-        $lead = $this->accountFor($leadEmp, SystemRole::Lead);
+        $lead = $this->accountFor($leadEmp, SystemRole::TeamLeader);
         $this->ledTeam($leadEmp); // nhóm rỗng
 
         $this->actingAs($lead, 'system')
@@ -140,7 +140,7 @@ class MyWorkTest extends TestCase
     {
         $leadEmp = Employee::factory()->create();
         $memberEmp = Employee::factory()->create(['full_name' => 'Thành Viên A']);
-        $lead = $this->accountFor($leadEmp, SystemRole::Lead);
+        $lead = $this->accountFor($leadEmp, SystemRole::TeamLeader);
         $this->addTeamMember($this->ledTeam($leadEmp), $memberEmp);
 
         $this->actingAs($lead, 'system')
@@ -168,11 +168,11 @@ class MyWorkTest extends TestCase
     public function test_lead_with_act_team_can_change_team_member_status_without_project_membership(): void
     {
         // Bỏ project.contribute khỏi lead để cô lập nhánh act_team.
-        config(['va_permissions.role_grants.lead' => ['my_work.view_team', 'my_work.act_team']]);
+        config(['va_permissions.role_grants.team_leader' => ['my_work.view_team', 'my_work.act_team']]);
 
         $leadEmp = Employee::factory()->create();
         $memberEmp = Employee::factory()->create();
-        $lead = $this->accountFor($leadEmp, SystemRole::Lead);
+        $lead = $this->accountFor($leadEmp, SystemRole::TeamLeader);
         $this->addTeamMember($this->ledTeam($leadEmp), $memberEmp);
 
         $project = Project::factory()->create(); // lead KHÔNG phải thành viên/quản lý
@@ -188,11 +188,11 @@ class MyWorkTest extends TestCase
 
     public function test_lead_without_contribute_cannot_change_non_team_member_status(): void
     {
-        config(['va_permissions.role_grants.lead' => ['my_work.view_team', 'my_work.act_team']]);
+        config(['va_permissions.role_grants.team_leader' => ['my_work.view_team', 'my_work.act_team']]);
 
         $leadEmp = Employee::factory()->create();
         $stranger = Employee::factory()->create();
-        $lead = $this->accountFor($leadEmp, SystemRole::Lead);
+        $lead = $this->accountFor($leadEmp, SystemRole::TeamLeader);
         $this->ledTeam($leadEmp); // nhóm rỗng
 
         $project = Project::factory()->create();

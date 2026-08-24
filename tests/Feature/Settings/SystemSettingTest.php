@@ -54,7 +54,7 @@ class SystemSettingTest extends TestCase
     public function test_admin_and_below_cannot_view_settings(): void
     {
         // System configuration is now super-admin only — admin loses access too.
-        foreach ([SystemRole::Admin, SystemRole::Lead, SystemRole::Member, SystemRole::Viewer] as $role) {
+        foreach ([SystemRole::Admin, SystemRole::TeamLeader, SystemRole::Member, SystemRole::Viewer] as $role) {
             $account = SystemAccount::factory()->role($role)->create();
 
             $this->actingAs($account, 'system')
@@ -129,7 +129,7 @@ class SystemSettingTest extends TestCase
             ->put('/settings/permissions', [
                 'grants' => [
                     'admin' => ['project.create', 'contract.manage'],
-                    'lead' => ['notification.manage', 'project.manage'],
+                    'team_leader' => ['notification.manage', 'project.manage'],
                     'member' => ['daily_report.create'],
                     'viewer' => [],
                     // super_admin intentionally omitted by the client
@@ -139,7 +139,7 @@ class SystemSettingTest extends TestCase
 
         $grants = $this->repo()->get(SettingsSchema::MATRIX_KEY);
 
-        $this->assertContains('notification.manage', $grants['lead']);
+        $this->assertContains('notification.manage', $grants['team_leader']);
         $this->assertContains('contract.manage', $grants['admin']);
         $this->assertSame([], $grants['viewer']);
         $this->assertSame(['*'], $grants['super_admin']); // forced — never lockable
@@ -152,7 +152,7 @@ class SystemSettingTest extends TestCase
                 'grants' => [
                     // Attempt to grant admin the super-admin-only abilities.
                     'admin' => ['project.create', 'system.settings.manage', 'permissions.manage', 'roles.assign'],
-                    'lead' => [],
+                    'team_leader' => [],
                     'member' => [],
                     'viewer' => [],
                 ],
@@ -171,9 +171,9 @@ class SystemSettingTest extends TestCase
     {
         $this->actingAs($this->superAdmin(), 'system')
             ->put('/settings/permissions', [
-                'grants' => ['lead' => ['totally.invalid'], 'member' => [], 'viewer' => []],
+                'grants' => ['team_leader' => ['totally.invalid'], 'member' => [], 'viewer' => []],
             ])
-            ->assertSessionHasErrors('grants.lead.0');
+            ->assertSessionHasErrors('grants.team_leader.0');
     }
 
     // ─── Config overlay (runs at boot — invoke the provider directly) ────────

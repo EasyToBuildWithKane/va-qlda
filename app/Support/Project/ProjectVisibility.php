@@ -6,10 +6,13 @@ use App\Models\Department;
 use App\Models\Employee;
 use App\Models\Project;
 use App\Models\SystemAccount;
+use App\Support\Department\DepartmentScope;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Ai được thấy dự án: admin-tier, chủ/thành viên dự án, hoặc thuộc phòng phụ trách / phòng liên đới.
+ * Ai được thấy dự án: admin-tier, chủ/thành viên dự án, hoặc thuộc phòng phụ trách / phòng liên đới
+ * (phần "phòng liên đới" chỉ áp dụng cho tài khoản giữ quyền `department.view_scope` — xem
+ * {@see DepartmentScope::hasDepartmentWideScope()}).
  */
 final class ProjectVisibility
 {
@@ -18,9 +21,7 @@ final class ProjectVisibility
      */
     public static function departmentIdsForAccount(SystemAccount $account): array
     {
-        $account->loadMissing('employee.departments');
-
-        return self::departmentIdsForEmployee($account->employee);
+        return DepartmentScope::idsForAccount($account);
     }
 
     /**
@@ -28,40 +29,7 @@ final class ProjectVisibility
      */
     public static function departmentIdsForEmployee(?Employee $employee): array
     {
-        if ($employee === null) {
-            return [];
-        }
-
-        $employee->loadMissing('departments');
-
-        $ids = [];
-        foreach ($employee->departments as $department) {
-            $active = $department->pivot?->getAttribute('is_active');
-            if ($active === false || $active === 0 || $active === '0') {
-                continue;
-            }
-            $ids[] = (int) $department->id;
-        }
-
-        $meta = is_array($employee->meta) ? $employee->meta : [];
-        $code = trim((string) ($meta['department_code'] ?? ''));
-        $name = trim((string) ($meta['department_name'] ?? $meta['department'] ?? ''));
-
-        if ($code !== '') {
-            $id = Department::query()->where('code', $code)->value('id');
-            if ($id) {
-                $ids[] = (int) $id;
-            }
-        }
-
-        if ($name !== '') {
-            $id = Department::query()->where('name', $name)->value('id');
-            if ($id) {
-                $ids[] = (int) $id;
-            }
-        }
-
-        return array_values(array_unique($ids));
+        return DepartmentScope::idsForEmployee($employee);
     }
 
     /**
@@ -98,6 +66,10 @@ final class ProjectVisibility
 
     public static function sharesDepartment(SystemAccount $account, Project $project): bool
     {
+        if (! DepartmentScope::hasDepartmentWideScope($account)) {
+            return false;
+        }
+
         $mine = self::departmentIdsForAccount($account);
         if ($mine === []) {
             return false;
@@ -113,7 +85,9 @@ final class ProjectVisibility
         }
 
         $employeeId = $account->employee_id;
-        $deptIds = self::departmentIdsForAccount($account);
+        $deptIds = DepartmentScope::hasDepartmentWideScope($account)
+            ? self::departmentIdsForAccount($account)
+            : [];
 
         $query->where(function (Builder $q) use ($employeeId, $deptIds) {
             $matched = false;

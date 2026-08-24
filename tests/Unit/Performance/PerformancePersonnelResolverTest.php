@@ -113,6 +113,24 @@ class PerformancePersonnelResolverTest extends TestCase
         $this->assertCount(3, $ids);
     }
 
+    public function test_team_leader_defaults_to_own_hrm_department_same_as_former_lead(): void
+    {
+        // Regression for the SystemRole 5->7 rename: department resolution is
+        // role-agnostic (reads HRM meta via WorkspaceScopeResolver), so a
+        // team_leader/manager/deputy_manager account must resolve its default
+        // department exactly like the old "lead" role did — no code change
+        // expected here, only this test.
+        $employee = Employee::factory()->create([
+            'meta' => ['department_code' => 'CNTT', 'department_name' => 'Phòng Công nghệ'],
+        ]);
+        $teamLeader = SystemAccount::factory()->role(SystemRole::TeamLeader)->forEmployee($employee)->create();
+
+        $resolved = app(PerformancePersonnelResolver::class)->resolveDepartment(null, $teamLeader);
+
+        $this->assertSame('CNTT', $resolved['code']);
+        $this->assertFalse($resolved['all']);
+    }
+
     public function test_falls_back_to_tech_department_when_user_has_no_hrm_unit(): void
     {
         $tech = Department::query()->create([

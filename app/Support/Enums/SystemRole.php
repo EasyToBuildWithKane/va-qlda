@@ -8,18 +8,22 @@ namespace App\Support\Enums;
  */
 enum SystemRole: string
 {
-    case SuperAdmin = 'super_admin'; // Cấu hình hệ thống + phân quyền + thao tác nguy hiểm
-    case Admin = 'admin';            // Full nghiệp vụ (không cấu hình/phân quyền)
-    case Lead = 'lead';              // Manages team + reviews reports
-    case Member = 'member';          // Creates reports, sees own projects
-    case Viewer = 'viewer';          // Read-only (e.g. board of directors)
+    case SuperAdmin = 'super_admin';       // Cấu hình hệ thống + phân quyền + thao tác nguy hiểm
+    case Admin = 'admin';                  // Full nghiệp vụ (không cấu hình/phân quyền)
+    case Manager = 'manager';              // Trưởng phòng — quản lý toàn phòng ban
+    case DeputyManager = 'deputy_manager'; // Phó phòng — quản lý toàn phòng ban
+    case TeamLeader = 'team_leader';       // Trưởng nhóm — quản lý toàn phòng ban (kế thừa "Lead" cũ)
+    case Member = 'member';                // Creates reports, sees own projects
+    case Viewer = 'viewer';                // Read-only (e.g. board of directors)
 
     public function label(): string
     {
         return match ($this) {
             self::SuperAdmin => 'Super Admin',
             self::Admin => 'Administrator',
-            self::Lead => 'Team Lead',
+            self::Manager => 'Trưởng phòng',
+            self::DeputyManager => 'Phó phòng',
+            self::TeamLeader => 'Trưởng nhóm',
             self::Member => 'Member',
             self::Viewer => 'Viewer',
         };
@@ -30,7 +34,9 @@ enum SystemRole: string
         return match ($this) {
             self::SuperAdmin => 'fuchsia',
             self::Admin => 'rose',
-            self::Lead => 'violet',
+            self::Manager => 'violet',
+            self::DeputyManager => 'indigo',
+            self::TeamLeader => 'blue',
             self::Member => 'sky',
             self::Viewer => 'slate',
         };
