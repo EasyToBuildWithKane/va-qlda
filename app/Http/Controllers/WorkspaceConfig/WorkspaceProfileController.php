@@ -138,6 +138,8 @@ class WorkspaceProfileController extends Controller
             static fn (array $g): bool => ! ($g['protected'] ?? false),
         ));
 
+        $own = $this->scope->ownDepartment($user);
+
         return Inertia::render('WorkspaceConfig/Workspace/Show', [
             'workspace' => [
                 'department_code' => $dept['code'],
@@ -179,7 +181,8 @@ class WorkspaceProfileController extends Controller
             ],
             'viewer' => [
                 'can_manage' => $this->scope->canManageAll($user),
-                'own_department_code' => $this->scope->ownDepartmentCode($user),
+                'own_department_code' => is_array($own) && filled($own['code'] ?? null) ? (string) $own['code'] : null,
+                'own_department_name' => is_array($own) && filled($own['name'] ?? null) ? (string) $own['name'] : null,
             ],
         ]);
     }

@@ -7,6 +7,7 @@ use App\Services\NotificationService;
 use App\Support\Auth\PortalDestination;
 use App\Support\Enums\BlockerSeverity;
 use App\Support\Enums\BlockerStatus;
+use App\Support\Enums\SystemRole;
 use App\Support\Navigation;
 use App\Support\NavigationBadges;
 use App\Support\Options;
@@ -39,6 +40,23 @@ class HandleInertiaRequests extends Middleware
     {
         $account = $request->user();
 
+        // "Xem giao diện theo vai trò" — chỉ super_admin thật mới bật được, và
+        // chỉ đổi những gì hiển thị (auth.user, nav) qua $displayAccount bên
+        // dưới. $account (thật) vẫn dùng nguyên cho mọi authorization khác
+        // (portal, quickBlocker Gate::forUser, v.v.) nên không có privilege nào
+        // thực sự thay đổi khi đang xem thử.
+        $viewAsRole = null;
+        if ($account?->isSuperAdmin() && $request->session()->has('view_as.role')) {
+            $viewAsRole = SystemRole::tryFrom((string) $request->session()->get('view_as.role'));
+        }
+        $displayAccount = $viewAsRole ? $account->asRole($viewAsRole) : $account;
+
+        $viewAsRoleOptions = collect(SystemRole::cases())
+            ->reject(fn (SystemRole $r) => $r === SystemRole::SuperAdmin)
+            ->map(fn (SystemRole $r) => ['value' => $r->value, 'label' => $r->label(), 'color' => $r->color()])
+            ->values()
+            ->all();
+
         return array_merge(parent::share($request), [
             'csrf_token' => fn () => csrf_token(),
             // App identity (admin-editable via /settings, overlaid onto config).
@@ -54,15 +72,16 @@ class HandleInertiaRequests extends Middleware
                     'username' => $account->username,
                     'display_name' => $account->display_name,
                     'email' => $account->employee?->email,
-                    'role' => $account->role,
-                    'is_super_admin' => $account->isSuperAdmin(),
-                    'is_admin_tier' => $account->isAdminTier(),
+                    'role' => $displayAccount->role,
+                    'is_super_admin' => $displayAccount->isSuperAdmin(),
+                    'is_admin_tier' => $displayAccount->isAdminTier(),
                     // Resolved permission grants for this role (RBAC matrix);
                     // super_admin carries the wildcard ['*']. Frontend gates via
-                    // usePermission().can('module.action').
-                    'permissions' => $account->isSuperAdmin()
+                    // usePermission().can('module.action'). Khi đang "xem thử"
+                    // (view_as), tính theo role giả lập — không phải role thật.
+                    'permissions' => $displayAccount->isSuperAdmin()
                         ? ['*']
-                        : (array) (config('va_permissions.role_grants', [])[$account->role->value] ?? []),
+                        : (array) (config('va_permissions.role_grants', [])[$displayAccount->role->value] ?? []),
                     'employee' => $account->employee ? [
                         'id' => $account->employee->id,
                         'full_name' => $account->employee->full_name,
@@ -83,7 +102,18 @@ class HandleInertiaRequests extends Middleware
                 'url' => config('realtime.client_url'),
                 'websocket' => (bool) config('realtime.websocket'),
             ],
-            'nav' => $account ? NavigationBadges::decorate(Navigation::for($account), $account) : [],
+            'viewAs' => $viewAsRole ? [
+                'active' => true,
+                'role' => $viewAsRole->value,
+                'label' => $viewAsRole->label(),
+                'realRole' => $account->role->value,
+                'roleOptions' => $viewAsRoleOptions,
+            ] : [
+                'active' => false,
+                'canUse' => (bool) $account?->isSuperAdmin(),
+                'roleOptions' => $account?->isSuperAdmin() ? $viewAsRoleOptions : [],
+            ],
+            'nav' => $account ? NavigationBadges::decorate(Navigation::for($displayAccount), $displayAccount) : [],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

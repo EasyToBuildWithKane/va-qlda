@@ -41,7 +41,7 @@
 | Catalog modules | `app/Support/WorkspaceConfig/WorkspaceConfigCatalog.php` (+ onboard_steps) |
 | Hub cards | `WorkspaceHubAssembler` — status profile + readiness + checklist |
 | Insights / coverage | `WorkspaceHubInsights` |
-| Scope | `WorkspaceScopeResolver` — `department_code` từ `employee.meta` |
+| Scope | `WorkspaceScopeResolver` — PB của tôi: `meta.department_code` → pivot `department_member` → tên HRM / danh mục → `unit_code` (parent) |
 | Provision | `WorkspaceProfileProvisioner` — ensure + ensureMany |
 | Model | `App\Models\WorkspaceConfig\WorkspaceProfile`, `App\Models\DailyReport\DailyReportScoringConfig` |
 | Controllers | `WorkspaceConfigController`, `WorkspaceProfileController`, `DailyReportScoringConfigController` |
@@ -118,10 +118,9 @@ Child: xem `EVALUATION_CONFIG.md`. Transport: **Inertia**.
 
 | Path | Vai trò |
 |------|---------|
-| `Pages/WorkspaceConfig/Hub.vue` | Toolbar **Lọc** / **Cột** / Xuất + lưới thẻ + bulk + drawer + phân trang |
-| `WorkspaceConfigSummaryBar.vue` | KPI tổng / active / chưa kích hoạt / sẵn sàng / đang cấu hình / tiêu chí |
+| `Pages/WorkspaceConfig/Hub.vue` | Header hiện **phòng ban của bạn**; toolbar **Lọc** / **Cột** / Xuất + lưới thẻ + bulk + drawer + phân trang (không KPI strip) |
 | `WorkspaceInsightsBanner.vue` | Gợi ý vận hành (CTA bulk / lọc) |
-| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ phẳng (nền slate, không border/gradient), vạch accent + số metric; trường qua **Cột**; bấm thẻ = xem nhanh |
+| `WorkspaceProfileGrid.vue` + `WorkspaceProfileCard.vue` | Thẻ phẳng (nền slate, không border/gradient), vạch accent + số metric; nhãn **Phòng của bạn**; trường qua **Cột**; bấm thẻ = xem nhanh |
 | `WorkspaceProfileDrawer.vue` | Xem nhanh + notes + archive/restore / kích hoạt |
 | `useWorkspaceHubExport.js` | Excel Tong quan / Phong ban / Ma tran |
 | `Pages/WorkspaceConfig/Workspace/Show.vue` | Header gọn (mã PB + Kích hoạt/Tiêu chí) · strip KPI · checklist · **Menu sidebar PB** (`WorkspaceNavMenuPanel`) · notes · phân trang module khi > 5 |

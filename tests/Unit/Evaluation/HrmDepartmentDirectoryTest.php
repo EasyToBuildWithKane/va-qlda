@@ -164,6 +164,32 @@ class HrmDepartmentDirectoryTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_find_by_name_matches_code_and_strips_phong_prefix(): void
+    {
+        Http::fake([
+            'https://hrm.test/api/v1/org-units*' => Http::response([
+                'data' => [],
+                'meta' => ['cursor' => ['next' => null, 'count' => 0, 'per_page' => 100]],
+            ]),
+        ]);
+
+        Department::query()->create([
+            'code' => 'HCNS',
+            'name' => 'Hành Chính Nhân Sự',
+            'color' => 'slate',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+
+        $directory = app(HrmDepartmentDirectory::class);
+        $directory->forget();
+
+        $this->assertSame('HCNS', $directory->findByName('HCNS')['code'] ?? null);
+        $this->assertSame('HCNS', $directory->findByName('Phòng Hành Chính Nhân Sự')['code'] ?? null);
+        $this->assertSame('HCNS', $directory->findByName('hành chính nhân sự')['code'] ?? null);
+        $this->assertNull($directory->findByName('Phòng không tồn tại'));
+    }
+
     public function test_criterion_scope_labels(): void
     {
         $this->assertSame('Tiêu chí chung', EvaluationCriterionScope::General->label());

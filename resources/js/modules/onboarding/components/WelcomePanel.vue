@@ -22,7 +22,15 @@ const START_HINTS = [
 const props = defineProps({
     welcome: { type: Object, required: true },
     showActions: { type: Boolean, default: true },
+    /** stack = overlay mặc định; horizontal = preview settings — hai cột, gọn theo chiều cao */
+    layout: {
+        type: String,
+        default: 'stack',
+        validator: (v) => ['stack', 'horizontal'].includes(v),
+    },
 });
+
+const isHorizontal = computed(() => props.layout === 'horizontal');
 
 const emit = defineEmits(['dismiss', 'skip']);
 
@@ -78,10 +86,19 @@ const teamHeading = computed(() => {
     if (coworkerTotal.value <= 0) return 'Đồng nghiệp cùng đơn vị';
     return `Đồng nghiệp cùng đơn vị · ${coworkerTotal.value} người`;
 });
+
+const displayCoworkers = computed(() => {
+    const list = props.welcome?.coworkers ?? [];
+    if (!isHorizontal.value) return list;
+    return list.slice(0, 4);
+});
 </script>
 
 <template>
-  <div class="welcome-panel relative overflow-hidden rounded-[1.75rem] bg-white shadow-elevation-3 ring-1 ring-slate-200/80">
+  <div
+    class="welcome-panel relative overflow-hidden rounded-[1.75rem] bg-white shadow-elevation-3 ring-1 ring-slate-200/80"
+    :class="isHorizontal ? 'flex h-full min-h-0 flex-col md:flex-row' : ''"
+  >
     <button
       v-if="showActions"
       type="button"
@@ -95,7 +112,12 @@ const teamHeading = computed(() => {
       />
     </button>
 
-    <header class="relative overflow-hidden bg-gradient-to-br from-brand via-brand to-brand-700 px-6 py-7 sm:px-8 sm:py-8">
+    <header
+      class="relative shrink-0 overflow-hidden bg-gradient-to-br from-brand via-brand to-brand-700"
+      :class="isHorizontal
+        ? 'px-5 py-5 md:flex md:w-[34%] md:max-w-[17rem] md:flex-col md:justify-center md:py-6 lg:max-w-[19rem]'
+        : 'px-6 py-7 sm:px-8 sm:py-8'"
+    >
       <div
         class="pointer-events-none absolute inset-0"
         aria-hidden="true"
@@ -109,44 +131,78 @@ const teamHeading = computed(() => {
         />
       </div>
 
-      <div class="relative flex items-center gap-4 sm:gap-5">
+      <div
+        class="relative flex items-center gap-4 sm:gap-5"
+        :class="isHorizontal ? 'md:flex-col md:items-start md:gap-3' : ''"
+      >
         <img
           src="/images/congnghe/brand/vas-mascot-wave.png"
           alt="Linh vật VAS vẫy tay chào mừng"
           class="h-[4.5rem] w-auto shrink-0 object-contain drop-shadow-[0_12px_24px_rgba(154,0,54,0.35)] sm:h-24"
-          :class="reduced ? '' : 'animate-cn-float'"
+          :class="[
+            reduced ? '' : 'animate-cn-float',
+            isHorizontal ? 'md:h-20 md:w-auto lg:h-[4.5rem]' : '',
+          ]"
           decoding="async"
         >
 
         <div class="min-w-0 flex-1">
-          <p class="text-sm font-medium text-white/80">
+          <p
+            class="font-medium text-white/80"
+            :class="isHorizontal ? 'text-xs md:text-sm' : 'text-sm'"
+          >
             {{ timeGreeting }}
           </p>
-          <h1 class="mt-1 font-display text-[1.65rem] font-bold leading-tight tracking-tight text-white break-words sm:text-3xl">
+          <h1
+            class="mt-1 font-display font-bold leading-tight tracking-tight text-white break-words"
+            :class="isHorizontal
+              ? 'text-xl sm:text-2xl md:text-[1.35rem] lg:text-2xl'
+              : 'text-[1.65rem] sm:text-3xl'"
+          >
             {{ employeeName }}
           </h1>
-          <p class="mt-1.5 text-sm leading-snug text-white/80">
+          <p
+            class="mt-1.5 leading-snug text-white/80"
+            :class="isHorizontal ? 'text-xs md:text-[11px] lg:text-xs' : 'text-sm'"
+          >
             VA Workspace · Không gian làm việc VAschools
           </p>
         </div>
 
-        <span class="hidden shrink-0 rounded-full ring-2 ring-white/40 sm:inline-flex">
+        <span
+          class="hidden shrink-0 rounded-full ring-2 ring-white/40 sm:inline-flex"
+          :class="isHorizontal ? 'md:mt-1' : ''"
+        >
           <Avatar
             :name="employeeName"
             :src="welcome.employee_avatar"
-            :size="56"
+            :size="isHorizontal ? 48 : 56"
           />
         </span>
       </div>
     </header>
 
-    <div class="flex flex-col gap-5 px-6 py-6 sm:px-8 sm:py-7">
-      <p class="text-sm leading-relaxed text-slate-600">
+    <div
+      class="flex min-h-0 min-w-0 flex-col"
+      :class="isHorizontal
+        ? 'flex-1 justify-center gap-3 overflow-hidden px-4 py-4 sm:px-5 md:py-5 lg:gap-3.5'
+        : 'gap-5 px-6 py-6 sm:px-8 sm:py-7'"
+    >
+      <p
+        class="leading-relaxed text-slate-600"
+        :class="isHorizontal ? 'line-clamp-3 text-xs lg:text-[13px]' : 'text-sm'"
+      >
         {{ intro }}
       </p>
 
-      <dl class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div class="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+      <dl
+        class="grid shrink-0 gap-3"
+        :class="isHorizontal ? 'grid-cols-2 gap-2' : 'grid-cols-1 sm:grid-cols-2'"
+      >
+        <div
+          class="rounded-xl bg-slate-50 ring-1 ring-slate-100"
+          :class="isHorizontal ? 'px-3 py-2' : 'px-4 py-3'"
+        >
           <dt class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             <AppIcon
               name="department"
@@ -154,11 +210,17 @@ const teamHeading = computed(() => {
             />
             Phòng ban
           </dt>
-          <dd class="mt-1.5 text-sm font-semibold leading-snug text-slate-800 break-words">
+          <dd
+            class="mt-1 font-semibold leading-snug text-slate-800 break-words"
+            :class="isHorizontal ? 'text-xs line-clamp-2' : 'mt-1.5 text-sm'"
+          >
             {{ departmentName }}
           </dd>
         </div>
-        <div class="rounded-xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+        <div
+          class="rounded-xl bg-slate-50 ring-1 ring-slate-100"
+          :class="isHorizontal ? 'px-3 py-2' : 'px-4 py-3'"
+        >
           <dt class="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             <AppIcon
               name="briefcase"
@@ -166,44 +228,57 @@ const teamHeading = computed(() => {
             />
             Vai trò
           </dt>
-          <dd class="mt-1.5 text-sm font-semibold leading-snug text-slate-800 break-words">
+          <dd
+            class="mt-1 font-semibold leading-snug text-slate-800 break-words"
+            :class="isHorizontal ? 'text-xs' : 'mt-1.5 text-sm'"
+          >
             {{ roleLabel }}
             <span
               v-if="jobTitle"
-              class="mt-0.5 block text-xs font-medium text-slate-500 break-words"
+              class="mt-0.5 block font-medium text-slate-500 break-words"
+              :class="isHorizontal ? 'text-[10px] line-clamp-1' : 'text-xs'"
             >{{ jobTitle }}</span>
           </dd>
         </div>
       </dl>
 
-      <section aria-labelledby="welcome-team-heading">
+      <section
+        aria-labelledby="welcome-team-heading"
+        :class="isHorizontal ? 'min-h-0 shrink' : ''"
+      >
         <h2
           id="welcome-team-heading"
-          class="text-sm font-semibold text-slate-800"
+          class="font-semibold text-slate-800"
+          :class="isHorizontal ? 'text-xs' : 'text-sm'"
         >
           {{ teamHeading }}
         </h2>
 
         <ul
-          v-if="welcome.coworkers?.length"
-          class="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2"
+          v-if="displayCoworkers.length"
+          class="mt-2 grid gap-2"
+          :class="isHorizontal ? 'grid-cols-2 lg:grid-cols-4' : 'mt-3 grid-cols-1 sm:grid-cols-2'"
         >
           <li
-            v-for="person in welcome.coworkers"
+            v-for="person in displayCoworkers"
             :key="person.id"
-            class="flex items-start gap-2.5 rounded-xl px-1 py-0.5"
+            class="flex min-w-0 items-center gap-2 rounded-lg px-0.5"
+            :class="isHorizontal ? '' : 'items-start gap-2.5 rounded-xl px-1 py-0.5'"
           >
             <Avatar
               :name="person.name"
               :src="person.avatar"
-              :size="36"
+              :size="isHorizontal ? 28 : 36"
             />
             <div class="min-w-0 pt-0.5">
-              <p class="text-sm font-medium leading-snug text-slate-800 break-words">
+              <p
+                class="font-medium leading-snug text-slate-800 break-words"
+                :class="isHorizontal ? 'text-[11px] line-clamp-1' : 'text-sm'"
+              >
                 {{ person.name }}
               </p>
               <p
-                v-if="person.role_title"
+                v-if="person.role_title && !isHorizontal"
                 class="mt-0.5 text-xs leading-snug text-slate-500 break-words"
               >
                 {{ person.role_title }}
@@ -214,43 +289,64 @@ const teamHeading = computed(() => {
 
         <p
           v-else
-          class="mt-2 text-sm leading-relaxed text-slate-500"
+          class="mt-1.5 leading-relaxed text-slate-500"
+          :class="isHorizontal ? 'text-[11px] line-clamp-2' : 'mt-2 text-sm'"
         >
           Chưa có đồng nghiệp cùng đơn vị trên hệ thống.
         </p>
 
         <p
           v-if="extraCoworkers > 0"
-          class="mt-2 text-xs leading-relaxed text-slate-500"
+          class="mt-1 text-xs leading-relaxed text-slate-500"
+          :class="isHorizontal ? 'text-[10px]' : 'mt-2'"
         >
           và {{ extraCoworkers }} người khác trong cùng đơn vị
         </p>
       </section>
 
-      <section aria-labelledby="welcome-start-heading">
+      <section
+        aria-labelledby="welcome-start-heading"
+        class="shrink-0"
+      >
         <h2
           id="welcome-start-heading"
-          class="text-sm font-semibold text-slate-800"
+          class="font-semibold text-slate-800"
+          :class="isHorizontal ? 'text-xs' : 'text-sm'"
         >
           Bạn có thể bắt đầu với
         </h2>
-        <ol class="mt-3 space-y-2.5">
+        <ol
+          class="mt-2"
+          :class="isHorizontal
+            ? 'grid grid-cols-3 gap-2'
+            : 'mt-3 space-y-2.5'"
+        >
           <li
             v-for="hint in START_HINTS"
             :key="hint.title"
-            class="flex items-start gap-3"
+            class="flex min-w-0 items-start gap-2"
+            :class="isHorizontal ? 'flex-col gap-1.5' : 'gap-3'"
           >
-            <span class="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/10">
+            <span
+              class="grid shrink-0 place-items-center rounded-lg bg-brand/10 text-brand ring-1 ring-brand/10"
+              :class="isHorizontal ? 'h-7 w-7' : 'mt-0.5 h-8 w-8'"
+            >
               <AppIcon
                 :name="hint.icon"
-                :size="15"
+                :size="isHorizontal ? 13 : 15"
               />
             </span>
             <div class="min-w-0">
-              <p class="text-sm font-semibold text-slate-800">
+              <p
+                class="font-semibold text-slate-800"
+                :class="isHorizontal ? 'text-[11px] leading-tight' : 'text-sm'"
+              >
                 {{ hint.title }}
               </p>
-              <p class="mt-0.5 text-xs leading-relaxed text-slate-500">
+              <p
+                v-if="!isHorizontal"
+                class="mt-0.5 text-xs leading-relaxed text-slate-500"
+              >
                 {{ hint.text }}
               </p>
             </div>

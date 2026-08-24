@@ -243,8 +243,68 @@ class WorkspaceConfigHubTest extends TestCase
                 ->component('WorkspaceConfig/Hub')
                 ->has('workspaces', 1)
                 ->where('workspaces.0.department_code', 'HCNS')
+                ->where('workspaces.0.is_mine', true)
                 ->where('viewer.can_manage', false)
                 ->where('viewer.own_department_code', 'HCNS')
+                ->where('viewer.own_department_name', 'Hành Chính Nhân Sự')
+            );
+    }
+
+    public function test_member_resolves_department_from_name_without_code(): void
+    {
+        $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        $this->seedDepartment('CNTT', 'Công nghệ thông tin');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        $employee = Employee::factory()->create([
+            'meta' => [
+                'department_name' => 'Phòng Hành Chính Nhân Sự',
+            ],
+        ]);
+        $account = SystemAccount::factory()
+            ->role(SystemRole::Member)
+            ->forEmployee($employee)
+            ->create();
+
+        $this->actingAs($account, 'system')
+            ->get('/workspace-config')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Hub')
+                ->has('workspaces', 1)
+                ->where('workspaces.0.department_code', 'HCNS')
+                ->where('workspaces.0.is_mine', true)
+                ->where('viewer.own_department_code', 'HCNS')
+                ->where('viewer.own_department_name', 'Hành Chính Nhân Sự')
+            );
+    }
+
+    public function test_member_resolves_department_from_workspace_pivot(): void
+    {
+        $dept = $this->seedDepartment('HCNS', 'Hành Chính Nhân Sự');
+        $this->seedDepartment('CNTT', 'Công nghệ thông tin');
+        app(HrmDepartmentDirectory::class)->forget();
+
+        $employee = Employee::factory()->create(['meta' => null]);
+        $employee->departments()->attach($dept->id, [
+            'is_active' => true,
+            'joined_at' => now()->toDateString(),
+        ]);
+
+        $account = SystemAccount::factory()
+            ->role(SystemRole::Member)
+            ->forEmployee($employee)
+            ->create();
+
+        $this->actingAs($account, 'system')
+            ->get('/workspace-config')
+            ->assertOk()
+            ->assertInertia(fn ($page) => $page
+                ->component('WorkspaceConfig/Hub')
+                ->has('workspaces', 1)
+                ->where('workspaces.0.department_code', 'HCNS')
+                ->where('viewer.own_department_code', 'HCNS')
+                ->where('viewer.own_department_name', 'Hành Chính Nhân Sự')
             );
     }
 

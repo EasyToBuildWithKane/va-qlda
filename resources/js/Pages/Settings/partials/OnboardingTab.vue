@@ -141,7 +141,7 @@ async function resetForSelf() {
 <template>
   <div class="flex min-h-0 flex-1 flex-col gap-3">
     <form
-      class="flex shrink-0 flex-wrap items-center gap-2"
+      class="flex shrink-0 flex-nowrap items-center gap-2 overflow-x-auto pb-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       @submit.prevent="save"
     >
       <span class="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200/80 bg-white px-3 text-xs font-semibold text-slate-700">
@@ -214,15 +214,15 @@ async function resetForSelf() {
     </form>
 
     <section
-      class="flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-brand/[0.04] p-4"
+      class="flex min-h-0 flex-1 items-stretch justify-center overflow-hidden rounded-2xl border border-slate-200/80 bg-gradient-to-br from-slate-50 via-white to-brand/[0.04] p-3 sm:p-4"
       aria-label="Xem trước màn hình chào mừng"
     >
-      <div class="w-full max-w-3xl max-h-full overflow-y-auto">
-        <WelcomePanel
-          :welcome="previewData"
-          :show-actions="false"
-        />
-      </div>
+      <WelcomePanel
+        class="h-full min-h-0 w-full max-w-6xl"
+        layout="horizontal"
+        :welcome="previewData"
+        :show-actions="false"
+      />
     </section>
   </div>
 </template>

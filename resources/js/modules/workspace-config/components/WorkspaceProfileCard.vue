@@ -143,9 +143,11 @@ function onCardClick(e) {
     :class="[
       selected
         ? 'bg-brand/[0.07]'
-        : workspace.status === 'missing'
-          ? 'bg-slate-100/70 hover:bg-slate-100'
-          : 'bg-slate-50 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgb(15_23_42/0.18)]',
+        : workspace.is_mine
+          ? 'bg-brand/[0.05] hover:bg-brand/[0.08]'
+          : workspace.status === 'missing'
+            ? 'bg-slate-100/70 hover:bg-slate-100'
+            : 'bg-slate-50 hover:bg-white hover:shadow-[0_8px_24px_-12px_rgb(15_23_42/0.18)]',
     ]"
     @click="onCardClick"
   >
@@ -178,6 +180,10 @@ function onCardClick(e) {
               </Link>
               <p class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[12px]">
                 <span class="font-mono font-medium text-slate-500">{{ workspace.department_code }}</span>
+                <span
+                  v-if="workspace.is_mine"
+                  class="rounded-md bg-brand/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand"
+                >Phòng của bạn</span>
                 <span
                   class="inline-flex items-center gap-1.5 font-medium"
                   :class="statusTone[workspace.status] ?? statusTone.missing"
