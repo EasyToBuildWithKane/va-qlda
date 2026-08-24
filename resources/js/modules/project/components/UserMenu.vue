@@ -1,7 +1,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import { Link, router } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import AppIcon from '@/Components/AppIcon.vue';
+import Modal from '@/Components/Ui/Modal.vue';
 import { useDialog } from '@/composables/useDialog';
 
 const props = defineProps({
@@ -11,9 +12,48 @@ const props = defineProps({
 
 const emit = defineEmits(['open-notifications']);
 const dialog = useDialog();
+const page = usePage();
 
 const menuOpen = ref(false);
 const menuRef = ref(null);
+
+// "Xem giao diện theo vai trò" — chỉ hiện khi tài khoản thật là super_admin và
+// chưa đang xem thử (thoát qua banner ở AppLayout).
+const viewAs = computed(() => page.props.viewAs);
+const canUseViewAs = computed(() => viewAs.value?.active !== true && viewAs.value?.canUse === true);
+const viewAsPickerOpen = ref(false);
+const viewAsSubmitting = ref(false);
+
+// Map tĩnh — Tailwind JIT không nhận diện được class ghép chuỗi động
+// (`bg-${color}-500`), nên liệt kê đủ 4 màu SystemRole::color() có thể trả về.
+const roleDotClass = {
+    fuchsia: 'bg-fuchsia-500',
+    rose: 'bg-rose-500',
+    violet: 'bg-violet-500',
+    sky: 'bg-sky-500',
+    slate: 'bg-slate-500',
+};
+
+function openViewAsPicker() {
+    closeMenu();
+    viewAsPickerOpen.value = true;
+}
+
+function closeViewAsPicker() {
+    viewAsPickerOpen.value = false;
+}
+
+function chooseViewAsRole(role) {
+    if (viewAsSubmitting.value) return;
+    viewAsSubmitting.value = true;
+    router.post('/view-as', { role }, {
+        preserveScroll: true,
+        onFinish: () => {
+            viewAsSubmitting.value = false;
+            closeViewAsPicker();
+        },
+    });
+}
 
 const initials = computed(() => {
     const name = (props.user?.display_name || props.user?.name || 'Người dùng').trim();
@@ -214,6 +254,33 @@ onBeforeUnmount(() => {
               class="shrink-0 text-slate-300"
             />
           </button>
+
+          <button
+            v-if="canUseViewAs"
+            type="button"
+            role="menuitem"
+            class="flex w-full items-center gap-3 rounded-xl px-2.5 py-2.5 text-left transition-colors
+                   hover:bg-slate-50
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/20"
+            @click="openViewAsPicker"
+          >
+            <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50">
+              <AppIcon
+                name="eye"
+                :size="18"
+                class="text-amber-600"
+              />
+            </div>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-semibold text-slate-800">Xem giao diện theo vai trò</span>
+              <span class="mt-0.5 block text-xs text-slate-500">Xem thử header/menu như Admin, Trưởng nhóm, Thành viên…</span>
+            </span>
+            <AppIcon
+              name="chevron-right"
+              :size="16"
+              class="shrink-0 text-slate-300"
+            />
+          </button>
         </div>
 
         <!-- Đăng xuất -->
@@ -247,5 +314,40 @@ onBeforeUnmount(() => {
         </div>
       </div>
     </transition>
+
+    <Modal
+      :show="viewAsPickerOpen"
+      title="Xem giao diện theo vai trò"
+      max-width="max-w-md"
+      @close="closeViewAsPicker"
+    >
+      <p class="mb-4 text-sm leading-relaxed text-slate-500">
+        Chọn một vai trò để xem thử header và menu sẽ hiển thị ra sao. Mọi thao tác
+        vẫn dùng quyền Super Admin thật của bạn — đây chỉ là xem trước giao diện.
+      </p>
+      <div class="space-y-2">
+        <button
+          v-for="opt in viewAs?.roleOptions ?? []"
+          :key="opt.value"
+          type="button"
+          :disabled="viewAsSubmitting"
+          class="flex w-full items-center gap-3 rounded-xl border border-slate-200 px-3.5 py-3 text-left transition-colors
+                 hover:border-brand/40 hover:bg-brand/5
+                 disabled:cursor-not-allowed disabled:opacity-60"
+          @click="chooseViewAsRole(opt.value)"
+        >
+          <span
+            class="h-2.5 w-2.5 shrink-0 rounded-full"
+            :class="roleDotClass[opt.color] ?? roleDotClass.slate"
+          />
+          <span class="min-w-0 flex-1 text-sm font-semibold text-slate-800">{{ opt.label }}</span>
+          <AppIcon
+            name="chevron-right"
+            :size="16"
+            class="shrink-0 text-slate-300"
+          />
+        </button>
+      </div>
+    </Modal>
   </div>
 </template>

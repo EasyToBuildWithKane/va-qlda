@@ -24,7 +24,7 @@ const props = defineProps({
     },
     viewer: {
         type: Object,
-        default: () => ({ can_manage: false, own_department_code: null }),
+        default: () => ({ can_manage: false, own_department_code: null, own_department_name: null }),
     },
 });
 

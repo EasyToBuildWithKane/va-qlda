@@ -13,7 +13,7 @@ import WelcomeScreen from '@/modules/onboarding/components/WelcomeScreen.vue';
 import { useToast } from '@/shared/composables/useToast';
 import { useNotifications } from '@/composables/useNotifications';
 import { APP_SIDEBAR_KEY, useAppSidebarContext } from '@/composables/useAppSidebar';
-import { usePage } from '@inertiajs/vue3';
+import { usePage, router } from '@inertiajs/vue3';
 
 const notificationCenter = useNotifications();
 provide('notifications', notificationCenter);
@@ -104,6 +104,11 @@ function expandSidebar() {
 }
 
 const user = computed(() => page.props.auth?.user);
+const viewAs = computed(() => page.props.viewAs);
+
+function exitViewAs() {
+    router.delete('/view-as', { preserveScroll: true });
+}
 
 const currentDate = computed(() =>
     new Date().toLocaleDateString('vi-VN', {
@@ -171,6 +176,27 @@ const currentDate = computed(() =>
     </template>
 
     <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div
+        v-if="viewAs?.active"
+        class="flex h-9 shrink-0 items-center justify-center gap-2 bg-amber-400 px-3 text-center text-[12.5px] font-medium text-amber-950"
+      >
+        <AppIcon
+          name="eye"
+          :size="14"
+          class="shrink-0"
+        />
+        <span class="truncate">
+          Đang xem giao diện như vai trò: <strong>{{ viewAs.label }}</strong> — thao tác vẫn dùng quyền thật của bạn.
+        </span>
+        <button
+          type="button"
+          class="ml-1 shrink-0 rounded-md bg-amber-950/10 px-2 py-0.5 font-semibold transition-colors hover:bg-amber-950/20"
+          @click="exitViewAs"
+        >
+          Thoát xem thử
+        </button>
+      </div>
+
       <slot name="topbar">
         <header class="h-14 shrink-0 border-b border-slate-200/80 bg-white px-3 shadow-[0_1px_4px_0_rgb(0,0,0,0.04)] sm:px-5">
           <div class="flex h-full items-center gap-3">

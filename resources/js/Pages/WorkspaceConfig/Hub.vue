@@ -16,7 +16,6 @@ import { useClientPagination } from '@/shared/composables/useClientPagination';
 import { useVisibleFilterControls } from '@/shared/composables/useVisibleFilterControls';
 import { useVisibleColumns } from '@/shared/composables/useVisibleColumns';
 import { useDialog } from '@/composables/useDialog';
-import WorkspaceConfigSummaryBar from '@/modules/workspace-config/components/WorkspaceConfigSummaryBar.vue';
 import WorkspaceProfileGrid from '@/modules/workspace-config/components/WorkspaceProfileGrid.vue';
 import WorkspaceInsightsBanner from '@/modules/workspace-config/components/WorkspaceInsightsBanner.vue';
 import WorkspaceProfileDrawer from '@/modules/workspace-config/components/WorkspaceProfileDrawer.vue';
@@ -53,6 +52,7 @@ const props = defineProps({
         default: () => ({
             can_manage: false,
             own_department_code: null,
+            own_department_name: null,
             is_super_admin: false,
         }),
     },
@@ -138,20 +138,26 @@ const filteredWorkspaces = computed(() => {
     const statusRank = (s) => ({ active: 0, draft: 1, missing: 2, archived: 3 }[s] ?? 4);
     const readyRank = (s) => ({ ready: 0, partial: 1, empty: 2 }[s] ?? 3);
 
+    const mineRank = (ws) => (ws.is_mine ? 0 : 1);
+
     list = [...list].sort((a, b) => {
         if (sortBy.value === 'name') {
-            return a.department_name.localeCompare(b.department_name, 'vi');
+            return mineRank(a) - mineRank(b)
+                || a.department_name.localeCompare(b.department_name, 'vi');
         }
         if (sortBy.value === 'criteria') {
-            return (b.criteria_count - a.criteria_count)
+            return mineRank(a) - mineRank(b)
+                || (b.criteria_count - a.criteria_count)
                 || a.department_name.localeCompare(b.department_name, 'vi');
         }
         if (sortBy.value === 'readiness') {
-            return (readyRank(a.readiness?.key) - readyRank(b.readiness?.key))
+            return mineRank(a) - mineRank(b)
+                || (readyRank(a.readiness?.key) - readyRank(b.readiness?.key))
                 || (b.readiness?.percent - a.readiness?.percent)
                 || a.department_name.localeCompare(b.department_name, 'vi');
         }
-        return (statusRank(a.status) - statusRank(b.status))
+        return mineRank(a) - mineRank(b)
+            || (statusRank(a.status) - statusRank(b.status))
             || (readyRank(a.readiness?.key) - readyRank(b.readiness?.key))
             || a.department_name.localeCompare(b.department_name, 'vi');
     });
@@ -181,19 +187,6 @@ const selectedEnsureable = computed(() => selectedCodes.value.filter((code) => {
     const ws = props.workspaces.find((w) => w.department_code === code);
     return ws?.can_ensure;
 }));
-
-function onQuickFilter(payload) {
-    localFilters.status = payload?.status ?? '';
-    localFilters.readiness = payload?.readiness ?? '';
-    if (payload?.status || payload?.readiness) {
-        visibleFilters.value = {
-            ...visibleFilters.value,
-            status: Boolean(payload?.status) || visibleFilters.value.status,
-            readiness: Boolean(payload?.readiness) || visibleFilters.value.readiness,
-        };
-        persistVisibleFilters();
-    }
-}
 
 function setSortBy(mode) {
     sortBy.value = mode;
@@ -305,9 +298,26 @@ onBeforeUnmount(() => {
     document.removeEventListener('mousedown', onToolbarClickOutside);
 });
 
+const ownDepartmentLabel = computed(() => {
+    const name = (props.viewer.own_department_name || '').trim();
+    const code = (props.viewer.own_department_code || '').trim();
+    if (name && code) return `${name} (${code})`;
+    return name || code || '';
+});
+
+const headerSubtitle = computed(() => {
+    if (ownDepartmentLabel.value) {
+        return `Phòng ban của bạn: ${ownDepartmentLabel.value}`;
+    }
+    if (props.viewer.can_manage) {
+        return 'Bạn có quyền xem mọi phòng ban';
+    }
+    return 'Chưa xác định phòng ban từ HRM hoặc danh mục nội bộ';
+});
+
 const emptyHint = computed(() => {
-    if (!props.viewer.can_manage && !props.viewer.own_department_code) {
-        return 'Tài khoản chưa gắn phòng ban HRM — không thể mở workspace phòng ban.';
+    if (!props.viewer.can_manage && !ownDepartmentLabel.value) {
+        return 'Tài khoản chưa gắn phòng ban HRM. Liên hệ quản trị để cập nhật hồ sơ.';
     }
     if (props.workspaces.length === 0) {
         return 'Chưa có phòng ban nào trong danh mục hoặc bạn không được phép xem.';
@@ -323,20 +333,12 @@ const emptyHint = computed(() => {
     <template #header>
       <PageHeader
         title="Cấu hình workspace"
+        :subtitle="headerSubtitle"
         icon="system-config"
         icon-color="brand"
-        :badge="summary.total || null"
+        :badge="viewer.own_department_code || null"
       />
     </template>
-
-    <WorkspaceConfigSummaryBar
-      class="mb-5"
-      :summary="summary"
-      :active-status="localFilters.status"
-      :active-readiness="localFilters.readiness"
-      :can-manage="viewer.can_manage"
-      @quick-filter="onQuickFilter"
-    />
 
     <WorkspaceInsightsBanner
       :insights="insights"

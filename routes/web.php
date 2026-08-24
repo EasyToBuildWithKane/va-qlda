@@ -39,6 +39,7 @@ Route::middleware(['auth'])->group(function () {
         'settings',          // cấu hình hệ thống (super-admin)
         'workspace-config',  // cấu hình workspace hub + đánh giá (super-admin)
         'comments',          // bình luận đa hình + realtime token
+        'view-as',           // xem giao diện theo vai trò (super-admin)
     ] as $partial) {
         require __DIR__."/web/{$partial}.php";
     }

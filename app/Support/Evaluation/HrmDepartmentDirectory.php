@@ -61,6 +61,32 @@ final class HrmDepartmentDirectory
     }
 
     /**
+     * Khớp tên phòng/tổ (không phân biệt hoa thường, bỏ tiền tố «Phòng/Khối/Ban»).
+     *
+     * @return array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}|null
+     */
+    public function findByName(string $name): ?array
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return null;
+        }
+
+        $normalized = $this->normalizeLabel($name);
+
+        foreach ($this->all() as $row) {
+            if (strcasecmp((string) $row['code'], $name) === 0) {
+                return $row;
+            }
+            if ($this->normalizeLabel((string) $row['name']) === $normalized) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Phòng / khối (không gồm tổ/bộ phận).
      *
      * @return list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>
@@ -259,5 +285,14 @@ final class HrmDepartmentDirectory
         $slug = preg_replace('/[^A-Z0-9\-_]/u', '', $slug) ?? '';
 
         return $slug !== '' ? $slug : 'DEPT-UNKNOWN';
+    }
+
+    private function normalizeLabel(string $value): string
+    {
+        $value = mb_strtolower(trim($value), 'UTF-8');
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+        $value = preg_replace('/^(phòng|phong|khối|khoi|ban)\s+/u', '', $value) ?? $value;
+
+        return $value;
     }
 }

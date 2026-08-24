@@ -37,7 +37,9 @@ class WorkspaceConfigController extends Controller
         abort_unless($this->scope->canViewHub($user), 403);
 
         $canManage = $this->scope->canManageAll($user);
-        $ownCode = $this->scope->ownDepartmentCode($user);
+        $own = $this->scope->ownDepartment($user);
+        $ownCode = is_array($own) && filled($own['code'] ?? null) ? (string) $own['code'] : null;
+        $ownName = is_array($own) && filled($own['name'] ?? null) ? (string) $own['name'] : null;
         $includeArchived = $canManage && $request->boolean('include_archived');
 
         $profiles = WorkspaceProfile::query()
@@ -61,13 +63,7 @@ class WorkspaceConfigController extends Controller
             ->mapWithKeys(static fn (string $code): array => [strtolower($code) => true])
             ->all();
 
-        $directory = $canManage
-            ? $this->departments->all()
-            : array_values(array_filter(
-                $this->departments->all(),
-                static fn (array $d): bool => $ownCode !== null
-                    && strcasecmp($d['code'], $ownCode) === 0,
-            ));
+        $directory = $this->directoryForViewer($canManage, $ownCode, $ownName);
 
         $workspaces = [];
         foreach ($directory as $dept) {
@@ -80,7 +76,7 @@ class WorkspaceConfigController extends Controller
                 $profile = null;
             }
 
-            $workspaces[] = $this->assembler->card(
+            $card = $this->assembler->card(
                 $dept,
                 $profile,
                 $criteriaCounts->all(),
@@ -91,6 +87,9 @@ class WorkspaceConfigController extends Controller
                 $scoringConfigured,
                 $formCount,
             );
+            $card['is_mine'] = $ownCode !== null
+                && strcasecmp((string) $card['department_code'], $ownCode) === 0;
+            $workspaces[] = $card;
         }
 
         usort($workspaces, static function (array $a, array $b): int {
@@ -107,7 +106,10 @@ class WorkspaceConfigController extends Controller
                 default => 2,
             };
 
-            return ($rank($a['status']) <=> $rank($b['status']))
+            $mine = static fn (array $w): int => ($w['is_mine'] ?? false) ? 0 : 1;
+
+            return ($mine($a) <=> $mine($b))
+                ?: ($rank($a['status']) <=> $rank($b['status']))
                 ?: ($readyRank($a['readiness']['key'] ?? 'empty') <=> $readyRank($b['readiness']['key'] ?? 'empty'))
                 ?: strcasecmp($a['department_name'], $b['department_name']);
         });
@@ -147,6 +149,7 @@ class WorkspaceConfigController extends Controller
                 'is_super_admin' => $user->isSuperAdmin(),
                 'can_manage' => $canManage,
                 'own_department_code' => $ownCode,
+                'own_department_name' => $ownName,
             ],
             'statusOptions' => array_merge(
                 WorkspaceProfileStatus::options(),
@@ -158,5 +161,52 @@ class WorkspaceConfigController extends Controller
                 ['value' => 'empty', 'label' => 'Chưa có nội dung'],
             ],
         ]);
+    }
+
+    /**
+     * Super-admin: toàn bộ danh mục. User thường: đúng PB của mình (kể cả khi
+     * danh mục HRM chưa có mã — vẫn hiện 1 thẻ từ hồ sơ).
+     *
+     * @return list<array{code:string, name:string, local_department_id:int|null, source:string, type:string, parent_code:string|null, hrm_uuid?:string|null}>
+     */
+    private function directoryForViewer(bool $canManage, ?string $ownCode, ?string $ownName): array
+    {
+        $all = $this->departments->all();
+
+        if ($canManage) {
+            return $all;
+        }
+
+        if ($ownCode !== null) {
+            $matched = array_values(array_filter(
+                $all,
+                static fn (array $d): bool => strcasecmp($d['code'], $ownCode) === 0,
+            ));
+            if ($matched !== []) {
+                return $matched;
+            }
+        }
+
+        if ($ownName !== null) {
+            $byName = $this->departments->findByName($ownName);
+            if ($byName !== null) {
+                return [$byName];
+            }
+        }
+
+        if ($ownCode !== null || $ownName !== null) {
+            $code = $ownCode ?? $ownName;
+
+            return [[
+                'code' => (string) $code,
+                'name' => $ownName ?? (string) $code,
+                'local_department_id' => null,
+                'source' => 'employee',
+                'type' => 'department',
+                'parent_code' => null,
+            ]];
+        }
+
+        return [];
     }
 }

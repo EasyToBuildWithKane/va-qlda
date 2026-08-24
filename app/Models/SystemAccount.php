@@ -109,4 +109,17 @@ class SystemAccount extends Authenticatable
 
         return Permissions::roleAllows($this->role, $permission);
     }
+
+    /**
+     * Bản sao chỉ đổi role — dùng để dựng nav/permissions "xem thử" (View As) mà
+     * không đụng tới bản ghi/authenticated instance thật. KHÔNG dùng kết quả này
+     * để authorize bất cứ hành động ghi dữ liệu nào.
+     */
+    public function asRole(SystemRole $role): self
+    {
+        $clone = clone $this;
+        $clone->role = $role;
+
+        return $clone;
+    }
 }
