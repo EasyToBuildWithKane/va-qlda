@@ -71,6 +71,12 @@
 
     html {
         @apply antialiased;
+
+        /* Scale toàn bộ giao diện xuống 80% (tương đương Ctrl– trên trình
+           duyệt) cho MỌI người dùng. zoom (không dùng transform: scale) để
+           không phá position: fixed / sticky (modal, dropdown, sidebar). */
+        --ui-zoom-global: 0.8;
+        zoom: var(--ui-zoom-global);
     }
 
     body {
